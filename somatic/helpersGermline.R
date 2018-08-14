@@ -94,13 +94,14 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
   cnvsToOutput <- matrix(0, nrow=0, ncol=6)
   if (nrow(found_CNVs) > 0) {
     for (s in 1:nrow(found_CNVs)) {
-      CNV_name <- paste(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], "CN:", vector_of_states[found_CNVs[s,4]], "-2ln(loglik):", found_CNVs[s,1])
+      CNV_name <- paste(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], "CN:", vector_of_states[found_CNVs[s,4]], "-2ln(loglik):", found_CNVs[s,1], 
+                        ", number of regions:", found_CNVs[s,3] - found_CNVs[s,2] + 1 ,
+                        ", length:", toyBedFile[found_CNVs[s,3],3] - toyBedFile[found_CNVs[s,2],2])
       CNV_name_to_write <- paste(colnames(toyLogFoldChange)[sam_no],  chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], "CN",vector_of_states[found_CNVs[s,4]], sep="_")
 
       
       vectorOfGeneNames = c()
       genesThatHasToBeSeparated = unique(toyBedFile[found_CNVs[s,2]:found_CNVs[s,3],5])
-      print(genesThatHasToBeSeparated)
       for (i in 1:length(genesThatHasToBeSeparated)) {
         vectorOfGeneNames = c(vectorOfGeneNames, unlist(strsplit(genesThatHasToBeSeparated[i], split=",")))
       }
@@ -109,12 +110,10 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
         vectorOfGeneNamesTrimmed = c(vectorOfGeneNamesTrimmed,trimws(elem) )
       }
       annotationGenes <- paste(unique(vectorOfGeneNamesTrimmed), collapse=",")
-      print(annotationGenes)
       CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], vector_of_states[found_CNVs[s,4]], -1 * found_CNVs[s,1], annotationGenes), nrow=1)
-      print(CNVtoOut)
       cnvsToOutput = rbind(cnvsToOutput, CNVtoOut)
       
-      length_of_repr <- 500
+      length_of_repr <- 1000
       
 
       st <- found_CNVs[s,2]
@@ -122,32 +121,41 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       
       pr = T
       if (pr) {
-        png(filename=paste0(outputFolder, "/", paste0(CNV_name_to_write, ".png")), type = "cairo", width = 1024, height = 640)
+        plot_st <- max(1,st - length_of_repr)
+        plot_fn <- min(length(toyLogFoldChange), fn + length_of_repr)
+        png(filename=paste0(outputFolder, "/", paste0(CNV_name_to_write, ".png")), type = "cairo", width = 1536, height = 640)
 		#bitmap(filename=paste0(outputFolder, "/", paste0(CNV_name_to_write, ".png")) ,width = 1024, height = 640, units = "px" )
-        print(CNV_name_to_write)
-        print(paste0(outputFolder, CNV_name_to_write))
+
         
 
-        plot(toyLogFoldChange, main=CNV_name, ylab="Copy Number", xlab=(paste("CNV within Chromosome Arm" )),
-             ylim=c(0, 3), cex=toySizesOfPointsFromLocalSds, yaxt='n')
+        plot(toyLogFoldChange[plot_st:plot_fn], main=CNV_name, ylab="Copy Number", xlab=(paste("CNV within Chromosome Arm" )),
+             ylim=c(0, 3), cex=toySizesOfPointsFromLocalSds[plot_st:plot_fn], yaxt='n')
         
         axis(side = 2, at = sqrt(cn_states/2), labels = cn_states)
-        abline(v=c(found_CNVs[s,2], found_CNVs[s,3]), col="red")
-        
+        abline(v=c(st - plot_st, st - plot_st + fn - st), col="red")
+        #text(x = (st - 2 * plot_st + fn) / 2, y = (max(toyLogFoldChange[st:fn]) + 0.1), pos=ifelse(found_CNVs[s,4] > 2, 3, 1), 
+        #     labels=c(paste("Genes affected:", paste(unique(bedFile[st:fn, 5]), collapse=", " ))), cex=2,
+        #     family = "mono")
+        #legend(x = (st - 2 * plot_st + fn) / 2, y = (max(toyLogFoldChange[st:fn]) + 0.1), 
+        #       legend=c(paste("Genes affected:", paste(unique(bedFile[st:fn, 5]), collapse=", " ))), cex=2)
         
         
         abline(h=sqrt(cn_states/2),lty=2,col=colours,lwd=3)
-        points(found_CNVs[s,2]:found_CNVs[s,3], toyLogFoldChange[found_CNVs[s,2]:found_CNVs[s,3]],col="black", pch=21,bg=colours[found_CNVs[s,4]], cex=toySizesOfPointsFromLocalSds[found_CNVs[s,2]:found_CNVs[s,3]])
+
+        points((st - plot_st):(st - plot_st + fn - st), toyLogFoldChange[st:fn],col="black", pch=21,bg=colours[found_CNVs[s,4]], cex=toySizesOfPointsFromLocalSds[found_CNVs[s,2]:found_CNVs[s,3]])
+        
         
         ### EACH POINTS WITH DISTANCE > 10 MB WILL BE SEPARATED BY VERTICAL LINE
         distanceBetweenPoints = 10 ** 6
         for (i in 2:nrow(toyBedFile)) {
           if (toyBedFile[i,2] - toyBedFile[i - 1,2] > distanceBetweenPoints) {
-            abline(v = i - 0.5, lty=2, col="grey")
+            abline(v = i - 0.5 - plot_st, lty=2, col="grey")
           }
         }
         
-        
+        text(x = (st - 2 * plot_st + fn) / 2, y = (max(toyLogFoldChange[max(st - 50, plot_st):min(fn + 50, plot_fn)]) + 0.1), pos=ifelse(found_CNVs[s,4] > 2, 3, 1), 
+             labels=c(paste("Genes affected:", paste(unique(bedFile[st:fn, 5]), collapse=", " ))), cex=2,
+             family = "mono")
         dev.off()
       }
 

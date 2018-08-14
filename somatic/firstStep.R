@@ -26,26 +26,52 @@ option_list = list(
               help="folder where you put script", metavar="character"),
   
   make_option(c("-r", "--reanalyseCohort"), type="logical", default=F, 
-              help="if T, reanalyses whole cohort [default= %default]", metavar="character")
+              help="if T, reanalyses whole cohort [default= %default]", metavar="character"),
+  
+  make_option(c("-sg", "--scoreG"), type="double", default="60", 
+              help="minimum threshold for significance germline variants", metavar="character"),
+  
+  make_option(c("-lg", "--lengthG"), type="double", default="3", 
+              help="minimum threshold for length of germline variants", metavar="character"),
+  
+  make_option(c("-ss", "--scoreS"), type="double", default="60", 
+              help="minimum threshold for significance somatic variants", metavar="character"),
+  
+  make_option(c("-ls", "--lengthS"), type="double", default="5", 
+              help="minimum threshold for length of somatic variants", metavar="character"),
+  
+  make_option(c("-mnaxnumg", "--maxNumGermCNVs"), type="double", default="100", 
+              help="maximum number of germline CNVs allowed (increase thresholds if does not meet criteria)", metavar="character"),
+  
+  make_option(c("-mnaxnums", "--maxNumSomCNAs"), type="double", default="100", 
+              help="maximum number of somatic CNAs allowed (increase thresholds if does not meet criteria)", metavar="character"),
+  
+  make_option(c("-mnaxnumit", "--maxNumIter"), type="double", default="3", 
+              help="maximum number of iterations of variant calling", metavar="character")
 ); 
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
 ### TESTING PART
-#opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v4.annotated.bed"
+opt$bed = "/Users/gdemidov/Tuebingen/clinCNV_dev/annotated.ssHAEv6_2017_01_05.bed"
 #opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/tumor.cov"
-#opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/normal.cov"
-#opt$colNum = 4
+opt$normal = "/Users/gdemidov/Tuebingen/clinCNV_dev/normal.txt"
+opt$colNum = 4
 #opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairs.txt"
-#opt$out = "/Users/gdemidov/Tuebingen/pipelineTumorAnalysis/"
-#opt$folderWithScript = "/Users/gdemidov/Tuebingen/pipelineTumorAnalysis"
+opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
+opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic"
 #opt$reanalyseCohort = T
 
 if (!dir.exists(opt$out)) {
   dir.create(opt$out)
 }
 
+framework = "germline"
+if (!is.null(opt$tumor)) {
+  print("Tumor file was provided. Framework is switched to somatic.")
+  framework = "somatic"
+}
 
 
 ### PART WITH LIBRARIES
@@ -67,27 +93,34 @@ registerDoParallel(cl)
 
 setwd(opt$folderWithScript)
 bedFile <- read.table(opt$bed, stringsAsFactors = F, sep="\t")
-normal <- read.table(opt$normal, header=T, stringsAsFactors = F)
-tumor <- read.table(opt$tumor, header=T, stringsAsFactors = F)
-
-normal <- normal[order(normal$X.chr, as.numeric(normal$start)),]
-tumor <- tumor[order(tumor$X.chr, as.numeric(tumor$start)),]
 colnames(bedFile) <- c("chr.X", "start", "end", "gc")
 bedFile <- bedFile[order(bedFile$chr.X, as.numeric(bedFile$start)),]
-
-
 
 bedFile[,4] <- round(as.numeric(as.character(bedFile[,4])), digits = 2)
 
 
+normal <- read.table(opt$normal, header=T, stringsAsFactors = F)
+normal <- normal[order(normal$X.chr, as.numeric(normal$start)),]
 normal <- as.matrix(normal[,opt$colNum:ncol(normal)])
-tumor <- as.matrix(tumor[,opt$colNum:ncol(tumor)])
+
+if (framework == "somatic") {
+  tumor <- read.table(opt$tumor, header=T, stringsAsFactors = F)
+  tumor <- tumor[order(tumor$X.chr, as.numeric(tumor$start)),]
+  tumor <- as.matrix(tumor[,opt$colNum:ncol(tumor)])
+}
+
+
+
+
+
+
 
 medians <- apply(sqrt(normal), 1, median)
 rowsToRemove <- which(medians < 0.2)
 bedFile <- bedFile[-rowsToRemove,]
 normal <- normal[-rowsToRemove,]
-tumor <- tumor[-rowsToRemove,]
+if (framework == "somatic")
+  tumor <- tumor[-rowsToRemove,]
 
 ### GC CONTENT NORMALIZATION
 setwd(opt$folderWithScript)
@@ -96,9 +129,12 @@ source("generalHelpers.R")
 
 lst <- gc_and_sample_size_normalise(bedFile, normal)
 normal <- lst[[1]]
-lst <- gc_and_sample_size_normalise(bedFile, tumor)
-tumor <- lst[[1]]
 bedFile <- lst[[2]]
+if (framework == "somatic") {
+  lst <- gc_and_sample_size_normalise(bedFile, tumor)
+  tumor <- lst[[1]]
+  bedFile <- lst[[2]]
+}
 
 
 ### EXTRACTING INFORMATION FROM BED
@@ -117,12 +153,30 @@ coverage.normalised = sweep(coverage, 1, medians, FUN="/")
 coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]
 
 
-sds <- apply(coverage.normalised, 1, Sn)
-
-sdsOfGermlineSamples <- apply(coverage.normalised, 2, determineSDsOfGermlineSample)
 
 
 sdsOfProbes <- sapply(1:nrow(coverage.normalised), function(i) {determineSDsOfGermlineProbe(coverage.normalised[i,], i)})
+
+# In exome seq it is often the case that some hypervariable regions cause false positive calls.
+# We remove all probes that look suspicious to us
+# Moreover - probes with huge variability does not allow detection of CNVs and are useless
+threshold <- min(quantile(sdsOfProbes, 0.99), 0.5)
+probesToRemove <- which(sdsOfProbes > threshold)
+coverage.normalised <- coverage.normalised[-probesToRemove,]
+bedFile <- bedFile[-probesToRemove,]
+sdsOfProbes <- sdsOfProbes[-probesToRemove]
+
+
+
+
+
+
+autosomes <- which(!bedFile[,1] %in% c("chrX", "chrY", "X", "Y"))
+sdsOfGermlineSamples <- apply(coverage.normalised[autosomes,], 2, determineSDsOfGermlineSample)
+
+
+
+
 
 #locationsShiftedLogFoldChanges <- sweep(matrixOfLogFold, 1, locations)
 
@@ -163,8 +217,8 @@ if (!dir.exists(folder_name)) {
 
 
 for (sam_no in 1:ncol(coverage.normalised)) {
-  threshold = 30
-  minimum_length_of_CNV = 1
+  threshold = opt$scoreG
+  minimum_length_of_CNV = opt$lengthG
   price_per_tile = 1
   initial_state <- 3
   
@@ -193,48 +247,77 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   sizesOfPointsFromLocalSds <- 0.1 / localSds 
 
   
-  found_CNVs_total <- matrix(0, nrow=0, ncol=6)
-  colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "genes")
-  for (l in 1:length(left_borders)) {
-    chrom = names(left_borders)[l]
-    start = left_borders[[l]]
-    end = right_borders[[l]]
-    for (k in 1:2) {
-      output_of_plots <-  paste0(folder_name, sample_name)
-      which_to_allow <- "NA"
-      if (k == 1) {
-        which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] <= as.numeric(start) )
-      } else {
-        which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] >= as.numeric(end) )
+  
+  numberOfCNVsIsSufficientlySmall = F
+  iterations = 0
+  maxIteration = opt$maxNumIter
+  while (!numberOfCNVsIsSufficientlySmall & iterations < maxIteration) {
+    found_CNVs_total <- matrix(0, nrow=0, ncol=6)
+    colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "genes")
+    
+    iterations = iterations + 1
+    for (l in 1:length(left_borders)) {
+      chrom = names(left_borders)[l]
+      start = left_borders[[l]]
+      end = right_borders[[l]]
+      for (k in 1:2) {
+        if (nrow(found_CNVs_total) > opt$maxNumGermCNVs) {
+          break
+        }
+        output_of_plots <-  paste0(folder_name, sample_name)
+        which_to_allow <- "NA"
+        if (k == 1) {
+          which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] <= as.numeric(start) )
+        } else {
+          which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] >= as.numeric(end) )
+        }
+        toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
+        toyBedFile = bedFile[which_to_allow,]
+        found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 3))
+        toyLogFoldChange = coverage.normalised[which_to_allow,sam_no]
+        toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
+  
+        if (nrow(found_CNVs) > 0) {
+          # UNCOMMENT FOR PLOTTING!!!
+          
+          cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, cn_states, toySizesOfPointsFromLocalSds)
+          if (found_CNVs[1,1] != -1000) {
+            found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
+              if (nrow(found_CNVs_total) > opt$maxNumGermCNVs) {
+                break
+              }
+            }
+          for (i in 1:nrow(found_CNVs)) {
+  
+            CNVnamesInside <- unlist(unique(toyBedFile[found_CNVs[i,2]:found_CNVs[i,3],4]))
+            print(CNVnamesInside)
+            
+            
+            CNVentry = matrix(c(sample_name, chrom, toyBedFile[found_CNVs[i,2],2], toyBedFile[found_CNVs[i,3],3], 
+                                paste(CNVnamesInside, collapse=", "),
+                                found_CNVs[i,4] - 1, 
+                                found_CNVs[i,5]),
+                              nrow=1)
+            print(CNVentry)
+            overallResult = rbind(overallResult, CNVentry)
+          }
+        }
       }
-      toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
-      toyBedFile = bedFile[which_to_allow,]
-      found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 3))
-      toyLogFoldChange = coverage.normalised[which_to_allow,sam_no]
-      toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
-
-      if (nrow(found_CNVs) > 0) {
-        # UNCOMMENT FOR PLOTTING!!!
-        
-        cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, cn_states, toySizesOfPointsFromLocalSds)
-        if (found_CNVs[1,1] != -1000) {
-          found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
-          print(cnvsToWriteOut)
-        }
-        for (i in 1:nrow(found_CNVs)) {
-
-          CNVnamesInside <- unlist(unique(toyBedFile[found_CNVs[i,2]:found_CNVs[i,3],4]))
-          print(CNVnamesInside)
-          
-          
-          CNVentry = matrix(c(sample_name, chrom, toyBedFile[found_CNVs[i,2],2], toyBedFile[found_CNVs[i,3],3], 
-                              paste(CNVnamesInside, collapse=", "),
-                              found_CNVs[i,4] - 1, 
-                              found_CNVs[i,5]),
-                            nrow=1)
-          print(CNVentry)
-          overallResult = rbind(overallResult, CNVentry)
-        }
+      if (nrow(found_CNVs_total) > opt$maxNumGermCNVs & iterations != maxIteration) {
+        break
+      }
+    }
+    if (nrow(found_CNVs_total) < opt$maxNumGermCNVs) {
+      numberOfCNVsIsSufficientlySmall = T
+      iterations = 4
+      break
+    } else {
+      if (iterations < maxIteration) {
+        print("Sample had too many CNVs. We re-analyse it with stricter thresholds")
+        threshold = threshold + 20
+        minimum_length_of_CNV = minimum_length_of_CNV + 1
+        unlink(paste0(folder_name, sample_name), recursive = T)
+        dir.create(paste0(folder_name, sample_name))
       }
     }
   }
@@ -278,7 +361,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
 
 
 
-
+if (framework == "germline") quit()
 
 ### PROCESSING OF SOMATIC VARIANTS
 setwd(opt$folderWithScript)
@@ -364,8 +447,8 @@ if (!dir.exists(folder_name)) {
 deletedSamples <- c()
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   pvalsForQC <- c()
-  threshold = 40
-  minimum_length_of_CNV = 1
+  threshold = opt$scoreS
+  minimum_length_of_CNV = opt$lengthS
   price_per_tile = 0.1
   initial_state <- 1
   
