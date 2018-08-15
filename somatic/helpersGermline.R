@@ -132,7 +132,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
              ylim=c(0, 3), cex=toySizesOfPointsFromLocalSds[plot_st:plot_fn], yaxt='n')
         
         axis(side = 2, at = sqrt(cn_states/2), labels = cn_states)
-        abline(v=c(st - plot_st, st - plot_st + fn - st), col="red")
+        abline(v=c(st - plot_st, st - plot_st + fn - st + 1), col="red")
         #text(x = (st - 2 * plot_st + fn) / 2, y = (max(toyLogFoldChange[st:fn]) + 0.1), pos=ifelse(found_CNVs[s,4] > 2, 3, 1), 
         #     labels=c(paste("Genes affected:", paste(unique(bedFile[st:fn, 5]), collapse=", " ))), cex=2,
         #     family = "mono")
@@ -142,7 +142,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
         
         abline(h=sqrt(cn_states/2),lty=2,col=colours,lwd=3)
 
-        points((st - plot_st):(st - plot_st + fn - st), toyLogFoldChange[st:fn],col="black", pch=21,bg=colours[found_CNVs[s,4]], cex=toySizesOfPointsFromLocalSds[found_CNVs[s,2]:found_CNVs[s,3]])
+        points((st - plot_st):(st - plot_st + fn - st) + 1, toyLogFoldChange[st:fn],col="black", pch=21,bg=colours[found_CNVs[s,4]], cex=toySizesOfPointsFromLocalSds[found_CNVs[s,2]:found_CNVs[s,3]])
         
         
         ### EACH POINTS WITH DISTANCE > 10 MB WILL BE SEPARATED BY VERTICAL LINE
@@ -153,8 +153,10 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
           }
         }
         
-        text(x = (st - 2 * plot_st + fn) / 2, y = (max(toyLogFoldChange[max(st - 50, plot_st):min(fn + 50, plot_fn)]) + 0.1), pos=ifelse(found_CNVs[s,4] > 2, 3, 1), 
-             labels=c(paste("Genes affected:", paste(unique(bedFile[st:fn, 5]), collapse=", " ))), cex=2,
+        minimumDist <- min(sqrt(cn_states/2) - max(toyLogFoldChange[max(st - 50, plot_st):min(fn + 50, plot_fn)]))
+        closestLine <- which(sqrt(cn_states/2) - max(toyLogFoldChange[max(st - 50, plot_st):min(fn + 50, plot_fn)]) == minimumDist)
+        text(x = (st - 2 * plot_st + fn) / 2, y = (sqrt(cn_states/2)[closestLine] + 0.1), pos=3, 
+             labels=c(paste("Genes affected:", paste(unique(bedFile[st:fn, 5]), collapse=", " ))), cex=1.5,
              family = "mono")
         dev.off()
       }

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-
+set -e
 
 folderWithNormals="/mnt/share/data/coverage/ssSC_v2"
 folderWithTumors="/mnt/share/data/coverage/ssSC_v2-tumor"
 folderWithEnrichmentKits="/mnt/share/data/enrichment/"
 bedFile="ssSC_v2_2015_01_26.bed"
 columnWhereCoverageStarts=4
-outputFolder="/mnt/share/opt/clincnv-somatic-1.0/CNV_results/"
+outputFolder="/mnt/users/ahdemig1/clinCNV_development/ClinCNV_results/"
 fileWithPairs="pairs.txt"
 folderWithScript=$PWD
 reanalyseCohort="F"
@@ -15,9 +15,9 @@ reanalyseCohort="F"
 sampleNamesListGermline=""
 sampleNamesListSomatic=""
 nameOfTheAnalysis="exomes." # names of output files are changed accordingly
-typeOfAnalysis="germline" # two types possible - germline and somatic
-scoreGermline=80 # threshold for calling Germline CNAs
-lengthGermline=3 # minimum number of regions that forms a Germlinve CNV
+typeOfAnalysis="somatic" # two types possible - germline and somatic
+scoreGermline=40 # threshold for calling Germline CNAs
+lengthGermline=1 # minimum number of regions that forms a Germlinve CNV
 scoreSomatic=60 # threshold for calling Somatic CNAs
 lengthSomatic=5 # minimum number of regions that forms a Somatic CNA
 maximumNumberOfGermlineCNVs=100 # this is a maximum amount of CNVs >=3KBps length expected in WGS 40x sample of European population
@@ -33,19 +33,19 @@ BedAnnotateGenes -in $bedFile -out "annotated."$bedFile
 
 # merge normal files 
 if [[ ! -f $nameOfTheAnalysis"normal.txt" ]]; then
-  if [ sampleNamesList = "" ]; then
-	  /mnt/share/opt/R-3.4.0/bin/Rscript --vanilla mergeFilesFromFolder.R -i $folderWithNormals -o $nameOfTheAnalysis"normal.txt" -n $columnWhereCoverageStarts 
+  if [[ $sampleNamesListGermline = "" ]]; then
+    /mnt/share/opt/R-3.4.0/bin/Rscript --vanilla mergeFilesFromFolder.R -i $folderWithNormals -o $nameOfTheAnalysis"normal.txt" -n $columnWhereCoverageStarts 
   else
     /mnt/share/opt/R-3.4.0/bin/Rscript --vanilla mergeFilesFromFolder.R -i $sampleNamesListGermline -o $nameOfTheAnalysis"normal.txt" -n $columnWhereCoverageStarts 
   fi
 else
- 	echo "File "$nameOfTheAnalysis"tumor.txt exists. We do not recalculate it. WARNING: if .bed file do not match coverage file, the pipeline may crash." 
+  echo "File "$nameOfTheAnalysis"tumor.txt exists. We do not recalculate it. WARNING: if .bed file do not match coverage file, the pipeline may crash." 
 fi 
 
 if [[ $typeOfAnalysis = "somatic" ]]; then
   echo "Somatic framework is used. We create file with coverages for Tumors too."
   if [[ ! -f $nameOfTheAnalysis"tumor.txt" ]]; then
-    if [ sampleNamesList = "" ]; then
+    if [[ $sampleNamesListSomatic = "" ]]; then
   	  /mnt/share/opt/R-3.4.0/bin/Rscript --vanilla mergeFilesFromFolder.R -i $folderWithTumors -o $nameOfTheAnalysis"tumor.txt" -n $columnWhereCoverageStarts 
     else
       /mnt/share/opt/R-3.4.0/bin/Rscript --vanilla mergeFilesFromFolder.R -i $sampleNamesListSomatic -o $nameOfTheAnalysis"tumor.txt" -n $columnWhereCoverageStarts \
@@ -68,7 +68,7 @@ if [[ $typeOfAnalysis != "somatic" && $typeOfAnalysis != "germline" ]]; then
 fi
 
 
-
+echo "Calling"
 # run calling
 if [[ $typeOfAnalysis = "somatic" ]]
 then
@@ -78,8 +78,8 @@ then
   --scoreS $scoreSomatic --lengthS $lengthSomatic \
   --maxNumGermCNVs $maximumNumberOfGermlineCNVs --maxNumIter $maximumNumberOfIterations --maxNumSomCNAs $maximumNumberOfSomaticCNAs
 else
-	/mnt/share/opt/R-3.4.0/bin/Rscript --vanilla firstStep.R --normal $nameOfTheAnalysis"normal.txt" --out $outputFolder --bed "annotated."$bedFile \ 
-  --colNum $columnWhereCoverageStarts --folderWithScript $folderWithScript --reanalyseCohort TRUE \ 
+	/mnt/share/opt/R-3.4.0/bin/Rscript --vanilla firstStep.R --normal $nameOfTheAnalysis"normal.txt" --out $outputFolder --bed "annotated."$bedFile \
+  --colNum $columnWhereCoverageStarts --folderWithScript $folderWithScript --reanalyseCohort TRUE \
   --scoreG $scoreGermline --lengthG $lengthGermline \
   --maxNumGermCNVs $maximumNumberOfGermlineCNVs --maxNumIter $maximumNumberOfIterations
 fi

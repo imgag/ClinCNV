@@ -55,7 +55,7 @@ gc_and_sample_size_normalise <- function(info, coverages) {
       uniquesGcsToExclude = c(uniquesGcsToExclude, i)
     }
   }
-  
+  if (!length(uniquesGcsToExclude) == 0)
   uniques_gcs = uniques_gcs[-uniquesGcsToExclude]
   print(length(which(gcs %in% uniques_gcs)) / length(gcs))
   

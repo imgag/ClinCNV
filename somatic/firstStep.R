@@ -54,13 +54,13 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
 ### TESTING PART
-opt$bed = "/Users/gdemidov/Tuebingen/clinCNV_dev/annotated.ssHAEv6_2017_01_05.bed"
+#opt$bed = "/Users/gdemidov/Tuebingen/clinCNV_dev/annotated.ssHAEv6_2017_01_05.bed"
 #opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/tumor.cov"
-opt$normal = "/Users/gdemidov/Tuebingen/clinCNV_dev/normal.txt"
-opt$colNum = 4
+#opt$normal = "/Users/gdemidov/Tuebingen/clinCNV_dev/normal.txt"
+#opt$colNum = 4
 #opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairs.txt"
-opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
-opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic"
+#opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
+#opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic"
 #opt$reanalyseCohort = T
 
 if (!dir.exists(opt$out)) {
@@ -129,10 +129,11 @@ source("generalHelpers.R")
 
 lst <- gc_and_sample_size_normalise(bedFile, normal)
 normal <- lst[[1]]
-bedFile <- lst[[2]]
 if (framework == "somatic") {
   lst <- gc_and_sample_size_normalise(bedFile, tumor)
   tumor <- lst[[1]]
+  bedFile <- lst[[2]]
+} else {
   bedFile <- lst[[2]]
 }
 
@@ -367,6 +368,7 @@ if (framework == "germline") quit()
 setwd(opt$folderWithScript)
 source("helpersSomatic.R")
 pairs <- read.table(opt$pair, sep=",", stringsAsFactors = F)
+pairs <- data.frame(pairs, ncol=2)
 pairs <- unique(pairs)
 rm(matrixOfLogFold)
 matrixOfLogFold <- formilngLogFoldChange(pairs)
