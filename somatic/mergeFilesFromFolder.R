@@ -1,3 +1,4 @@
+
 #!/usr/bin/env Rscript
 library("optparse")
 
@@ -22,7 +23,15 @@ merge_covs_from_folder <- function(folder, outputFileName, columnWhereCoveragesS
   if (!file_test("-f", folder)) {
     filenames <- list.files(folder, pattern="*.cov", full.names=TRUE)
   } else {
-    filenames <- read.table(folder, header=F)
+    filenames <- as.vector(read.table(folder, header=F)[,9])
+    print(filenames)
+    indicesOfCovFilenames <- c()
+    for (i in 1:length(filenames)) {
+      if (substr(filenames[i], nchar(filenames[i]) - 3, nchar(filenames[i])) == ".cov") {
+        indicesOfCovFilenames <- c(indicesOfCovFilenames, i)
+      }
+    }
+    filenames = filenames[indicesOfCovFilenames]
   }
   print(filenames)
   

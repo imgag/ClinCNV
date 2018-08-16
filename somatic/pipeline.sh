@@ -12,8 +12,8 @@ fileWithPairs="pairs.txt"
 folderWithScript=$PWD
 reanalyseCohort="F"
 # New parameters (inroduced on 9th of August, 2018)
-sampleNamesListGermline=""
-sampleNamesListSomatic=""
+sampleNamesListGermline="/mnt/users/ahdemig1/clinCNV_development/ClinCNV/somatic/samplesListNormal.txt"
+sampleNamesListSomatic="/mnt/users/ahdemig1/clinCNV_development/ClinCNV/somatic/samplesListTumor.txt"
 nameOfTheAnalysis="exomes." # names of output files are changed accordingly
 typeOfAnalysis="somatic" # two types possible - germline and somatic
 scoreGermline=40 # threshold for calling Germline CNAs
@@ -48,8 +48,7 @@ if [[ $typeOfAnalysis = "somatic" ]]; then
     if [[ $sampleNamesListSomatic = "" ]]; then
   	  /mnt/share/opt/R-3.4.0/bin/Rscript --vanilla mergeFilesFromFolder.R -i $folderWithTumors -o $nameOfTheAnalysis"tumor.txt" -n $columnWhereCoverageStarts 
     else
-      /mnt/share/opt/R-3.4.0/bin/Rscript --vanilla mergeFilesFromFolder.R -i $sampleNamesListSomatic -o $nameOfTheAnalysis"tumor.txt" -n $columnWhereCoverageStarts \
-      -p $fileWithPairs
+      /mnt/share/opt/R-3.4.0/bin/Rscript --vanilla mergeFilesFromFolder.R -i $sampleNamesListSomatic -o $nameOfTheAnalysis"tumor.txt" -n $columnWhereCoverageStarts
     fi
   else
   	echo "File "$nameOfTheAnalysis"tumor.txt exists. We do not recalculate it. WARNING: if .bed file do not match coverage file, the pipeline may crash." 
