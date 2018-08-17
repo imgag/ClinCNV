@@ -23,8 +23,7 @@ merge_covs_from_folder <- function(folder, outputFileName, columnWhereCoveragesS
   if (!file_test("-f", folder)) {
     filenames <- list.files(folder, pattern="*.cov", full.names=TRUE)
   } else {
-    filenames <- as.vector(read.table(folder, header=F)[,9])
-    print(filenames)
+    filenames <- as.vector(read.table(folder, header=F)[,1])
     indicesOfCovFilenames <- c()
     for (i in 1:length(filenames)) {
       if (substr(filenames[i], nchar(filenames[i]) - 3, nchar(filenames[i])) == ".cov") {
@@ -33,7 +32,6 @@ merge_covs_from_folder <- function(folder, outputFileName, columnWhereCoveragesS
     }
     filenames = filenames[indicesOfCovFilenames]
   }
-  print(filenames)
   
   firstRow <-read.table(filenames[1], nrows = 1, header = FALSE, sep ='\t', stringsAsFactors = FALSE, comment.char = "%")
   mergeBy = firstRow[1:(columnWhereCoveragesStart - 1)]
