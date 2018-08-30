@@ -57,7 +57,7 @@ gc_and_sample_size_normalise <- function(info, coverages) {
   }
   if (!length(uniquesGcsToExclude) == 0)
   uniques_gcs = uniques_gcs[-uniquesGcsToExclude]
-  print(length(which(gcs %in% uniques_gcs)) / length(gcs))
+  print(paste("Parcentage of regions remained after GC correction:", length(which(gcs %in% uniques_gcs)) / length(gcs)))
   
   
   gc_normalisation_factors = foreach (i = 1:length(uniques_gcs), .combine="rbind", .export="EstimateModeSimple") %dopar% {
@@ -143,11 +143,6 @@ find_final_state <- function(start, end, initial_state, matrix_of_likeliks) {
   likelihood_score_including_all_tiles <- min(res[cn_state_by_central_points], res_within[cn_state_by_central_points])
   if (likelihood_score_including_all_tiles == res_within[cn_state_by_central_points]) {
     only_central=T
-    print("MIN HAPPENS")
-    print(res[cn_state_by_central_points])
-    print(res_within[cn_state_by_central_points])
-    print(paste("Choosen", likelihood_score_including_all_tiles))
-    print("")
   }
   
   if (!only_central) {
@@ -161,15 +156,8 @@ find_final_state <- function(start, end, initial_state, matrix_of_likeliks) {
     likelihood_score_all_tiles_read_depth_only <- res[cn_state_by_central_points]
     for_output <- apply((matrix_of_likeliks[(start + 1):(end - 1),,drop=F] / -2) * log10(exp(0)), 2, sum)
   }
-  if (which.max(for_output) != cn_state_by_central_points) {
-    print(for_output)
-  }
+
   
-  if (sum( is.infinite(for_output)) > 0) {
-    print(start)
-    print(end)
-    print(sam_no)
-  }
   return(c(likelihood_score_including_all_tiles, cn_state_by_central_points, likelihood_score_all_tiles_read_depth_only, for_output))
 }
 
