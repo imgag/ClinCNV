@@ -47,7 +47,8 @@ option_list = list(
               help="maximum number of somatic CNAs allowed (increase thresholds if does not meet criteria)", metavar="character"),
   
   make_option(c("-mnaxnumit", "--maxNumIter"), type="double", default="3", 
-              help="maximum number of iterations of variant calling", metavar="character")
+              help="maximum number of iterations of variant calling", metavar="character"),
+  make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
 opt_parser = OptionParser(option_list=option_list);
@@ -113,10 +114,6 @@ if (framework == "somatic") {
 
 
 
-
-
-
-
 medians <- apply(sqrt(normal), 1, median)
 rowsToRemove <- which(medians < 0.2)
 bedFile <- bedFile[-rowsToRemove,]
@@ -156,8 +153,6 @@ coverage.normalised = sweep(coverage, 1, medians, FUN="/")
 coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]
 
 
-
-
 sdsOfProbes <- sapply(1:nrow(coverage.normalised), function(i) {determineSDsOfGermlineProbe(coverage.normalised[i,], i)})
 
 # In exome seq it is often the case that some hypervariable regions cause false positive calls.
@@ -170,10 +165,6 @@ bedFile <- bedFile[-probesToRemove,]
 sdsOfProbes <- sdsOfProbes[-probesToRemove]
 normal <- normal[-probesToRemove,]
 tumor <- tumor[-probesToRemove,]
-
-
-
-
 
 
 autosomes <- which(!bedFile[,1] %in% c("chrX", "chrY", "X", "Y"))
@@ -233,8 +224,12 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   
   
   sample_name <- colnames(coverage.normalised)[sam_no]
-  print(sam_no)
-  print(sample_name)
+  if(opt$debug) {
+    print(sam_no)
+  }
+  if(opt$debug) {
+    print(sample_name)
+  }
   if (!dir.exists(paste0(folder_name, sample_name))) {
     dir.create(paste0(folder_name, sample_name))
   }
@@ -295,15 +290,18 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           for (i in 1:nrow(found_CNVs)) {
   
             CNVnamesInside <- unlist(unique(toyBedFile[found_CNVs[i,2]:found_CNVs[i,3],4]))
-            print(CNVnamesInside)
-            
+            if(opt$debug) {
+              print(CNVnamesInside)
+            }
             
             CNVentry = matrix(c(sample_name, chrom, toyBedFile[found_CNVs[i,2],2], toyBedFile[found_CNVs[i,3],3], 
                                 paste(CNVnamesInside, collapse=", "),
                                 found_CNVs[i,4] - 1, 
                                 found_CNVs[i,5]),
                               nrow=1)
-            print(CNVentry)
+            if(opt$debug) {
+              print(CNVentry)
+            }
             overallResult = rbind(overallResult, CNVentry)
           }
         }
@@ -337,40 +335,11 @@ for (sam_no in 1:ncol(coverage.normalised)) {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 if (framework == "germline") quit()
 
 ### PROCESSING OF SOMATIC VARIANTS
 setwd(opt$folderWithScript)
-source("helpersSomatic.R")
+source("helpersSomatic.R",local=TRUE)
 pairs <- read.table(opt$pair, sep=",", stringsAsFactors = F)
 pairs <- data.frame(pairs, ncol=2)
 pairs <- unique(pairs)
@@ -420,7 +389,6 @@ colours <- c("darkgreen", colorsForLess, colorsForBigger, colorsForHigh)
 
 cn_states <- c(2, cn_states)
 
-
 # CORRECTION OF CNS!!!
 normalCoverage <- rpois(100000, lambda=50)
 tumorCoverage <- rpois(100000, lambda=50)
@@ -432,11 +400,6 @@ for (state in 2:length(cn_states)) {
   multipliersDueToLog <- c(multipliersDueToLog, sd_to_normalise_tumor / sd_to_normalise)
 }
 multipliersDueToLog[which(is.nan(multipliersDueToLog))] <- max(multipliersDueToLog[which(!is.nan(multipliersDueToLog))])
-
-
-
-
-
 
 
 startCoordOfNonInterruptedSegment = 1
@@ -464,8 +427,10 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   
   
   sample_name <- colnames(matrixOfLogFold)[sam_no]
-  print(sam_no)
-  print(sample_name)
+  if(opt$debug) {
+    print(sam_no)
+    print(sample_name)
+  }
   if (!dir.exists(paste0(folder_name, sample_name)) | (opt$reanalyseCohort == T)) {
     dir.create(paste0(folder_name, sample_name))
     
@@ -520,9 +485,11 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
         toyBedFile = bedFile[which_to_allow,]
         found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1))
-        print(found_CNVs)
-        print(l)
-        print(k)
+        if(opt$debug) {
+          print(found_CNVs)
+          print(l)
+          print(k)
+        }
         toyLogFoldChange = matrixOfLogFold[which_to_allow,]
         toySds <- localSds[which_to_allow]
         toyMultipliersDueToLog <- multipliersDueToLog[which_to_allow]
@@ -559,7 +526,5 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   writeLines(c(paste("##"," QC ", finalPValue, collapse = " ")), fileConn)
   close(fileConn)
   write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
-	
-	
   }  
 }

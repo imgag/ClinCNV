@@ -56,13 +56,17 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
   cnvsToOutput <- matrix(0, nrow=0, ncol=6)
   if (nrow(found_CNVs) > 0) {
     for (s in 1:nrow(found_CNVs)) {
+	  if(opt$debug) {
       print("Started with")
+    }
       CNV_name <- paste(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], "CN:", vector_of_states[found_CNVs[s,4]], "-2ln(loglik):", found_CNVs[s,1])
       CNV_name_to_write <- paste(colnames(toyLogFoldChange)[sam_no],  chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], "CN",vector_of_states[found_CNVs[s,4]], sep="_")
       
       vectorOfGeneNames = c()
       genesThatHasToBeSeparated = unique(toyBedFile[found_CNVs[s,2]:found_CNVs[s,3],5])
-      print(genesThatHasToBeSeparated)
+      if(opt$debug) {
+        print(genesThatHasToBeSeparated)
+      }
       for (i in 1:length(genesThatHasToBeSeparated)) {
         vectorOfGeneNames = c(vectorOfGeneNames, unlist(strsplit(genesThatHasToBeSeparated[i], split=",")))
       }
@@ -71,9 +75,14 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
         vectorOfGeneNamesTrimmed = c(vectorOfGeneNamesTrimmed,trimws(elem) )
       }
       annotationGenes <- paste(unique(vectorOfGeneNamesTrimmed), collapse=",")
-      print(annotationGenes)
+      if(opt$debug) {
+        print(annotationGenes)
+      }
       CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], vector_of_states[found_CNVs[s,4]], -1 * found_CNVs[s,1], annotationGenes), nrow=1)
-      print(CNVtoOut)
+      if(opt$debug)
+      {
+        print(CNVtoOut)
+      }
       cnvsToOutput = rbind(cnvsToOutput, CNVtoOut)
 
       
@@ -86,9 +95,10 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       pr = T
       if (pr) {
         png(filename=paste0(outputFolder, "/", paste0(CNV_name_to_write, ".png")), type="cairo",width = 1024, height = 640)
-		#bitmap(filename=paste0(outputFolder, "/", paste0(CNV_name_to_write, ".png")),width = 1024, height = 640, units = "px" )
-        print(CNV_name_to_write)
-        print(paste0(outputFolder, CNV_name_to_write))
+        if(opt$debug) {
+          print(CNV_name_to_write)
+          print(paste0(outputFolder, CNV_name_to_write))
+        }
         
 
         plot(toyLogFoldChange, main=CNV_name, ylab="Copy Number", xlab=(paste("CNV within Chromosome Arm" )),
@@ -143,7 +153,6 @@ returnSdsForSampleAndProbe <- function(i, j) {
   sdToReturn = sdsOfSomaticSamples[j]
   return(sdToReturn * esimtatedVarianceFromSampleNoise[i] * multiplicator)
 }
-
 
 
 
