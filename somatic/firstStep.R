@@ -54,16 +54,16 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
 ### TESTING PART
-opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v2.annotated.bed"
-opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/tumor2.cov"
-opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/normal2.cov"
-opt$colNum = 4
-opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairs.txt"
-opt$out = "/Users/gdemidov/Tuebingen/forFranz/results/"
-opt$folderWithScript = "/Users/gdemidov/Tuebingen/forFranz/ClinCNV/somatic"
-opt$reanalyseCohort = T
-opt$scoreS = 40
-opt$lengthS = 1
+#opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v2.annotated.bed"
+#opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/tumor2.cov"
+#opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/normal2.cov"
+#opt$colNum = 4
+#opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairs.txt"
+#opt$out = "/Users/gdemidov/Tuebingen/forFranz/results/"
+#opt$folderWithScript = "/Users/gdemidov/Tuebingen/forFranz/ClinCNV/somatic"
+#opt$reanalyseCohort = T
+#opt$scoreS = 40
+#opt$lengthS = 1
 
 if (!dir.exists(opt$out)) {
   dir.create(opt$out)
@@ -215,7 +215,7 @@ shiftsOfCoverage <- c()
 colours = colors()[c(30, 114, 518, 148, 93, 456, 459, 552, 256, 652, 373, 68, 6, 600, 414,30, 114, 518, 148, 93, 456, 459, 552, 256, 652, 373, 68, 6, 600, 414)]
 
 overallResult <- matrix(0, nrow=0, ncol=7)
-folder_name <- paste0(opt$out, "normal/")
+folder_name <- paste0(opt$out, "/normal/")
 if (!dir.exists(folder_name)) {
   dir.create(folder_name)
 }
@@ -445,7 +445,7 @@ shiftsOfCoverage <- c()
 
 
 
-folder_name <- paste0(opt$out, "somatic/")
+folder_name <- paste0(opt$out, "/somatic/")
 if (!dir.exists(folder_name)) {
   dir.create(folder_name)
 }

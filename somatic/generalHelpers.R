@@ -57,7 +57,7 @@ gc_and_sample_size_normalise <- function(info, coverages) {
   }
   if (!length(uniquesGcsToExclude) == 0)
   uniques_gcs = uniques_gcs[-uniquesGcsToExclude]
-  print(paste("Parcentage of regions remained after GC correction:", length(which(gcs %in% uniques_gcs)) / length(gcs)))
+  print(paste("Percentage of regions remained after GC correction:", length(which(gcs %in% uniques_gcs)) / length(gcs)))
   
   
   gc_normalisation_factors = foreach (i = 1:length(uniques_gcs), .combine="rbind", .export="EstimateModeSimple") %dopar% {
