@@ -191,7 +191,6 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks, min_CN
   # sweeping the likelihoods
   subset_matrix <- -1 * matrix_of_likeliks[j:k,,drop=F]
   matrix_of_BFs <- sweep(subset_matrix, 1, subset_matrix[,main_state], FUN="-")
-  
   coords_of_CNVs <- c(0,0,0,0)
   best_bf <- 0
   value <- threshold
@@ -211,7 +210,6 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks, min_CN
   }
   return(c(0,0,0,0))
 }
-
 
 
 find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, initial_state, matrix_of_likeliks, very_initial_state) {
