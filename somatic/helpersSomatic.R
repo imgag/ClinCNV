@@ -18,8 +18,13 @@ formilngLogFoldChange <- function(pairs) {
 
 determineSDsOfSomaticSample <- function(x) {
   sdsS <- rep(0, length(bordersOfChroms) - 1)
-  for (i in 2:length(bordersOfChroms)) {
-    sdsS[i] = Sn(x[bordersOfChroms[i-1]:bordersOfChroms[i]])
+  if (length(bordersOfChroms) == 1) {
+    sdsS[1] = Sn(x)
+  }
+  else {
+       for (i in 2:length(bordersOfChroms)) {
+      sdsS[i] = Sn(x[bordersOfChroms[i-1]:bordersOfChroms[i]])
+      }
   }
   return(median(sdsS))
 }
