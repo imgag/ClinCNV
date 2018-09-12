@@ -523,8 +523,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   }
   fileToOut <- paste0(folder_name, sample_name, "/CNAs.txt")
   fileConn<-file(fileToOut)
-  writeLines(c(paste("##"," QC ", finalPValue, collapse = " ")), fileConn)
+  writeLines(c(paste("##"," QC ", signif(finalPValue,2), collapse = " ")), fileConn)
   close(fileConn)
+  print(found_CNVs_total)
   write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
   }  
 }

@@ -83,7 +83,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       if(opt$debug) {
         print(annotationGenes)
       }
-      CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], vector_of_states[found_CNVs[s,4]], -1 * found_CNVs[s,1], annotationGenes), nrow=1)
+      CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), annotationGenes), nrow=1)
       if(opt$debug)
       {
         print(CNVtoOut)
