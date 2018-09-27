@@ -284,7 +284,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         }
         
         outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
-        outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_dots.seg")
+        outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
         reverseFunctionUsedToTransform = function(x) {return((2 * x ** 2))}
         outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
                                             outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, cn_states)
@@ -530,7 +530,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         }
         
         outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
-        outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_dots.seg")
+        outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
         reverseFunctionUsedToTransform = function(x) {return((2 ** (x + 1)))}
         outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
                                             outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, cn_states)
