@@ -88,7 +88,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       {
         print(CNVtoOut)
       }
-      cnvsToOutput = rbind(cnvsToOutput, CNVtoOut)
+      cnvsToOutput = as.matrix(rbind(cnvsToOutput, CNVtoOut), ncol=6, drop=F)
 
       
       length_of_repr <- 500

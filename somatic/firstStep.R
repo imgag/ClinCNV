@@ -60,11 +60,10 @@ opt = parse_args(opt_parser);
 #opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/normal2.cov"
 #opt$colNum = 4
 #opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairs.txt"
-#opt$out = "/Users/gdemidov/Tuebingen/forFranz/results/"
-#opt$folderWithScript = "/Users/gdemidov/Tuebingen/forFranz/ClinCNV/somatic"
+#opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
+#opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic"
 #opt$reanalyseCohort = T
-#opt$scoreS = 40
-#opt$lengthS = 1
+
 
 if (!dir.exists(opt$out)) {
   dir.create(opt$out)
@@ -276,6 +275,25 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 3))
         toyLogFoldChange = coverage.normalised[which_to_allow,sam_no]
         toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
+        
+        
+        
+        ### IGV PLOTTING
+        if(opt$debug) {
+          print("START OF IGV PLOTTING")
+        }
+        
+        outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
+        outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_dots.seg")
+        reverseFunctionUsedToTransform = function(x) {return((2 * x ** 2))}
+        outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
+                                            outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, cn_states)
+        if(opt$debug) {
+          print("END OF IGV PLOTTING")
+        }
+        ### END OF IGV PLOTTING
+        
+        
   
         if (nrow(found_CNVs) > 0) {
           # UNCOMMENT FOR PLOTTING!!!
@@ -485,6 +503,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
         toyBedFile = bedFile[which_to_allow,]
         found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1))
+        
+
+
         if(opt$debug) {
           print(found_CNVs)
           print(l)
@@ -501,6 +522,25 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         
         toyLogFoldChange = matrixOfLogFold[which_to_allow,sam_no]
         toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
+        
+        
+        ### IGV PLOTTING
+        if(opt$debug) {
+          print("START OF IGV PLOTTING")
+        }
+        
+        outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
+        outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_dots.seg")
+        reverseFunctionUsedToTransform = function(x) {return((2 ** (x + 1)))}
+        outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
+                                            outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, cn_states)
+        if(opt$debug) {
+          print("END OF IGV PLOTTING")
+        }
+        ### END OF IGV PLOTTING
+        
+        
+        
         if (nrow(found_CNVs) == 0 & length(which_to_allow) > 1) {
           found_CNVs = matrix(c(-1000, 1, length(which_to_allow), 1), nrow=1)
           output_of_plots = paste0(output_of_plots, "/normal")
@@ -508,6 +548,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             dir.create(output_of_plots)
           }
         }
+        
+
+
         if (nrow(found_CNVs) > 0) {
           cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, cn_states, toySizesOfPointsFromLocalSds)
           if (found_CNVs[1,1] != -1000) {
