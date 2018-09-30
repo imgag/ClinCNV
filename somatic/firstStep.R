@@ -10,6 +10,12 @@ option_list = list(
   make_option(c("-t", "--tumor"), type="character", default=NULL, 
               help="path to table with tumor coverages", metavar="character"),
   
+  make_option(c("-normOff", "--normalOfftarget"), type="character", default=NULL, 
+              help="path to table with normal offtarget coverages", metavar="character"),
+  
+  make_option(c("-tOff", "--tumorOfftarget"), type="character", default=NULL, 
+              help="path to table with tumor offtarget coverages", metavar="character"),
+  
   make_option(c("-o", "--out"), type="character", default="./result/", 
               help="output folder path [default= %default]", metavar="character"),
   
@@ -18,6 +24,9 @@ option_list = list(
   
   make_option(c("-b", "--bed"), type="character", default=NULL, 
               help="bed file with panel description (chr \t start \t end \t gc_content \t annotation). has to use same notation as .cov files.", metavar="character"),
+  
+  make_option(c("-bOff", "--bedOfftarget"), type="character", default=NULL, 
+              help="offtarget bed file with panel description (chr \t start \t end \t gc_content \t annotation). has to use same notation as .cov files.", metavar="character"),
   
   make_option(c("-num", "--colNum"), type="double", default=4, 
               help="column where coverages start", metavar="character"),
@@ -48,6 +57,7 @@ option_list = list(
   
   make_option(c("-mnaxnumit", "--maxNumIter"), type="double", default="3", 
               help="maximum number of iterations of variant calling", metavar="character"),
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
@@ -55,14 +65,17 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
 ### TESTING PART
-#opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v2.annotated.bed"
-#opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/tumor2.cov"
-#opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/normal2.cov"
-#opt$colNum = 4
-#opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairs.txt"
-#opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
-#opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic"
-#opt$reanalyseCohort = T
+# opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v2.annotated.bed"
+# opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/tumor2.cov"
+# opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/normal2.cov"
+# opt$colNum = 4
+# opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairs.txt"
+# opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
+# opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic"
+# opt$reanalyseCohort = T
+# opt$bedOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/offtaget_annotated_ssSC_v2_2015_01_26.bed"
+# opt$tumorOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/offtarget2.txt"
+# opt$normalOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/offtarget2.txt"
 
 
 if (!dir.exists(opt$out)) {
@@ -73,6 +86,12 @@ framework = "germline"
 if (!is.null(opt$tumor)) {
   print("Tumor file was provided. Framework is switched to somatic.")
   framework = "somatic"
+}
+
+frameworkOff = "ontarget"
+if (!is.null(opt$tumorOfftarget) & !is.null(opt$normalOfftarget) & !is.null(opt$bedOfftarget)) {
+  print("Offtarget files are provided. We try to utilise off-target coverage also.")
+  frameworkOff = "offtarget"
 }
 
 
@@ -92,7 +111,6 @@ registerDoParallel(cl)
 
 
 ### READING DATA
-
 setwd(opt$folderWithScript)
 bedFile <- read.table(opt$bed, stringsAsFactors = F, sep="\t")
 colnames(bedFile) <- c("chr.X", "start", "end", "gc")
@@ -111,20 +129,46 @@ if (framework == "somatic") {
   tumor <- as.matrix(tumor[,opt$colNum:ncol(tumor)])
 }
 
+if (frameworkOff == "offtarget") {
+  bedFileOfftarget <- read.table(opt$bedOfftarget, stringsAsFactors = F, sep="\t")
+  colnames(bedFileOfftarget) <- c("chr.X", "start", "end", "gc")
+  bedFileOfftarget <- bedFileOfftarget[order(bedFileOfftarget$chr.X, as.numeric(bedFileOfftarget$start)),]
+  
+  bedFileOfftarget[,4] <- round(as.numeric(as.character(bedFileOfftarget[,4])), digits = 2)
+  
+  normalOff <- read.table(opt$normalOfftarget, header=T, stringsAsFactors = F)
+  normalOff <- normalOff[order(normalOff$X.chr, as.numeric(normalOff$start)),]
+  normalOff <- as.matrix(normalOff[,opt$colNum:ncol(normalOff)])
+  # remain only samples that are in Normal cohort 
+  normalOff <- normalOff[,which(colnames(normalOff) %in% colnames(normal))]
+  
+  tumorOff <- read.table(opt$tumorOfftarget, header=T, stringsAsFactors = F)
+  tumorOff <- tumorOff[order(tumorOff$X.chr, as.numeric(tumorOff$start)),]
+  tumorOff <- as.matrix(tumorOff[,opt$colNum:ncol(tumorOff)])
+  # remain only samples that are in Tumor cohort 
+  tumorOff <- tumorOff[,which(colnames(tumorOff) %in% colnames(tumor))]
+}
 
-
-medians <- apply(sqrt(normal), 1, median)
-rowsToRemove <- which(medians < 0.2)
+setwd(opt$folderWithScript)
+source("generalHelpers.R")
+rowsToRemove <- cleanDatasetFromLowCoveredFiles(normal)
 bedFile <- bedFile[-rowsToRemove,]
 normal <- normal[-rowsToRemove,]
 if (framework == "somatic")
   tumor <- tumor[-rowsToRemove,]
 
+if (frameworkOff == "offtarget") {
+  rowsToRemove <- cleanDatasetFromLowCoveredFiles(normalOff)
+  normalOff = normalOff[-rowsToRemove,]
+  tumorOff = tumorOff[-rowsToRemove,]
+  bedFileOfftarget = bedFileOfftarget[-rowsToRemove,]
+}
+
 ### GC CONTENT NORMALIZATION
-setwd(opt$folderWithScript)
-source("generalHelpers.R")
 
 
+
+### ON TARGET GC NORMALIZATION
 lst <- gc_and_sample_size_normalise(bedFile, normal)
 normal <- lst[[1]]
 if (framework == "somatic") {
@@ -133,6 +177,16 @@ if (framework == "somatic") {
   bedFile <- lst[[2]]
 } else {
   bedFile <- lst[[2]]
+}
+
+### OFF TARGET GC NORMALIZATION
+if (frameworkOff == "offtarget") {
+    lst <- gc_and_sample_size_normalise(bedFileOfftarget, normalOff)
+    normalOff <- lst[[1]]
+  
+    lst <- gc_and_sample_size_normalise(bedFileOfftarget, tumorOff)
+    tumorOff <- lst[[1]]
+    bedFileOfftarget <- lst[[2]]
 }
 
 
@@ -355,6 +409,15 @@ for (sam_no in 1:ncol(coverage.normalised)) {
 
 if (framework == "germline") quit()
 
+
+
+
+
+
+
+
+
+
 ### PROCESSING OF SOMATIC VARIANTS
 setwd(opt$folderWithScript)
 source("helpersSomatic.R",local=TRUE)
@@ -362,17 +425,28 @@ pairs <- read.table(opt$pair, sep=",", stringsAsFactors = F)
 pairs <- data.frame(pairs, ncol=2)
 pairs <- unique(pairs)
 
-matrixOfLogFold <- formilngLogFoldChange(pairs)
+matrixOfLogFold <- formilngLogFoldChange(pairs, normal, tumor)
 
 
 sdsOfSomaticSamples <- apply(matrixOfLogFold, 2, determineSDsOfSomaticSample)
 
 sdsOfProbes <- sapply(1:nrow(matrixOfLogFold), function(i) {determineSDsOfSomaticProbe(matrixOfLogFold[i,], i)})
 
-
 listOfVarianceAndMultiplicator <- esimtateVarianceFromSampleNoise(sdsOfSomaticSamples, 100000)
 esimtatedVarianceFromSampleNoise <- listOfVarianceAndMultiplicator[[2]]
 multiplicator <- listOfVarianceAndMultiplicator[[1]]
+
+if (frameworkOff == "offtarget") {
+  matrixOfLogFoldOff <- formilngLogFoldChange(pairs, normalOff, tumorOff)
+  sdsOfSomaticSamplesOff <- apply(matrixOfLogFoldOff, 2, determineSDsOfSomaticSample)
+  
+  sdsOfProbesOff <- sapply(1:nrow(matrixOfLogFoldOff), function(i) {determineSDsOfSomaticProbe(matrixOfLogFoldOff[i,], i)})
+  
+  listOfVarianceAndMultiplicatorOff <- esimtateVarianceFromSampleNoise(sdsOfSomaticSamplesOff, 100000)
+  esimtatedVarianceFromSampleNoiseOff <- listOfVarianceAndMultiplicatorOff[[2]]
+  multiplicatorOff <- listOfVarianceAndMultiplicatorOff[[1]]
+  
+}
 
 ### FORMING MATRIX OF LIKELIHOODS
 vect_of_t_likeliks <- fast_dt_list(ncol(matrixOfLogFold) - 1)
@@ -438,10 +512,17 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   minimum_length_of_CNV = opt$lengthS
   price_per_tile = 0.1
   initial_state <- 1
+  sampleInOfftarget=F
   
   
   localSds = sdsOfProbes * esimtatedVarianceFromSampleNoise[sam_no] * multiplicator
-  
+  if (frameworkOff == "offtarget") {
+    if (sample_name %in% colnames(matrixOfLogFoldOff)) {
+      sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
+      localSdsOff = sdsOfProbesOff * esimtatedVarianceFromSampleNoiseOff[sam_no_off] * multiplicatorOff
+      sampleInOfftarget = T
+    }
+  }
   
   
   sample_name <- colnames(matrixOfLogFold)[sam_no]
@@ -456,72 +537,133 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     
     
     dict_to_output = c()
-    matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFold), sam_no, localSds, matrixOfLogFold, log2(cn_states/2), multipliersDueToLog)
+    
+    ### MERGING IF OFF TARGET
+    
+    matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFold), matrixOfLogFold[,sam_no], localSds, log2(cn_states/2), multipliersDueToLog)
+    if (sampleInOfftarget) {
+      sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
+      matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOff), matrixOfLogFoldOff[,sam_no_off], localSdsOff, log2(cn_states/2), multipliersDueToLog)
+      globalMatrOfLikeliks <- rbind(matrix_of_likeliks, matrix_of_likeliks_off)
+      globalBed <- rbind(bedFile, bedFileOfftarget)
+      globalMatrOfLikeliks <- globalMatrOfLikeliks[order(globalBed[,1], globalBed[,2]),]
+      globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])[order(globalBed[,1], globalBed[,2])]
+    }
+    
     
     #### CORRECTION - IF THE SAMPLE HAS TOO MANY CNAS, WE EXPECT SOME SHIFT THERE
-    found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, matrix_of_likeliks, 1))
+    if (!sampleInOfftarget) {
+      found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, matrix_of_likeliks, 1))
+    } else {
+      found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, globalMatrOfLikeliks, 1))
+    }
     seq_to_exclude <- c()
     if (nrow(found_CNVs) > 0)
       for (i in 1:nrow(found_CNVs)) {
         seq_to_exclude <- c(seq_to_exclude, (found_CNVs[i,2]):(found_CNVs[i,3]))
       }
     if (length(seq_to_exclude) > 0) {
-      shiftOfCoverage <- median(matrixOfLogFold[-seq_to_exclude,sam_no])
+      if (!sampleInOfftarget) {
+        shiftOfCoverage <- median(matrixOfLogFold[-seq_to_exclude,sam_no])
+      } else {
+        shiftOfCoverage <- median(globalLogFold[-seq_to_exclude])
+      }
       shiftsOfCoverage <- c(shiftsOfCoverage, shiftOfCoverage)
       matrixOfLogFold[,sam_no] = matrixOfLogFold[,sam_no] - shiftOfCoverage
+      if (sampleInOfftarget)
+        matrixOfLogFoldOff[,sam_no_off] = matrixOfLogFoldOff[,sam_no_off] - shiftOfCoverage
     }
-    if (sam_no %in% deletedSamples) {
-      matrixOfLogFold[,sam_no] = matrixOfLogFold[,sam_no] - log2(2)
-    }
+    #if (sam_no %in% deletedSamples) {
+    #  matrixOfLogFold[,sam_no] = matrixOfLogFold[,sam_no] - log2(2)
+    #}
     
     
     
     
     
-    matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFold), sam_no, localSds, matrixOfLogFold, log2(cn_states/2), multipliersDueToLog)
-    matrix_of_likeliks_read_depth_only = matrix_of_likeliks
-    
+    matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFold), matrixOfLogFold[,sam_no], localSds, log2(cn_states/2), multipliersDueToLog)
     sizesOfPointsFromLocalSds <- 0.5 / localSds 
+    if (sampleInOfftarget) {
+      sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
+      matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOff), matrixOfLogFoldOff[,sam_no_off], localSdsOff, log2(cn_states/2), multipliersDueToLog)
+      globalMatrOfLikeliks <- rbind(matrix_of_likeliks, matrix_of_likeliks_off)
+      globalBed <- rbind(bedFile, bedFileOfftarget)
+      sizesOfPointsFromLocalSdsOff <- 0.5 / localSdsOff
+      globalSizesOfPoints <- c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[order(globalBed[,1], globalBed[,2])]
+      globalMatrOfLikeliks <- globalMatrOfLikeliks[order(globalBed[,1], globalBed[,2]),]
+      globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])[order(globalBed[,1], globalBed[,2])]
+      globalSds <-  c(localSds, localSdsOff)[order(globalBed[,1], globalBed[,2])]
+      globalBed <- globalBed[order(globalBed[,1], globalBed[,2]),]
+    }
     
-
+    
+    
+    
+    
     found_CNVs_total <- matrix(0, nrow=0, ncol=6)
     colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "genes")
     for (l in 1:length(left_borders)) {
+      
       
       chrom = names(left_borders)[l]
       start = left_borders[[l]]
       end = right_borders[[l]]
       for (k in 1:2) {
+        
         output_of_plots <-  paste0(folder_name, sample_name)
         which_to_allow <- "NA"
-        if (k == 1) {
-          which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] <= start )
+        if (sampleInOfftarget) {
+          if (k == 1) {
+            which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] <= start )
+          } else {
+            which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] >= end )
+          }
+          toyBedFile = globalBed[which_to_allow,]
+          
+          toyMatrixOfLikeliks = globalMatrOfLikeliks[which_to_allow,]
+          toyLogFoldChange = globalLogFold[which_to_allow]
+          
+          found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1))
+          
+          toySds <- globalSds[which_to_allow]
+          
+          #if (pvalueForThisArmQC > 0) {
+          #pvalsForQC <- c(pvalsForQC, pvalueForThisArmQC)
+          #}
+          
+          toySizesOfPointsFromLocalSds = c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[order(globalBed[,1], globalBed[,2])]
+          toySizesOfPointsFromLocalSds = toySizesOfPointsFromLocalSds[which_to_allow]
         } else {
-          which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] >= end )
+          if (k == 1) {
+            which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] <= start )
+          } else {
+            which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] >= end )
+          }
+          toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
+          toyBedFile = bedFile[which_to_allow,]
+          found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1))
+          toyLogFoldChange = matrixOfLogFold[which_to_allow,]
+          toySds <- localSds[which_to_allow]
+          
+          
+          # if (pvalueForThisArmQC > 0) {
+          #pvalsForQC <- c(pvalsForQC, pvalueForThisArmQC)
+          #}
+          
+          toyLogFoldChange = matrixOfLogFold[which_to_allow,sam_no]
+          toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
         }
         
-        toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
-        toyBedFile = bedFile[which_to_allow,]
-        found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1))
         
-
-
+        
+        
+        
         if(opt$debug) {
           print(found_CNVs)
           print(l)
           print(k)
         }
-        toyLogFoldChange = matrixOfLogFold[which_to_allow,]
-        toySds <- localSds[which_to_allow]
-        toyMultipliersDueToLog <- multipliersDueToLog[which_to_allow]
-        pvalueForThisArmQC <- qcControl(sam_no, toyLogFoldChange, toySds, toyMultipliersDueToLog, found_CNVs, 0.8)
         
-        if (pvalueForThisArmQC > 0) {
-          pvalsForQC <- c(pvalsForQC, pvalueForThisArmQC)
-        }
-        
-        toyLogFoldChange = matrixOfLogFold[which_to_allow,sam_no]
-        toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
         
         
         ### IGV PLOTTING
@@ -549,8 +691,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
         }
         
-
-
+        
+        
         if (nrow(found_CNVs) > 0) {
           cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, cn_states, toySizesOfPointsFromLocalSds)
           if (found_CNVs[1,1] != -1000) {
@@ -559,16 +701,16 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         }
       }
     }
-  if (length(pvalsForQC > 1)) {
-    finalPValue <- median(pvalsForQC)
-  } else {
-    finalPValue = "UNKNOWN"
-  }
-  fileToOut <- paste0(folder_name, sample_name, "/CNAs.txt")
-  fileConn<-file(fileToOut)
-  writeLines(c(paste("##"," QC ", signif(finalPValue,2), collapse = " ")), fileConn)
-  close(fileConn)
-  print(found_CNVs_total)
-  write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
+    if (length(pvalsForQC > 1)) {
+      finalPValue <- 0
+    } else {
+      finalPValue = 0
+    }
+    fileToOut <- paste0(folder_name, sample_name, "/CNAs.txt")
+    fileConn<-file(fileToOut)
+    writeLines(c(paste("##"," QC ", 0, collapse = " ")), fileConn)
+    close(fileConn)
+    print(found_CNVs_total)
+    write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
   }  
 }

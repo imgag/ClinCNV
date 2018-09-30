@@ -21,11 +21,13 @@ EstimateModeSimple <- function(x) {
 
 
 
-gc_and_sample_size_normalise <- function(info, coverages) {
+gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T) {
   coverages <- (coverages + 10^-20)
   
-  for (i in 1:nrow(coverages)) {
-    coverages[i,] = coverages[i,] / (info[i,3] - info[i,2])
+  if (!averageCoverage) {
+    for (i in 1:nrow(coverages)) {
+      coverages[i,] = coverages[i,] / (info[i,3] - info[i,2])
+    }
   }
   
   autosomes <- which(!info[,1] %in% c("chrX", "chrY"))
@@ -380,3 +382,13 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
 }
 
 
+
+
+
+
+cleanDatasetFromLowCoveredFiles <- function(normal) {
+  medians <- apply(sqrt(normal), 1, median)
+  minAllowedCoverage = max(quantile(medians, 0.01), 0.05)
+  rowsToRemove <- which(medians < minAllowedCoverage)
+  return(rowsToRemove)
+}

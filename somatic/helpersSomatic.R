@@ -1,13 +1,13 @@
 
-formilngLogFoldChange <- function(pairs) {
-  matrixOfLogFold <- matrix(0, nrow=nrow(normal), ncol=0)
-  for (i in 1:ncol(normal)) {
-    sampleNames1 <- which(pairs[,2] == colnames(normal)[i])
+formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
+  matrixOfLogFold <- matrix(0, nrow=nrow(normalCov), ncol=0)
+  for (i in 1:ncol(normalCov)) {
+    sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
     for (sampleName1 in sampleNames1) {
-      sampleName2 <- which(colnames(tumor) == pairs[sampleName1,1])
-      new_name <- (paste(colnames(tumor)[sampleName2], "-",  colnames(normal)[i], sep=""))
+      sampleName2 <- which(colnames(tumorCov) == pairs[sampleName1,1])
+      new_name <- (paste(colnames(tumorCov)[sampleName2], "-",  colnames(normalCov)[i], sep=""))
       if (length(sampleName2) > 0) {
-        matrixOfLogFold <- cbind(matrixOfLogFold, matrix(log2(tumor[,sampleName2]/normal[,i]), nrow=nrow(normal), ncol=1))
+        matrixOfLogFold <- cbind(matrixOfLogFold, matrix(log2(tumorCov[,sampleName2]/normalCov[,i]), nrow=nrow(normalCov), ncol=1))
         colnames(matrixOfLogFold)[ncol(matrixOfLogFold)] <- new_name
       }
     }
@@ -38,9 +38,8 @@ determineSDsOfSomaticProbe <- function(x, i) {
 }
 
 
-form_matrix_of_likeliks_one_sample <- function(i, j, k, sds, resid, cn_states, multipliersDueToLog) {
-  vector_of_values <- resid[,k]
-  
+form_matrix_of_likeliks_one_sample <- function(i, j, vector_of_values, sds, cn_states, multipliersDueToLog) {
+
   vector_of_states <- cn_states
   matrix_of_BFs <- matrix(0, nrow=(j - i + 1), ncol=length(vector_of_states))
   start <- 1
@@ -186,5 +185,3 @@ qcControl <- function(sam_no, toyMatrixOfLogFold, toyLocalSds, toyMultipliersDue
     return(-1)
   }
 }
-
-
