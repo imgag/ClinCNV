@@ -89,7 +89,7 @@ qcControl <- function(sam_no, toyMatrixOfLogFold, toyLocalSds, toyMultipliersDue
 
 
 
-plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, toySizesOfPointsFromLocalSds) {
+plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, toySizesOfPointsFromLocalSds, plottingOfPNGs) {
   vector_of_states <- cn_states
   cnvsToOutput <- matrix(0, nrow=0, ncol=6)
   if (nrow(found_CNVs) > 0) {
@@ -119,7 +119,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       st <- found_CNVs[s,2]
       fn <- found_CNVs[s,3]
       
-      pr = T
+      pr = plottingOfPNGs
       if (pr) {
         plot_st <- max(1,st - length_of_repr)
         plot_fn <- min(length(toyLogFoldChange), fn + length_of_repr)

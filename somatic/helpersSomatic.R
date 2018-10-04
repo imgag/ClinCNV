@@ -55,7 +55,7 @@ form_matrix_of_likeliks_one_sample <- function(i, j, vector_of_values, sds, cn_s
 
 
 
-plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, toySizesOfPointsFromLocalSds) {
+plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, toySizesOfPointsFromLocalSds, plottingOfPNGs) {
   vector_of_states <- cn_states
   cnvsToOutput <- matrix(0, nrow=0, ncol=6)
   if (nrow(found_CNVs) > 0) {
@@ -96,7 +96,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       st <- found_CNVs[s,2]
       fn <- found_CNVs[s,3]
       
-      pr = T
+      pr = plottingOfPNGs
       if (pr) {
         png(filename=paste0(outputFolder, "/", paste0(CNV_name_to_write, ".png")), type="cairo",width = 1024, height = 640)
         if(opt$debug) {

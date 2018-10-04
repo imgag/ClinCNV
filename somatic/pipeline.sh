@@ -23,7 +23,9 @@ lengthSomatic=5 # minimum number of regions that forms a Somatic CNA
 maximumNumberOfGermlineCNVs=100 # this is a maximum amount of CNVs >=3KBps length expected in WGS 40x sample of European population
 maximumNumberOfIterations=3 # tool increases thresholds if the number of CNVs exceeds max amount and re-analyse sample N times (specified)
 maximumNumberOfSomaticCNAs=100 # has to be tuned
-
+# New parameters (introduced on 1st of October, 2018)
+folderWithNormals="/mnt/share/data/coverage/offtarget_ssSC_v2"
+folderWithTumors="/mnt/share/data/coverage/offtarget_ssSC_v2-tumor"
 
 cd $folderWithScript
 

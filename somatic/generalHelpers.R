@@ -19,6 +19,11 @@ EstimateModeSimple <- function(x) {
   mu
 }
 
+lehmanHodges <- function(x) {
+  allCombs <- combn(x, 2, FUN=mean)
+  averages <- c(x, allCombs)
+  return(median(averages))
+}
 
 
 gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T) {
@@ -53,7 +58,7 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T) {
   uniques_gcs <- unique(gcs)
   uniquesGcsToExclude = c()
   for (i in 1:length(uniques_gcs)) {
-    if (length(which(gcs == uniques_gcs[i])) < 50) {
+    if (length(which(gcs == uniques_gcs[i])) < 25) {
       uniquesGcsToExclude = c(uniquesGcsToExclude, i)
     }
   }
@@ -62,11 +67,15 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T) {
   print(paste("Percentage of regions remained after GC correction:", length(which(gcs %in% uniques_gcs)) / length(gcs)))
   
   
-  gc_normalisation_factors = foreach (i = 1:length(uniques_gcs), .combine="rbind", .export="EstimateModeSimple") %dopar% {
+  gc_normalisation_factors = foreach (i = 1:length(uniques_gcs), .combine="rbind", .export=c("EstimateModeSimple", "lehmanHodges")) %dopar% {
     gc()
     curr_gc = uniques_gcs[i]
     vector_of_gc <- which(gcs == curr_gc)
-    gc_norm_factor <- as.vector(apply(coverages[intersect(vector_of_gc, autosomes),], 2, median))
+    if (length(vector_of_gc) >= 50) {
+      gc_norm_factor <- as.vector(apply(coverages[intersect(vector_of_gc, autosomes),], 2, median))
+    } else {
+      gc_norm_factor = as.vector(apply(coverages[intersect(vector_of_gc, autosomes),], 2, lehmanHodges))
+    }
     gc_norm_factor
   }
   

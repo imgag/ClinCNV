@@ -43,7 +43,7 @@ option_list = list(
   make_option(c("-lg", "--lengthG"), type="double", default="3", 
               help="minimum threshold for length of germline variants", metavar="character"),
   
-  make_option(c("-ss", "--scoreS"), type="double", default="60", 
+  make_option(c("-ss", "--scoreS"), type="double", default="100", 
               help="minimum threshold for significance somatic variants", metavar="character"),
   
   make_option(c("-ls", "--lengthS"), type="double", default="5", 
@@ -72,11 +72,13 @@ opt = parse_args(opt_parser);
 # opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairs.txt"
 # opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
 # opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic"
-# opt$reanalyseCohort = T
+# opt$reanalyseCohort = F
 # opt$bedOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/offtaget_annotated_ssSC_v2_2015_01_26.bed"
 # opt$tumorOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/offtarget2.txt"
 # opt$normalOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/offtarget2.txt"
 
+### PLOTTING OF PICTURES (DOES NOT REALLY NECESSARY IF YOU HAVE IGV SEGMENTS)
+plottingOfPNGs = F
 
 if (!dir.exists(opt$out)) {
   dir.create(opt$out)
@@ -352,7 +354,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         if (nrow(found_CNVs) > 0) {
           # UNCOMMENT FOR PLOTTING!!!
           
-          cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, cn_states, toySizesOfPointsFromLocalSds)
+          cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, cn_states, toySizesOfPointsFromLocalSds, plottingOfPNGs)
           if (found_CNVs[1,1] != -1000) {
             found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
               if (nrow(found_CNVs_total) > opt$maxNumGermCNVs) {
@@ -514,7 +516,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   initial_state <- 1
   sampleInOfftarget=F
   
-  
+  sample_name <- colnames(matrixOfLogFold)[sam_no]
   localSds = sdsOfProbes * esimtatedVarianceFromSampleNoise[sam_no] * multiplicator
   if (frameworkOff == "offtarget") {
     if (sample_name %in% colnames(matrixOfLogFoldOff)) {
@@ -525,7 +527,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   }
   
   
-  sample_name <- colnames(matrixOfLogFold)[sam_no]
   if(opt$debug) {
     print(sam_no)
     print(sample_name)
@@ -584,16 +585,16 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFold), matrixOfLogFold[,sam_no], localSds, log2(cn_states/2), multipliersDueToLog)
     sizesOfPointsFromLocalSds <- 0.5 / localSds 
     if (sampleInOfftarget) {
-      sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
       matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOff), matrixOfLogFoldOff[,sam_no_off], localSdsOff, log2(cn_states/2), multipliersDueToLog)
       globalMatrOfLikeliks <- rbind(matrix_of_likeliks, matrix_of_likeliks_off)
       globalBed <- rbind(bedFile, bedFileOfftarget)
       sizesOfPointsFromLocalSdsOff <- 0.5 / localSdsOff
-      globalSizesOfPoints <- c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[order(globalBed[,1], globalBed[,2])]
-      globalMatrOfLikeliks <- globalMatrOfLikeliks[order(globalBed[,1], globalBed[,2]),]
-      globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])[order(globalBed[,1], globalBed[,2])]
-      globalSds <-  c(localSds, localSdsOff)[order(globalBed[,1], globalBed[,2])]
-      globalBed <- globalBed[order(globalBed[,1], globalBed[,2]),]
+      vecOfOrder = order(globalBed[,1], globalBed[,2])
+      globalSizesOfPoints <- c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[vecOfOrder]
+      globalMatrOfLikeliks <- globalMatrOfLikeliks[vecOfOrder,]
+      globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])[vecOfOrder]
+      globalSds <-  c(localSds, localSdsOff)[vecOfOrder]
+      globalBed <- globalBed[vecOfOrder,]
     }
     
     
@@ -631,7 +632,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           #pvalsForQC <- c(pvalsForQC, pvalueForThisArmQC)
           #}
           
-          toySizesOfPointsFromLocalSds = c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[order(globalBed[,1], globalBed[,2])]
+          toySizesOfPointsFromLocalSds = c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[vecOfOrder]
           toySizesOfPointsFromLocalSds = toySizesOfPointsFromLocalSds[which_to_allow]
         } else {
           if (k == 1) {
@@ -650,7 +651,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           #pvalsForQC <- c(pvalsForQC, pvalueForThisArmQC)
           #}
           
-          toyLogFoldChange = matrixOfLogFold[which_to_allow,sam_no]
+          toyLogFoldChange = matrixOfLogFold[which_to_allow, sam_no]
           toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
         }
         
@@ -694,7 +695,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         
         
         if (nrow(found_CNVs) > 0) {
-          cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, cn_states, toySizesOfPointsFromLocalSds)
+          cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, cn_states, toySizesOfPointsFromLocalSds, plottingOfPNGs)
           if (found_CNVs[1,1] != -1000) {
             found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
           }
