@@ -24,10 +24,10 @@ determineSDsOfSomaticSample <- function(x) {
   else {
        for (i in 2:length(bordersOfChroms)) {
          valuesBetweenBorders <- x[bordersOfChroms[i-1]:bordersOfChroms[i]]
-         valuesBetweenDelAndDup <- which(valuesBetweenBorders > -1 & valuesBetweenBorders < log2(3/2))
-         if (length(valuesBetweenDelAndDup) > 0.5 * length(valuesBetweenBorders)) {
-            valuesBetweenBorders <- valuesBetweenBorders[valuesBetweenDelAndDup]
-         }
+         #valuesBetweenDelAndDup <- which(valuesBetweenBorders > -1 & valuesBetweenBorders < log2(3/2))
+         #if (length(valuesBetweenDelAndDup) > 0.5 * length(valuesBetweenBorders)) {
+        #    valuesBetweenBorders <- valuesBetweenBorders[valuesBetweenDelAndDup]
+        # }
          sdsS[i] = Sn(valuesBetweenBorders)
       }
   }
