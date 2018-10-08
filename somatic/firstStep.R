@@ -64,18 +64,6 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
-### TESTING PART
-# opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v2.annotated.bed"
-# opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/tumor2.cov"
-# opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/normal2.cov"
-# opt$colNum = 4
-# opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairs.txt"
-# opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
-# opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic"
-# opt$reanalyseCohort = F
-# opt$bedOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/offtaget_annotated_ssSC_v2_2015_01_26.bed"
-# opt$tumorOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/offtarget2.txt"
-# opt$normalOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/offtarget2.txt"
 
 ### PLOTTING OF PICTURES (DOES NOT REALLY NECESSARY IF YOU HAVE IGV SEGMENTS)
 plottingOfPNGs = F
@@ -656,9 +644,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         }
         
         
-        
-        
-        
         if(opt$debug) {
           print(found_CNVs)
           print(l)
@@ -711,7 +696,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     fileConn<-file(fileToOut)
     writeLines(c(paste("##"," QC ", 0, collapse = " ")), fileConn)
     close(fileConn)
-    print(found_CNVs_total)
+    if(opt$debug) {
+        print(found_CNVs_total)
+    }
     write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
   }  
 }

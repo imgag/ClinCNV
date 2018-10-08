@@ -264,29 +264,6 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
           matrix_of_likeliks[k,] = 0
         }
 
-      # if (found_CNV[4] >= 2 & found_CNV[4] <= 4) {
-      #   for (k in found_CNV[2]:found_CNV[3]) {
-      #     matrix_of_likeliks[k,found_CNV[4]] = matrix_of_likeliks[k,current_region_to_look_for_CNVs[4]]
-      #   }
-      # } else {
-      #   if (found_CNV[4] == 1) {
-      #     # replace borders as they are heterozygous deletions
-      #     matrix_of_likeliks[max((found_CNV[2] - 1), start), 1] = matrix_of_likeliks[max((found_CNV[2] - 1), start), 2]
-      #     matrix_of_likeliks[min((found_CNV[3] + 1), end), 1] = matrix_of_likeliks[min((found_CNV[3] + 1), end), 2]
-      #   }
-      #   if (found_CNV[4] > 4) {
-      #     # replace borders as they are heterozygous duplications
-      #     matrix_of_likeliks[max((found_CNV[2] - 1), start), found_CNV[4]] = matrix_of_likeliks[max((found_CNV[2] - 1), start), 4]
-      #     matrix_of_likeliks[min((found_CNV[3] + 1), end), found_CNV[4]] = matrix_of_likeliks[min((found_CNV[3] + 1), end), 4]
-      #   }
-      #   found_CNV_with_changed = find_one_CNV(start, end, current_region_to_look_for_CNVs[4], threshold, matrix_of_likeliks, minimum_length_of_CNV)
-      #   if (found_CNV_with_changed[3] == found_CNV[3] & found_CNV_with_changed[2] == found_CNV[2]) {
-      #     # evaluate_segment_further = F
-      #     for (k in max((found_CNV[2] - 1), start):min((found_CNV[3] + 1), end)) {
-      #       matrix_of_likeliks[k,found_CNV[4]] = matrix_of_likeliks[k,current_region_to_look_for_CNVs[4]]
-      #     }
-      #   }
-      # }
       matrix_for_calculations <- -matrix_of_likeliks[start:end,] + matrix_of_likeliks[start:end, initial_state]
       if (!is.null(nrow(matrix_for_calculations))) {
         matrix_for_calculations <- apply(matrix_for_calculations, 2, sum)
@@ -350,7 +327,6 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
     ### MAKE ANNOTATION TO TRACK FILES
     makeTrackAnnotation <- function(fileName) {
       if (!file.exists(fileName)) {
-        print("WE CREATE FILE")
         file.create(fileName)
         fileConn<-file(fileName)
         writeLines(c("#type=GENE_EXPRESSION",
