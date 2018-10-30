@@ -80,7 +80,7 @@ to
 ```
 gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=F, allowedChroms=NULL)
 ```
-in the file generalHelpers.R.
+in the file `generalHelpers.R`.
 
 *Note3:* on-target and off-target reads should be pre-processed in `.cov` formats. If you do not have off-target reads for some samples - don't worry, ClinCNV will work with available data only.
 
@@ -181,6 +181,8 @@ samtools bedcov $bedFilePath -Q 3 $bamPath > $sampleName".cov"
 ```
 
 ### How to calculate BAF-files
+
+Using *ngs-bits*:
 
 ```
 VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" -out $nameOfSample".tsv" -depth
