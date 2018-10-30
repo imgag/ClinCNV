@@ -26,8 +26,12 @@ lehmanHodges <- function(x) {
 }
 
 
-gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T) {
-  coverages <- (coverages + 10^-20)
+gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, allowedChroms=NULL) {
+  # allowedChroms is the list, index in the list = column in coverages
+  for (j in 1:ncol(coverages)) {
+    smallValues <- which(coverages[,j] < 10^-20)
+    coverages[smallValues, j] <- (10^-20)
+  }
   
   if (!averageCoverage) {
     for (i in 1:nrow(coverages)) {
@@ -58,7 +62,7 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T) {
   uniques_gcs <- unique(gcs)
   uniquesGcsToExclude = c()
   for (i in 1:length(uniques_gcs)) {
-    if (length(which(gcs == uniques_gcs[i])) < 25) {
+    if (length(which(gcs == uniques_gcs[i])) < 100) {
       uniquesGcsToExclude = c(uniquesGcsToExclude, i)
     }
   }
@@ -66,18 +70,45 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T) {
   uniques_gcs = uniques_gcs[-uniquesGcsToExclude]
   print(paste("Percentage of regions remained after GC correction:", length(which(gcs %in% uniques_gcs)) / length(gcs)))
   
-  
-  gc_normalisation_factors = foreach (i = 1:length(uniques_gcs), .combine="rbind", .export=c("EstimateModeSimple", "lehmanHodges")) %dopar% {
-    gc()
-    curr_gc = uniques_gcs[i]
-    vector_of_gc <- which(gcs == curr_gc)
-    if (length(vector_of_gc) >= 50) {
-      gc_norm_factor <- as.vector(apply(coverages[intersect(vector_of_gc, autosomes),], 2, median))
-    } else {
-      gc_norm_factor = as.vector(apply(coverages[intersect(vector_of_gc, autosomes),], 2, lehmanHodges))
+  if (is.null(allowedChroms)) {
+    allowedChromosomesAutosomesOnly = autosomes
+    gc_normalisation_factors = foreach (i = 1:length(uniques_gcs), .combine="rbind", .export=c("EstimateModeSimple", "lehmanHodges")) %dopar% {
+      gc()
+      curr_gc = uniques_gcs[i]
+      vector_of_gc <- which(gcs == curr_gc)
+      vector_of_gcs_in_allowed_chroms = intersect(vector_of_gc, allowedChromosomesAutosomesOnly)
+      if (length(vector_of_gcs_in_allowed_chroms) >= 50) {
+        gc_norm_factor <- as.vector(apply(coverages[vector_of_gcs_in_allowed_chroms,], 2, median))
+      } else {
+        gc_norm_factor = as.vector(apply(coverages[vector_of_gcs_in_allowed_chroms,], 2, lehmanHodges))
+      }
+      gc_norm_factor
     }
-    gc_norm_factor
+  } else {
+    gc_normalisation_factors = foreach (i = 1:length(uniques_gcs), .combine="rbind", .export=c("EstimateModeSimple", "lehmanHodges")) %dopar% {
+      gc()
+      curr_gc = uniques_gcs[i]
+      vector_of_gc <- which(gcs == curr_gc)
+      gc_norm_factor = rep(1, ncol(coverages))
+      for (j in 1:ncol(coverages)) {
+        tumorName = colnames(coverages)[j]
+        position <- which(startsWith(names(allowedChroms), prefix=tumorName))
+        if (length(position) == 1) {
+        allowedChromosomesAutosomesOnly = which(!info[,1] %in% c("chrX", "chrY") & info[,1] %in% allowedChroms[[position]])
+        } else {
+          allowedChromosomesAutosomesOnly = which(!info[,1] %in% c("chrX", "chrY"))
+        }
+        vector_of_gcs_in_allowed_chroms = intersect(vector_of_gc, allowedChromosomesAutosomesOnly)
+        if (length(vector_of_gcs_in_allowed_chroms) >= 50) {
+          gc_norm_factor[j] = median(coverages[vector_of_gcs_in_allowed_chroms,j])
+        } else {
+          gc_norm_factor[j] = lehmanHodges(coverages[vector_of_gcs_in_allowed_chroms,j])
+        }
+      }
+      gc_norm_factor
+    }
   }
+
   
   for (i in 1:length(uniques_gcs)) {
     factorGC = gc_normalisation_factors[i,]
@@ -87,10 +118,12 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T) {
     }
   }
   
-  coverages <- coverages[-which(! gcs %in% uniques_gcs),]
-  info <- info[-which(! gcs %in% uniques_gcs),]
+  if (length(which(! gcs %in% uniques_gcs)) > 0) {
+    coverages <- coverages[-which(! gcs %in% uniques_gcs),]
+    info <- info[-which(! gcs %in% uniques_gcs),]
+  }
   
-  return(list(exp(coverages), info))
+  return(list(2 ** (coverages), info))
 }
 
 
@@ -307,7 +340,6 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
   }
   return(found_CNVs)
 }
-
 
 
 

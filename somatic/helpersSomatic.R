@@ -1,18 +1,22 @@
 
 formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
   matrixOfLogFold <- matrix(0, nrow=nrow(normalCov), ncol=0)
+  listOfMatrOfLogFoldToTumor <- list()
+  counter = 0
   for (i in 1:ncol(normalCov)) {
     sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
     for (sampleName1 in sampleNames1) {
       sampleName2 <- which(colnames(tumorCov) == pairs[sampleName1,1])
       new_name <- (paste(colnames(tumorCov)[sampleName2], "-",  colnames(normalCov)[i], sep=""))
       if (length(sampleName2) > 0) {
+        counter = counter + 1
         matrixOfLogFold <- cbind(matrixOfLogFold, matrix(log2(tumorCov[,sampleName2]/normalCov[,i]), nrow=nrow(normalCov), ncol=1))
         colnames(matrixOfLogFold)[ncol(matrixOfLogFold)] <- new_name
+        listOfMatrOfLogFoldToTumor[[counter]] = sampleName2
       }
     }
   }
-  return(matrixOfLogFold)
+  return(list(matrixOfLogFold, listOfMatrOfLogFoldToTumor))
 }
 
 
@@ -22,12 +26,17 @@ determineSDsOfSomaticSample <- function(x) {
     sdsS[1] = Sn(x)
   }
   else {
-       for (i in 2:length(bordersOfChroms)) {
-         valuesBetweenBorders <- x[bordersOfChroms[i-1]:bordersOfChroms[i]]
-         sdsS[i] = Sn(valuesBetweenBorders)
-      }
+    for (i in 2:length(bordersOfChroms)) {
+      valuesBetweenBorders <- x[bordersOfChroms[i-1]:bordersOfChroms[i]]
+      if (length(valuesBetweenBorders) > 1)
+        sdsS[i] = Sn(valuesBetweenBorders)
+    }
   }
-  return(median(sdsS))
+  return(median(sdsS[which(sdsS > 0)]))
+}
+
+determineSDsOfSomaticSampleWithAllowdChroms <- function(x) {
+  return(Sn(x))
 }
 
 
@@ -56,9 +65,9 @@ form_matrix_of_likeliks_one_sample <- function(i, j, vector_of_values, sds, cn_s
 
 
 
-plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, toySizesOfPointsFromLocalSds, plottingOfPNGs) {
+plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, copy_numbers_used, purities, toySizesOfPointsFromLocalSds, plottingOfPNGs) {
   vector_of_states <- cn_states
-  cnvsToOutput <- matrix(0, nrow=0, ncol=6)
+  cnvsToOutput <- matrix(0, nrow=0, ncol=8)
   if (nrow(found_CNVs) > 0) {
     for (s in 1:nrow(found_CNVs)) {
 	  if(opt$debug) {
@@ -83,12 +92,14 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       if(opt$debug) {
         print(annotationGenes)
       }
-      CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), annotationGenes), nrow=1)
+      CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], 
+                           copy_numbers_used[found_CNVs[s,4]], purities[found_CNVs[s,4]],
+                           vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), annotationGenes), nrow=1)
       if(opt$debug)
       {
         print(CNVtoOut)
       }
-      cnvsToOutput = as.matrix(rbind(cnvsToOutput, CNVtoOut), ncol=6, drop=F)
+      cnvsToOutput = as.matrix(rbind(cnvsToOutput, CNVtoOut), ncol=8, drop=F)
 
       
       length_of_repr <- 500

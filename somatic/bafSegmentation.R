@@ -1,0 +1,350 @@
+setwd("/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic")
+source("helpersBalleleFreq.R")
+
+
+makeTrackAnnotation <- function(fileName, ID, viewLimits, trackType="points", addText="", color="0,0,255") {
+    file.create(fileName)
+    fileConn<-file(fileName)
+    writeLines(c("#type=GENE_EXPRESSION",
+                 paste0("#track graphtype=", trackType, " name=\"", ID, "\" color=", color, " altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=", viewLimits, " ", addText)), fileConn)
+    close(fileConn)
+}
+
+
+returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF) {
+  setwd(folderBAF)
+  healthySample = NULL
+  tumorSample = NULL
+  if (file.exists(paste0(healthySampleName, ".tsv")) & file.exists(paste0(tumorSampleName, ".tsv"))) {
+    # CHECK IF FILE IS EMPTY
+    info = file.info(paste0(healthySampleName, ".tsv"), paste0(tumorSampleName, ".tsv"))
+    empty = rownames(info[info$size == 0, ])
+
+    print(empty)
+    if (length(empty) > 0) {
+      return(list(NULL, NULL))
+    }
+    
+    # FILE IS NOT EMPTY => READING
+    healthySample <- read.table(paste0(healthySampleName, ".tsv"), stringsAsFactors = F, header=F, sep="\t")
+    tumorSample <- read.table(paste0(tumorSampleName, ".tsv"), stringsAsFactors=F, header=F, sep="\t")
+    if (nrow(healthySample) == 0 | is.na(healthySample[1,5]) | is.na(tumorSample[1,5]) |
+        is.na(as.numeric(healthySample[1,5])) | is.na(as.numeric(tumorSample[1,5]))) {
+      return(list(NULL, NULL))
+    }
+
+    if (ncol(healthySample) == 5) {
+      healthySample = cbind(healthySample[,1:3], apply(healthySample[,1:3], 1, function(x) {paste0(x, collapse="_")}), healthySample[,4:5])
+    }
+    if (ncol(tumorSample) == 5) {
+      tumorSample = cbind(tumorSample[,1:3], apply(tumorSample[,1:3], 1, function(x) {paste0(x, collapse="_")}), tumorSample[,4:5])
+    }
+    colnames(healthySample) <- c("chr", "start", "end", "Feature", "freq", "depth")
+    colnames(tumorSample) <- c("chr", "start", "end", "Feature", "freq", "depth")
+
+    healthySample = healthySample[which(healthySample[,6] > median(healthySample[,6]) / 10),]
+    tumorSample = tumorSample[which(tumorSample[,6] > median(tumorSample[,6]) / 10),]
+    
+
+
+    
+    healthyFeatures <- healthySample$Feature
+    tumorFeatures <- tumorSample$Feature
+    healthyFeatures = healthyFeatures[!(duplicated(healthyFeatures) | duplicated(healthyFeatures, fromLast = TRUE)) ]
+    tumorFeatures = tumorFeatures[!(duplicated(tumorFeatures) | duplicated(tumorFeatures, fromLast = TRUE)) ]
+    featuresPresentedInBoth <- intersect(healthyFeatures, tumorFeatures)
+    
+    tumorSample = tumorSample[which(tumorSample$Feature %in% featuresPresentedInBoth),]
+    healthySample = healthySample[which(healthySample$Feature %in% featuresPresentedInBoth),]
+    
+    tumorSample = tumorSample[order(tumorSample[,1],tumorSample[,2] ),]
+    healthySample = healthySample[order(healthySample[,1], healthySample[,2]),]
+    
+    
+    heterozygousPositions <- apply(healthySample[,5:6], 1, function(vec) {determineHeterozygousPositions(as.numeric(vec[1]), as.numeric(vec[2]))})
+    healthySample = healthySample[heterozygousPositions, ]
+    tumorSample = tumorSample[heterozygousPositions, ]
+    
+    meaningfulResult <- list()
+    meaningfulResult[[healthySampleName]] = healthySample
+    meaningfulResult[[tumorSampleName]] = tumorSample
+    return(meaningfulResult)
+  } else {
+    return(list(healthySample, tumorSample))
+  }
+}
+
+
+determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName, tumorSampleName, folderBAF) {
+  vecOfPvalues <- rep(0, nrow(tumorSample))
+  for (i in 1:nrow(tumorSample)) {
+    refAleleTum <- (round(as.numeric(tumorSample[i,5]) * as.numeric(tumorSample[i,6])))
+    altAleleTum <- as.numeric(tumorSample[i,6]) - refAleleTum
+    refAleleNorm<- (round(as.numeric(healthySample[i,5]) * as.numeric(healthySample[i,6])))
+    altAleleNorm <- as.numeric(healthySample[i,6]) - refAleleNorm
+    vecOfPvalues[i] = passPropTest(refAleleTum, refAleleNorm, altAleleTum, altAleleNorm)
+  }
+  
+  pvalues <- round(vecOfPvalues, digits=4)
+  pvalues <- format(pvalues, scientific = FALSE)
+  pvalues <- matrix(pvalues, ncol=1)
+  values <- rep(1, length(pvalues))
+  values[which(pvalues < 0.05)] = 0
+  values[which(pvalues < 0.01)] = -1
+  values = matrix(values, ncol=1)
+  trackToWriteOut <- cbind(healthySample[,c(1,2,3)], pvalues, values)
+  colnames(trackToWriteOut)[4] = "Features"
+  
+  thresholdOfNonNormalVariant = 0.01 # pvalue, if lower = BAF is different in normal and tumor
+  chroms = paste0("chr", 1:22)
+  chroms = c(chroms, "chrX")
+  numberOfSNVs = rep(0, length(chroms))
+  evaluated = rep(0, length(chroms))
+  counter = 1
+  for (chrom in chroms) {
+    rowsFromChrom = which(healthySample[,1] == chrom)
+    if (length(rowsFromChrom) > 1) {
+      evaluationOfChorm = (length(which(pvalues[rowsFromChrom] < thresholdOfNonNormalVariant))) / (length(rowsFromChrom))
+    } else {
+      evaluationOfChorm = 1.0
+    }
+    
+    evaluated[counter] = evaluationOfChorm
+    numberOfSNVs[counter] = length(rowsFromChrom)
+    
+    counter = counter + 1
+  }
+  indicesOfAllowedChroms = which(evaluated < max(quantile(evaluated, 0.2), 0.1))
+  colVec <- rep("red", length(chroms))
+  indicesOfAllowedButNotBestChroms = which(evaluated > 0.1 & evaluated < quantile(evaluated, 0.2))
+  colVec[indicesOfAllowedChroms] = "darkgreen"
+  colVec[indicesOfAllowedButNotBestChroms] = "darkorange"
+  names(evaluated) = paste(chroms, "\n", numberOfSNVs)
+  
+  
+  subDir = paste0(tumorSampleName, "_", healthySampleName)
+  dir.create(file.path(folderBAF, "result", subDir))
+  setwd(file.path(folderBAF, "result", subDir))
+  png(paste0(tumorSampleName, "_", healthySampleName, ".png"), width=1200, height=600)
+  barplot(evaluated, col=colVec, main=paste(tumorSampleName, healthySampleName), ylim=c(0,1))
+  dev.off()
+  allowedChroms = chroms[indicesOfAllowedChroms]
+  
+  
+  trackFilename = paste0(tumorSampleName, "_", healthySampleName, ".igv")
+  print(getwd())
+  print(trackFilename)
+  makeTrackAnnotation(trackFilename, trackFilename, "-1:1", "line")
+  write.table(trackToWriteOut, file=trackFilename, quote = F, row.names = F, sep="\t", append=T)
+  
+  healthyBafFilename = paste0(healthySampleName, ".igv")
+  makeTrackAnnotation(healthyBafFilename, healthySampleName, "0:1", "points", "yLineMark=1 yLineOnOff=on", "0,120,0")
+  trackToWriteOut <- cbind(healthySample[,c(1,2,3,4,5)])
+  write.table(trackToWriteOut, file=healthyBafFilename, quote = F, row.names = F, sep="\t", append=T)
+  
+  tumorBafFilename = paste0(tumorSampleName, ".igv")
+  makeTrackAnnotation(tumorBafFilename, tumorSampleName, "0:1", "points", "yLineMark=1 yLineOnOff=on", "120,0,0")
+  trackToWriteOut <- cbind(tumorSample[,c(1,2,3,4,5)])
+  write.table(trackToWriteOut, file=tumorBafFilename, quote = F, row.names = F, sep="\t", append=T)
+  
+  return(allowedChroms)
+}
+
+
+returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF) {
+  allowedChromsBaf <- list()
+  bAlleleFreqsAllSamples <- list()
+  for (i in 1:ncol(normalCov)) {
+    sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
+    for (sampleName1 in sampleNames1) {
+      sampleName2 <- which(colnames(tumorCov) == pairs[sampleName1,1])
+      print(i)
+      print(sampleName2)
+      bAlleleFreqs <- returnBAlleleFreqs(colnames(normalCov)[i], colnames(tumorCov)[sampleName2], inputFolderBAF)
+      if (!is.null(bAlleleFreqs[[1]])) {
+        allowedChromsBaf[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]] = determineAllowedChroms(bAlleleFreqs[[1]], bAlleleFreqs[[2]],
+                                                                                                                             colnames(normalCov)[i], colnames(tumorCov)[sampleName2],
+                                                                                                                             inputFolderBAF)
+        bAlleleFreqsAllSamples[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]] = bAlleleFreqs
+      } 
+    }
+  }
+  return(list(allowedChromsBaf, bAlleleFreqsAllSamples))
+}
+
+mergeClustersCloseToEachOther <- function(means, volumes, radius = 0.05) {
+  smallVolumes <- which(volumes < 0.01)
+  if (length(smallVolumes) > 0) {
+    means = means[-smallVolumes]
+    volumes = volumes[-smallVolumes]
+    volumes = volumes / sum(volumes)
+  }
+  
+  alreadyTaken = rep(F, length(means))
+  newMeans <- c()
+  newVolumes <- c()
+  for (i in 1:length(means)) {
+    if (alreadyTaken[i] == F) {
+      whichAreAroundMeanI = which(abs(means - means[i]) < radius & alreadyTaken == F)
+      alreadyTaken[whichAreAroundMeanI] = T
+      newMeans <- c(newMeans, sum(volumes[whichAreAroundMeanI] * means[whichAreAroundMeanI] / sum(volumes[whichAreAroundMeanI])))
+      newVolumes <- c(newVolumes, sum(volumes[whichAreAroundMeanI]))
+    }
+  }
+  return(matrix(rbind(newMeans, newVolumes), nrow=2))
+}
+
+
+predictWholeGenomeEvent <- function(healthySampleBAF, tumorSampleBAF, matrixOfCoverages, allowedChromsBafForThatSamples, bedFile) {
+  purDel = 1.0
+  purDup = 1.0
+  
+  logFoldChanges <- log2(matrixOfCoverages[1,]) - log2(matrixOfCoverages[2,])
+  
+  shift <- median(logFoldChanges[which(bedFile[matrixOfCoverages[3,],1] %in% allowedChromsBafForThatSamples)])
+  print(paste("SHIFT", shift))
+  logFoldChanges = logFoldChanges - shift
+  
+  toFilter <- which(logFoldChanges < -1.0 | logFoldChanges == 0)
+  
+  values <- as.numeric(healthySampleBAF[,5]) - as.numeric(tumorSampleBAF[,5])
+  
+  if (length(toFilter) > 0) {
+    logFoldChanges = logFoldChanges[-toFilter]
+    values = values[-toFilter]
+  }
+  
+  
+  moreThan0 = which(logFoldChanges > 0)
+  mod <- densityMclust(values[moreThan0], modelNames=c("E"))
+  means = mod$parameters$mean
+  means = means[which(means > 0.05 | means < -0.05)]
+  if (length(means) > 0) {
+    minAbs <- min(abs(means)) / 2
+  } else {
+    minAbs = 0.05
+  }
+  positiveValues <- values[moreThan0]
+  positiveValues[which(positiveValues < -minAbs)] = abs(positiveValues[which(positiveValues < -minAbs)] )
+  mod <- densityMclust(positiveValues, modelNames=c("E"))
+  plot(mod, what="density", data=positiveValues, breaks=50,xlim=c(-minAbs,0.5))
+  mergedData <- (mergeClustersCloseToEachOther(mod$parameters$mean, mod$parameters$pro))
+  if (ncol(mergedData) > 1) {
+    mergedData <- mergedData[,order(mergedData[1,])]
+    if (sum(mergedData[2,2:col(mergedData)]) > 0.1) {
+      print("For deletions:")
+      print(mergedData)
+      print("PURITY:")
+      purDel = (estimatePurity("del", min(max(mergedData[1,]), 0.5)))
+      if (purDel < 1.0)
+        print(purDel)
+      else 
+        print(estimatePurity("del", mergedData[1,1]))
+    }
+    if (sum(mergedData[2,2:col(mergedData)]) > 0.2 & purDel > 0.5) {
+      purDup = purDel
+    }
+  }
+  readline(prompt="Press [enter] to continue")
+  
+  lessThan0 = which(logFoldChanges < 0)
+  mod <- densityMclust(values[lessThan0], modelNames=c("E"))
+  means = mod$parameters$mean
+  means = means[which(means > 0.05 | means < -0.05)]
+  if (length(means) > 0) {
+    minAbs <- min(abs(means)) / 2
+  } else {
+    minAbs = 0.05
+  }
+  positiveValues <- values[lessThan0]
+  positiveValues[which(positiveValues < -minAbs)] = abs(positiveValues[which(positiveValues < -minAbs)] )
+  mod <- densityMclust(positiveValues, modelNames=c("E"))
+  plot(mod, what="density", data=positiveValues, breaks=50,xlim=c(-minAbs,0.5))
+  mergedData <- (mergeClustersCloseToEachOther(mod$parameters$mean, mod$parameters$pro))
+  if (ncol(mergedData) > 1) {
+    mergedData <- mergedData[,order(mergedData[1,])]
+    if (sum(mergedData[2,2:col(mergedData)]) > 0.1) {
+      print("For duplications:")
+      print(mergedData)
+      print("PURITY:")
+      purDup = (estimatePurity("dup", mergedData[1,2]))
+      if (purDup < 1.0)
+        print(purDup)
+      else 
+        print(estimatePurity("dup", mergedData[1,1]))
+    }
+  }
+  
+  
+  readline(prompt="Press [enter] to continue")
+  
+  print(paste("Max purity:", max(purDel, purDup)))
+  
+  return(min(1.0, max(purDel, purDup)))
+}
+
+extractCoveragesHavingListOfSNVs <- function(sampleBAF, sampleNormalCoverage, sampleTumorCoverage, bedFile) {
+  coverageOfSampleWithinSNVRegionsNormal <- rep(1, nrow(sampleBAF))
+  coverageOfSampleWithinSNVRegionsTumor <- rep(1, nrow(sampleBAF))
+  modifiedBedFile <- rep(1, nrow(sampleBAF))
+  for (i in 1:nrow(sampleBAF)) {
+    coordInBed <- which(bedFile[,1] == sampleBAF[i,1] & bedFile[,2] <= sampleBAF[i,2] & bedFile[,3] >= sampleBAF[i,3])
+    if (length(coordInBed) == 1) {
+      coverageOfSampleWithinSNVRegionsNormal[i] = sampleNormalCoverage[coordInBed]
+      coverageOfSampleWithinSNVRegionsTumor[i] = sampleTumorCoverage[coordInBed]
+      modifiedBedFile[i] = coordInBed
+    } 
+    if (length(coordInBed) == 0) {
+      bedFromSameChrom <- which(bedFile[,1] == sampleBAF[i,1])
+      distancesLeft = abs(bedFile[bedFromSameChrom,2] - sampleBAF[i,2])
+      distancesRight = abs(bedFile[bedFromSameChrom,3] - sampleBAF[i,3])
+      minLeft = min(distancesLeft)
+      minRight = min(distancesRight)
+      if (minLeft < 10**4 | minRight < 10**4) {
+        if (minLeft < minRight) {
+          coordInBed = bedFromSameChrom[which.min(distancesLeft)]
+        } else {
+          coordInBed = bedFromSameChrom[which.min(distancesRight)]
+        }
+        coverageOfSampleWithinSNVRegionsNormal[i] = sampleNormalCoverage[coordInBed]
+        coverageOfSampleWithinSNVRegionsTumor[i] = sampleTumorCoverage[coordInBed]
+        modifiedBedFile[i] = coordInBed
+      }
+    }
+  }
+  return(rbind(coverageOfSampleWithinSNVRegionsNormal, coverageOfSampleWithinSNVRegionsTumor, modifiedBedFile))
+}
+
+
+
+returnPurityPloidy <- function(pairs, normalCov, tumorCov, inputFolderBAF, bedFile, allowedChromsBaf) {
+  purityPloidy <- list()
+  for (i in 1:ncol(normalCov)) {
+    sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
+    for (sampleName1 in sampleNames1) {
+      sampleName2 <- which(colnames(tumorCov) == pairs[sampleName1,1])
+      bAlleleFreqs <- returnBAlleleFreqs(colnames(normalCov)[i], colnames(tumorCov)[sampleName2], inputFolderBAF)
+      if (!is.null(bAlleleFreqs[[1]])) {
+        
+        print(paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-"))
+        allowedChromsBafForThatSamples <- allowedChromsBaf[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]]
+        matrixOfCoverages <- extractCoveragesHavingListOfSNVs(bAlleleFreqs[[1]], normalCov[,i], tumorCov[,sampleName2], bedFile)
+        if (length(bAlleleFreqs) >= 2 & !is.null(bAlleleFreqs[[1]])) {
+          purityPloidy[[paste0(colnames(tumorCov)[sampleName2], "-", colnames(normalCov)[i])]] = predictWholeGenomeEvent(bAlleleFreqs[[1]], bAlleleFreqs[[2]], 
+                                                                                           matrixOfCoverages, allowedChromsBafForThatSamples, bedFile)
+        }
+      } 
+    }
+  }
+  return(purityPloidy)
+}
+
+estimatePurity <- function(delOrDup, meanValue) {
+  if (delOrDup == "del") {
+    purity = 4 * (meanValue) / (1 + 2 * meanValue)
+  } else {
+    purity = 4 * meanValue / (1 - 2 * meanValue)
+  }
+  return(purity)
+}
+

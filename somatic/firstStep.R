@@ -58,11 +58,16 @@ option_list = list(
   make_option(c("-mnaxnumit", "--maxNumIter"), type="double", default="3", 
               help="maximum number of iterations of variant calling", metavar="character"),
   
+  make_option(c("-bafF", "--bafFolder"), type="character", default=NULL, 
+              help="folder where you put BAF frequencies (one per normal, one per tumor sample)", metavar="character"),
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
+
+
 
 
 ### PLOTTING OF PICTURES (DOES NOT REALLY NECESSARY IF YOU HAVE IGV SEGMENTS)
@@ -84,9 +89,14 @@ if (!is.null(opt$tumorOfftarget) & !is.null(opt$normalOfftarget) & !is.null(opt$
   frameworkOff = "offtarget"
 }
 
+frameworkDataTypes = "covdepth"
+if (!is.null(opt$bafFolder)) {
+  print("Folder with BAFs were provided. Framework swithced to BAF.")
+  frameworkDataTypes = "covdepthBAF"
+}
+
 
 ### PART WITH LIBRARIES
-library(robust)
 library(robustbase)
 library(MASS)
 library("data.table")
@@ -94,7 +104,7 @@ library(foreach)
 library(doParallel)
 
 no_cores <- min(detectCores() - 1, 4)
-no_cores = 1
+no_cores = 4
 cl<-makeCluster(no_cores)
 registerDoParallel(cl)
 
@@ -106,7 +116,12 @@ bedFile <- read.table(opt$bed, stringsAsFactors = F, sep="\t")
 colnames(bedFile) <- c("chr.X", "start", "end", "gc")
 bedFile <- bedFile[order(bedFile$chr.X, as.numeric(bedFile$start)),]
 
-bedFile[,4] <- round(as.numeric(as.character(bedFile[,4])), digits = 2)
+
+for (i in 1:20) {
+  tableOfValues <- table(round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i)
+  if(sum(tableOfValues[which(tableOfValues > 100)]) / sum(tableOfValues) > 0.95) break 
+}
+bedFile[,4] <- round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i
 
 
 normal <- read.table(opt$normal, header=T, stringsAsFactors = F)
@@ -156,27 +171,66 @@ if (frameworkOff == "offtarget") {
 
 ### GC CONTENT NORMALIZATION
 
+pairs <- read.table(opt$pair, sep=",", stringsAsFactors = F)
+pairs <- data.frame(pairs, ncol=2)
+pairs <- unique(pairs)
 
+
+if (frameworkDataTypes == "covdepthBAF") {
+  setwd(opt$folderWithScript)
+  source("bafSegmentation.R",local=TRUE)
+  if (!dir.exists(file.path(opt$bafFolder, "/result"))) {
+    dir.create(file.path(opt$bafFolder, "/result"))
+  }
+  listOfValues <- returnAllowedChromsBaf(pairs, normal, tumor, opt$bafFolder)
+  allowedChromsBaf <- listOfValues[[1]]
+  bAlleleFreqsAllSamples <- listOfValues[[2]]
+}
+setwd(opt$folderWithScript)
 
 ### ON TARGET GC NORMALIZATION
 lst <- gc_and_sample_size_normalise(bedFile, normal)
 normal <- lst[[1]]
 if (framework == "somatic") {
-  lst <- gc_and_sample_size_normalise(bedFile, tumor)
+  if (frameworkDataTypes == "covdepthBAF") {
+    lst <- gc_and_sample_size_normalise(bedFile, tumor, allowedChroms=allowedChromsBaf)
+  } else {
+    lst <- gc_and_sample_size_normalise(bedFile, tumor)
+  }
   tumor <- lst[[1]]
   bedFile <- lst[[2]]
 } else {
   bedFile <- lst[[2]]
 }
 
+### ATTEMPT FOR PURITY AND PLODIY IMPUTATION
+if (frameworkDataTypes == "covdepthBAF") {
+  setwd(opt$folderWithScript)
+  source("bafSegmentation.R",local=TRUE)
+  purityPloidy <- returnPurityPloidy(pairs, normal, tumor, opt$bafFolder, bedFile, allowedChromsBaf)
+}
+setwd(opt$folderWithScript)
+
 ### OFF TARGET GC NORMALIZATION
 if (frameworkOff == "offtarget") {
-    lst <- gc_and_sample_size_normalise(bedFileOfftarget, normalOff)
-    normalOff <- lst[[1]]
-  
+  lst <- gc_and_sample_size_normalise(bedFileOfftarget, normalOff)
+  normalOff <- lst[[1]]
+  if (frameworkDataTypes == "covdepthBAF") {
+    
+    lst <- gc_and_sample_size_normalise(bedFileOfftarget, tumorOff, allowedChroms=allowedChromsBaf)
+  } else {
     lst <- gc_and_sample_size_normalise(bedFileOfftarget, tumorOff)
-    tumorOff <- lst[[1]]
-    bedFileOfftarget <- lst[[2]]
+  }
+  tumorOff <- lst[[1]]
+  bedFileOfftarget <- lst[[2]]
+}
+
+### BED FILE OFFTARGET MAY NOT CONTAIN COLUMN WITH GENES
+if (frameworkOff == "offtarget") {
+  if (ncol(bedFileOfftarget)  == 4) {
+    bedFileOfftarget <- cbind(bedFileOfftarget, rep(0, nrow(bedFileOfftarget)))
+    colnames(bedFileOfftarget) <- colnames(bedFile)
+  }
 }
 
 
@@ -288,7 +342,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   matrix_of_likeliks_read_depth_only = matrix_of_likeliks
   
   sizesOfPointsFromLocalSds <- 0.1 / localSds 
-
+  
   
   
   numberOfCNVsIsSufficientlySmall = F
@@ -338,19 +392,19 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         ### END OF IGV PLOTTING
         
         
-  
+        
         if (nrow(found_CNVs) > 0) {
           # UNCOMMENT FOR PLOTTING!!!
           
           cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, cn_states, toySizesOfPointsFromLocalSds, plottingOfPNGs)
           if (found_CNVs[1,1] != -1000) {
             found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
-              if (nrow(found_CNVs_total) > opt$maxNumGermCNVs) {
-                break
-              }
+            if (nrow(found_CNVs_total) > opt$maxNumGermCNVs) {
+              break
             }
+          }
           for (i in 1:nrow(found_CNVs)) {
-  
+            
             CNVnamesInside <- unlist(unique(toyBedFile[found_CNVs[i,2]:found_CNVs[i,3],4]))
             if(opt$debug) {
               print(CNVnamesInside)
@@ -408,17 +462,22 @@ if (framework == "germline") quit()
 
 
 
+
+
+
+
+bordersOfChroms <- getBordersOfChromosomes(bedFile)
 ### PROCESSING OF SOMATIC VARIANTS
 setwd(opt$folderWithScript)
 source("helpersSomatic.R",local=TRUE)
-pairs <- read.table(opt$pair, sep=",", stringsAsFactors = F)
-pairs <- data.frame(pairs, ncol=2)
-pairs <- unique(pairs)
 
-matrixOfLogFold <- formilngLogFoldChange(pairs, normal, tumor)
+listOfValue <- formilngLogFoldChange(pairs, normal, tumor)
+matrixOfLogFold <- listOfValue[[1]]
+dictFromColumnToTumor <- listOfValue[[2]]
 
 
 sdsOfSomaticSamples <- apply(matrixOfLogFold, 2, determineSDsOfSomaticSample)
+
 
 sdsOfProbes <- sapply(1:nrow(matrixOfLogFold), function(i) {determineSDsOfSomaticProbe(matrixOfLogFold[i,], i)})
 
@@ -427,7 +486,9 @@ esimtatedVarianceFromSampleNoise <- listOfVarianceAndMultiplicator[[2]]
 multiplicator <- listOfVarianceAndMultiplicator[[1]]
 
 if (frameworkOff == "offtarget") {
-  matrixOfLogFoldOff <- formilngLogFoldChange(pairs, normalOff, tumorOff)
+  listOfValue <- formilngLogFoldChange(pairs, normalOff, tumorOff)
+  matrixOfLogFoldOff =  listOfValue[[1]]
+  dictFromColumnToTumor = listOfValue[[2]]
   sdsOfSomaticSamplesOff <- apply(matrixOfLogFoldOff, 2, determineSDsOfSomaticSample)
   
   sdsOfProbesOff <- sapply(1:nrow(matrixOfLogFoldOff), function(i) {determineSDsOfSomaticProbe(matrixOfLogFoldOff[i,], i)})
@@ -444,16 +505,48 @@ vect_of_t_likeliks <- fast_dt_list(ncol(matrixOfLogFold) - 1)
 
 
 
-cn_states <- c()
-purity <- seq(from=10, to=101, by=5) / 100
-for (pur in purity) {
-  cn_state <- 0 + 1 * pur * seq(from=0, to=20, by=1)
-  cn_states <- c(cn_states, cn_state)
-}
-cn_states <- unique(cn_states[-which(cn_states > 1.5 & cn_states < 2.8)])
-cn_state[which(cn_state < 0.1)] = 0.1
+# cn_states <- c()
+# purity <- seq(from=10, to=101, by=5) / 100
+# for (pur in purity) {
+#   cn_state <- 0 + 1 * pur * seq(from=0, to=20, by=1)
+#   cn_states <- c(cn_states, cn_state)
+# }
+# cn_states <- unique(cn_states[-which(cn_states > 1.5 & cn_states < 2.8)])
+# cn_state[which(cn_state < 0.01)] = 0.01
 
-cn_states <- sort(cn_states)
+
+cn_states <- c()
+copy_numbers = 0:15
+purity <- seq(from=10, to=101, by=5) / 100
+purities <- c()
+copy_numbers_used <- c()
+
+for (pur in purity) {
+  for (cn in copy_numbers) {
+    # VALUES NOT CN NEUTRAL
+    if (cn != 2 & (!(cn == 0 & pur <= 0.5))) {
+      cn_state <- (1 - pur) * 2 + pur * cn
+      cn_states <- c(cn_states, cn_state)
+      purities <- c(purities, pur)
+      copy_numbers_used <- c(copy_numbers_used, cn)
+    }
+    if (cn == 2) {
+      if (pur >= 0.2) {
+        cn_states <- c(cn_states, 2)
+        copy_numbers_used <- c(copy_numbers_used, 2)
+        purities <- c(purities, pur)
+      }
+    }
+  }
+}
+
+cn_state[which(cn_state < 0.01)] = 0.01
+
+
+final_order <- order(cn_states)
+cn_states <- cn_states[final_order]
+copy_numbers_used = copy_numbers_used[final_order]
+purities = purities[final_order]
 cnsLessThanTwo <- which(cn_states < 2)
 cnsBiggerThanTwo <- which(cn_states > 2 & cn_states < 4)
 cnsHighCopies <-  which(cn_states >= 4)
@@ -469,15 +562,17 @@ colorsForHigh <- colfunc(length(cnsHighCopies))
 
 colours <- c("darkgreen", colorsForLess, colorsForBigger, colorsForHigh)
 
+purities <- c(0, purities)
+copy_numbers_used <- c(2, copy_numbers_used)
 cn_states <- c(2, cn_states)
 
 # CORRECTION OF CNS!!!
-normalCoverage <- rpois(100000, lambda=50)
-tumorCoverage <- rpois(100000, lambda=50)
+normalCoverage <- rpois(1000000, lambda=50)
+tumorCoverage <- rpois(1000000, lambda=50)
 sd_to_normalise = sd(log2(tumorCoverage / normalCoverage))
 multipliersDueToLog <- c(1)
 for (state in 2:length(cn_states)) {
-  tumorCoverage <- rpois(100000, lambda=50 * cn_states[state])
+  tumorCoverage <- rpois(1000000, lambda=25 * cn_states[state])
   sd_to_normalise_tumor = sd(log2(tumorCoverage / normalCoverage))
   multipliersDueToLog <- c(multipliersDueToLog, sd_to_normalise_tumor / sd_to_normalise)
 }
@@ -495,210 +590,395 @@ if (!dir.exists(folder_name)) {
   dir.create(folder_name)
 }
 
-deletedSamples <- c()
+allPotentialPurities <- unique(purities)
 for (sam_no in 1:ncol(matrixOfLogFold)) {
-  pvalsForQC <- c()
-  threshold = opt$scoreS
-  minimum_length_of_CNV = opt$lengthS
-  price_per_tile = 0.1
-  initial_state <- 1
-  sampleInOfftarget=F
+  # To speed up reiteration, we do not want match between BAF file and bed file a lot of times
+  if (frameworkDataTypes == "covdepthBAF") {
+    closestBedRegions <- c()
+    vectorsWithRegionCoordsFilled = F
+  }
   
   sample_name <- colnames(matrixOfLogFold)[sam_no]
-  localSds = sdsOfProbes * esimtatedVarianceFromSampleNoise[sam_no] * multiplicator
-  if (frameworkOff == "offtarget") {
-    if (sample_name %in% colnames(matrixOfLogFoldOff)) {
-      sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
-      localSdsOff = sdsOfProbesOff * esimtatedVarianceFromSampleNoiseOff[sam_no_off] * multiplicatorOff
-      sampleInOfftarget = T
-    }
-  }
+  print(paste("We are working on sample name:", sample_name))
+  print(Sys.time())
   
   
-  if(opt$debug) {
-    print(sam_no)
-    print(sample_name)
+  
+  
+  expectedMaxPurity = 1.0
+  if (exists("purityPloidy")) {
+    if (sample_name %in% names(purityPloidy)) expectedMaxPurity = min(1.0, purityPloidy[[sample_name]] + 0.05)
   }
+  expectedMinPurity = max(0.1, (expectedMaxPurity - 0.1) / 2)
+  expectedMinPurity = allPotentialPurities[which.min(abs(allPotentialPurities - expectedMinPurity))]
+  expectedMaxPurity = allPotentialPurities[which.min(abs(allPotentialPurities - expectedMaxPurity))]
+  
+  
   if (!dir.exists(paste0(folder_name, sample_name)) | (opt$reanalyseCohort == T)) {
-    dir.create(paste0(folder_name, sample_name))
     
+    dir.create(paste0(folder_name, sample_name))
     setwd(paste0(folder_name, sample_name))
     
-    
-    dict_to_output = c()
-    
-    ### MERGING IF OFF TARGET
-    
-    matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFold), matrixOfLogFold[,sam_no], localSds, log2(cn_states/2), multipliersDueToLog)
-    if (sampleInOfftarget) {
-      sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
-      matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOff), matrixOfLogFoldOff[,sam_no_off], localSdsOff, log2(cn_states/2), multipliersDueToLog)
-      globalMatrOfLikeliks <- rbind(matrix_of_likeliks, matrix_of_likeliks_off)
-      globalBed <- rbind(bedFile, bedFileOfftarget)
-      globalMatrOfLikeliks <- globalMatrOfLikeliks[order(globalBed[,1], globalBed[,2]),]
-      globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])[order(globalBed[,1], globalBed[,2])]
-    }
-    
-    
-    #### CORRECTION - IF THE SAMPLE HAS TOO MANY CNAS, WE EXPECT SOME SHIFT THERE
-    if (!sampleInOfftarget) {
-      found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, matrix_of_likeliks, 1))
-    } else {
-      found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, globalMatrOfLikeliks, 1))
-    }
-    seq_to_exclude <- c()
-    if (nrow(found_CNVs) > 0)
-      for (i in 1:nrow(found_CNVs)) {
-        seq_to_exclude <- c(seq_to_exclude, (found_CNVs[i,2]):(found_CNVs[i,3]))
+    copyNumbersInsideExpectedPurities = F
+    numberOfIterations = 0
+    maxNumberOfIterations = 5    
+    while(!copyNumbersInsideExpectedPurities & numberOfIterations < maxNumberOfIterations ) {
+      # CLEAN FOLDER IN THE BEGINNING OF EACH ITERATION
+      do.call(file.remove, list(list.files(paste0(folder_name, sample_name), full.names = TRUE)))
+      
+      print(paste("Current max purity:", expectedMaxPurity))
+      print(paste("Current min purity:", expectedMinPurity))
+      
+      numberOfIterations = numberOfIterations + 1
+      print(paste("Current iteration:", numberOfIterations))
+      ### WE MAKE A ROUGH GUESS ON PURITY, BUT IF FOUND VARIANTS DO NOT FIT - WE INCREASE THE BORDERS
+      
+      maxPurityDifferent = F
+      minPurityDifferent = F
+      
+      # BASED ON PURITY WE CAN EXCLUDE SOME COPY NUMBER
+      topBorder <- 2 * (1 - expectedMinPurity) + expectedMinPurity * 3
+      bottomBorder <-  2 * (1 - expectedMinPurity) + expectedMinPurity * 1
+      indices = which(cn_states >= topBorder | cn_states <= bottomBorder | cn_states == 2)
+      local_purities <- purities[indices]
+      local_copy_numbers_used <- copy_numbers_used[indices]
+      local_cn_states <- cn_states[indices]
+      local_multipliersDueToLog <- multipliersDueToLog[indices]
+      
+      indices_to_remove_by_purity <- which((purities > expectedMaxPurity | purities < expectedMinPurity) & purities > 0)
+      local_purities <- purities[-indices_to_remove_by_purity]
+      local_copy_numbers_used <- copy_numbers_used[-indices_to_remove_by_purity]
+      local_cn_states <- cn_states[-indices_to_remove_by_purity]
+      local_multipliersDueToLog <- multipliersDueToLog[-indices_to_remove_by_purity]
+      
+      # PART FOR MATRIX OF CLONALITY (ONLY 2 CLONES)
+      uniqueLocalPurities = unique(local_purities)
+      zeroPurity <- which(uniqueLocalPurities == 0)
+      uniqueLocalPurities = sort(uniqueLocalPurities[-zeroPurity])
+      likeliksFoundCNVsVsPuritiesGlobal = matrix(nrow=0, ncol=length(uniqueLocalPurities))
+      
+      
+      pvalsForQC <- c()
+      threshold = opt$scoreS
+      minimum_length_of_CNV = opt$lengthS
+      price_per_tile = 0.1
+      initial_state <- 1
+      sampleInOfftarget=F
+      
+      
+      localSds = sdsOfProbes * esimtatedVarianceFromSampleNoise[sam_no] * multiplicator
+      if (frameworkOff == "offtarget") {
+        if (sample_name %in% colnames(matrixOfLogFoldOff)) {
+          sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
+          localSdsOff = sdsOfProbesOff * esimtatedVarianceFromSampleNoiseOff[sam_no_off] * multiplicatorOff
+          sampleInOfftarget = T
+        }
       }
-    if (length(seq_to_exclude) > 0) {
-      if (!sampleInOfftarget) {
-        shiftOfCoverage <- median(matrixOfLogFold[-seq_to_exclude,sam_no])
+      
+      
+      if(opt$debug) {
+        print(sam_no)
+        print(sample_name)
+      }
+      
+      
+      
+      dict_to_output = c()
+      
+      
+      
+      
+      
+      #### CORRECTION - IF THE SAMPLE HAS TOO MANY CNAS, WE EXPECT SOME SHIFT THERE
+      if (frameworkDataTypes == "covdepthBAF") {
+        sampleName2 <- strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1]
+        position <- which(startsWith(names(allowedChromsBaf), prefix=sampleName2))
+        if (length(position) == 1) {
+          allowedChromsBafSample <- allowedChromsBaf[[position]]
+          
+          if (!sampleInOfftarget) {
+            seq_to_exclude <- which(!bedFile[,1] %in% allowedChromsBafSample)
+            shiftOfCoverage <- median(matrixOfLogFold[-seq_to_exclude,sam_no])
+          } else {
+            sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
+            globalBed <- rbind(bedFile, bedFileOfftarget)
+            globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])
+            seq_to_exclude <- which(!globalBed[,1] %in% allowedChromsBafSample)
+            shiftOfCoverage <- median(globalLogFold[-seq_to_exclude])
+          }
+          shiftsOfCoverage <- c(shiftsOfCoverage, shiftOfCoverage)
+          matrixOfLogFold[,sam_no] = matrixOfLogFold[,sam_no] - shiftOfCoverage
+          if (sampleInOfftarget)
+            matrixOfLogFoldOff[,sam_no_off] = matrixOfLogFoldOff[,sam_no_off] - shiftOfCoverage
+        }
+        
+      }
+      
+      
+      
+      
+      
+      matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFold), matrixOfLogFold[,sam_no], localSds, log2(local_cn_states/2), local_multipliersDueToLog)
+      
+      
+      ### ADD LIKELIHOODS
+      if (frameworkDataTypes == "covdepthBAF") {
+        print("Started BAF calculation")
+        print(Sys.time())
+        
+        numberOfAssignedPositions = 0
+        sampleName2 <- strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1]
+        position <- which(startsWith(names(allowedChromsBaf), prefix=sampleName2))
+        if (length(position) == 1) {
+          bAlleleFreqsTumor <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] ]]
+          bAlleleFreqsNormal <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2] ]]
+          if (length(closestBedRegions) == 0) closestBedRegions = rep(0, nrow(bAlleleFreqsTumor))
+          for (i in 1:nrow(bAlleleFreqsTumor)) {
+            if (vectorsWithRegionCoordsFilled) {
+              closestBedRegion = closestBedRegions[i]
+            } else {
+              closestBedRegion <- which(bedFile[,1] == bAlleleFreqsTumor[i,1] & bedFile[,2] - 250 <= bAlleleFreqsTumor[i,2] & bedFile[,3] + 250 >= bAlleleFreqsTumor[i,3])
+              if (length(closestBedRegion) >= 1) {
+                closestBedRegion = closestBedRegion[1]
+                closestBedRegions[i] = closestBedRegion
+              } else {
+                # if there is no matching position we put 0
+                closestBedRegions[i] = 0
+                closestBedRegion = 0
+              }
+            }
+            altAlleleDepth <- as.numeric(bAlleleFreqsTumor[i,5])
+            overallDepth <- round(as.numeric(bAlleleFreqsTumor[i,6]))
+            altAlleleDepth = round(altAlleleDepth * overallDepth)
+            
+            if (length(closestBedRegion) == 1 & closestBedRegion != 0) {
+              numberOfAssignedPositions = numberOfAssignedPositions + 1
+              
+              vecOfLikeliks <- rep(0, ncol(matrix_of_likeliks))
+              for (j in 1:length(local_cn_states)) {
+                pur = local_purities[j]
+                cn = local_copy_numbers_used[j]
+                likelihood = -2 * likelihoodOfSNVBasedOnCN(altAlleleDepth, overallDepth, pur, cn)
+                vecOfLikeliks[j] = likelihood
+              }
+              oldLikeliks <- matrix_of_likeliks[i,] 
+              matrix_of_likeliks[closestBedRegion,] = matrix_of_likeliks[closestBedRegion,] + vecOfLikeliks
+            }
+          }
+          vectorsWithRegionCoordsFilled = T
+        }
+        print("Finished BAF calculation")
+        print(Sys.time())
+      }
+      
+      
+      sizesOfPointsFromLocalSds <- 0.5 / localSds 
+      if (sampleInOfftarget) {
+        matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOff), matrixOfLogFoldOff[,sam_no_off], localSdsOff, log2(local_cn_states/2), local_multipliersDueToLog)
+        globalMatrOfLikeliks <- rbind(matrix_of_likeliks, matrix_of_likeliks_off)
+        globalBed <- rbind(bedFile, bedFileOfftarget)
+        sizesOfPointsFromLocalSdsOff <- 0.5 / localSdsOff
+        vecOfOrder = order(globalBed[,1], globalBed[,2])
+        globalSizesOfPoints <- c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[vecOfOrder]
+        globalMatrOfLikeliks <- globalMatrOfLikeliks[vecOfOrder,]
+        globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])[vecOfOrder]
+        globalSds <-  c(localSds, localSdsOff)[vecOfOrder]
+        globalBed <- globalBed[vecOfOrder,]
+      }
+      
+      
+      
+      
+      
+      found_CNVs_total <- matrix(0, nrow=0, ncol=8)
+      colnames(found_CNVs_total) <- c("#chr", "start", "end", "tumor_CN_change", "tumor_purity", "absolute_CN_change", "loglikelihood", "genes")
+      allDetectedPurities = c()
+      for (l in 1:length(left_borders)) {
+        
+        
+        chrom = names(left_borders)[l]
+        start = left_borders[[l]]
+        end = right_borders[[l]]
+        for (k in 1:2) {
+          
+          output_of_plots <-  paste0(folder_name, sample_name)
+          which_to_allow <- "NA"
+          if (sampleInOfftarget) {
+            if (k == 1) {
+              which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] <= start )
+            } else {
+              which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] >= end )
+            }
+            toyBedFile = globalBed[which_to_allow,]
+            
+            toyMatrixOfLikeliks = globalMatrOfLikeliks[which_to_allow,]
+            toyLogFoldChange = globalLogFold[which_to_allow]
+            
+            found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1))
+            
+            toySds <- globalSds[which_to_allow]
+            
+            #if (pvalueForThisArmQC > 0) {
+            #pvalsForQC <- c(pvalsForQC, pvalueForThisArmQC)
+            #}
+            
+            
+            toySizesOfPointsFromLocalSds = c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[vecOfOrder]
+            toySizesOfPointsFromLocalSds = toySizesOfPointsFromLocalSds[which_to_allow]
+          } else {
+            if (k == 1) {
+              which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] <= start )
+            } else {
+              which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] >= end )
+            }
+            toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
+            toyBedFile = bedFile[which_to_allow,]
+            found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1))
+            toySds <- localSds[which_to_allow]
+            
+            
+            # if (pvalueForThisArmQC > 0) {
+            #pvalsForQC <- c(pvalsForQC, pvalueForThisArmQC)
+            #}
+            
+            toyLogFoldChange = matrixOfLogFold[which_to_allow, sam_no]
+            toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
+          }
+          
+          if (nrow(found_CNVs) > 0 & !chrom %in% c("chrX", "chrY", "X", "Y")) {
+            likeliksFoundCNVsVsPurities <- matrix(nrow=nrow(found_CNVs), ncol=length(uniqueLocalPurities))
+            for (m in 1:length(uniqueLocalPurities)) {
+              localPurityCurrent = uniqueLocalPurities[m]
+              for (q in 1:nrow(found_CNVs)) {
+                startOfCNV <- found_CNVs[q,2]
+                endOfCNV <- found_CNVs[q,3]
+                if (endOfCNV - startOfCNV > 3) { 
+                  likeliksFoundCNVsVsPurities[q, m] = min(apply(toyMatrixOfLikeliks[(startOfCNV + 1):(endOfCNV - 1),which(local_purities == localPurityCurrent)], 2, sum))
+                }
+              }
+            }
+            likeliksFoundCNVsVsPuritiesGlobal = rbind(likeliksFoundCNVsVsPuritiesGlobal, likeliksFoundCNVsVsPurities)
+          }
+          
+          
+          ### CHECKING OUT PURITIES OF FOUND CNVS
+          if (!chrom %in% c("chrX", "chrY", "X", "Y")) {
+            detectedPurities = unique(local_purities[found_CNVs[,4]])
+            allDetectedPurities = unique(c(allDetectedPurities, detectedPurities))
+            
+            if (max(detectedPurities) == expectedMaxPurity & expectedMaxPurity != 1.0) {
+              expectedMaxPurity = min(1.0, expectedMaxPurity + 0.05)
+              maxPurityDifferent = T
+            }
+            if (min(detectedPurities) == expectedMinPurity & expectedMinPurity != 0.1) {
+              expectedMinPurity = max(0.1, expectedMinPurity - 0.05)
+              minPurityDifferent = T
+            }
+          }
+          
+          
+          ### IGV PLOTTING
+          if(opt$debug) {
+            print("START OF IGV PLOTTING")
+          }
+          
+          outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
+          outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
+          reverseFunctionUsedToTransform = function(x) {return((2 ** (x + 1)))}
+          outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
+                                              outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, local_cn_states)
+          if(opt$debug) {
+            print("END OF IGV PLOTTING")
+          }
+          ### END OF IGV PLOTTING
+          
+          
+          
+          if (nrow(found_CNVs) == 0 & length(which_to_allow) > 1) {
+            found_CNVs = matrix(c(-1000, 1, length(which_to_allow), 1), nrow=1)
+            #output_of_plots = paste0(output_of_plots, "/normal")
+            #if (!dir.exists(output_of_plots)) {
+            #  dir.create(output_of_plots)
+            #}
+          }
+          
+          
+          
+          if (nrow(found_CNVs) > 0) {
+            cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, local_cn_states, local_copy_numbers_used, local_purities, toySizesOfPointsFromLocalSds, plottingOfPNGs)
+            if (found_CNVs[1,1] != -1000) {
+              found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
+            }
+          }
+        }
+        
+        # if after finishing some chromsome we know that BOTH purities are inaccurate - we stop
+        if ((maxPurityDifferent & minPurityDifferent) & !(numberOfIterations == maxNumberOfIterations)) {
+          #dir.create(paste0(folder_name, sample_name))
+          #setwd(paste0(folder_name, sample_name))
+          break
+        }
+      }
+      # if after finishing all chromsomes we know that at least one purity was inaccurate - we stop
+      print("All detected purities")
+      print(allDetectedPurities)
+      if (length(allDetectedPurities) > 0) {
+        ### If we made a big mistake and OVERESTIMATED purity (no CNVs detected with such purity) - we have to reduce max purity setting to max detected one
+        maxDetectedPurity = max(allDetectedPurities)
+        minDetectedPurity = min(allDetectedPurities)
+        print(paste("Max detected purity", maxDetectedPurity))
+        if (expectedMaxPurity > maxDetectedPurity + 0.05) {
+          maxPurityDifferent = T
+          expectedMaxPurity = maxDetectedPurity + 0.05
+          expectedMinPurity = min(max(0.1, minDetectedPurity - 0.05), max(0.1, (expectedMaxPurity - 0.1) / 2))
+          expectedMinPurity = allPotentialPurities[which.min(abs(allPotentialPurities - expectedMinPurity))]
+        }
+        if ((maxPurityDifferent | minPurityDifferent) & !(numberOfIterations == maxNumberOfIterations)) {
+          dir.create(paste0(folder_name, sample_name))
+          setwd(paste0(folder_name, sample_name))
+          next
+        }
+      }
+      if ((!maxPurityDifferent & !minPurityDifferent) | numberOfIterations == maxNumberOfIterations) {
+        copyNumbersInsideExpectedPurities = T
+        print(paste("Converged after", numberOfIterations, "iterations. Max purity:", max(allDetectedPurities), "min purity: ", min(allDetectedPurities)))
+        print("======================================")
+        
+        if (nrow(likeliksFoundCNVsVsPuritiesGlobal) > 0) {
+          # Again - matrix of clonality
+          matrixOfClonality = matrix(0, nrow=length(uniqueLocalPurities), ncol=length(uniqueLocalPurities))
+          colnames(matrixOfClonality) = uniqueLocalPurities
+          rownames(matrixOfClonality) = uniqueLocalPurities
+          for (m in 1:length(uniqueLocalPurities)) {
+            for (q in 1:length(uniqueLocalPurities)) {
+              for (r in 1:nrow(likeliksFoundCNVsVsPuritiesGlobal)) {
+                matrixOfClonality[m,q] = matrixOfClonality[m,q] + min(likeliksFoundCNVsVsPuritiesGlobal[r,m], likeliksFoundCNVsVsPuritiesGlobal[r,q])
+              }
+            }
+          }
+        }
+        minPointToNormalise = min(matrixOfClonality)
+        matrixOfClonality[which(matrixOfClonality > minPointToNormalise + 10000)] = minPointToNormalise + 10000
+        matrixOfClonality[upper.tri(matrixOfClonality)] <- NA
+        hmcols<-colorRampPalette(c("blue","white","red"))(256)
+        png(filename = paste0(sample_name, "_clonality.png"),
+            width = 640, height = 640)
+        heatmap((matrixOfClonality), scale="none", Rowv = NA, Colv = NA, col=hmcols, main=sample_name)
+        dev.off()
+      }
+      if (length(pvalsForQC > 1)) {
+        finalPValue <- 0
       } else {
-        shiftOfCoverage <- median(globalLogFold[-seq_to_exclude])
+        finalPValue = 0
       }
-      shiftsOfCoverage <- c(shiftsOfCoverage, shiftOfCoverage)
-      matrixOfLogFold[,sam_no] = matrixOfLogFold[,sam_no] - shiftOfCoverage
-      if (sampleInOfftarget)
-        matrixOfLogFoldOff[,sam_no_off] = matrixOfLogFoldOff[,sam_no_off] - shiftOfCoverage
-    }
-    #if (sam_no %in% deletedSamples) {
-    #  matrixOfLogFold[,sam_no] = matrixOfLogFold[,sam_no] - log2(2)
-    #}
-    
-    
-    
-    
-    
-    matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFold), matrixOfLogFold[,sam_no], localSds, log2(cn_states/2), multipliersDueToLog)
-    sizesOfPointsFromLocalSds <- 0.5 / localSds 
-    if (sampleInOfftarget) {
-      matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOff), matrixOfLogFoldOff[,sam_no_off], localSdsOff, log2(cn_states/2), multipliersDueToLog)
-      globalMatrOfLikeliks <- rbind(matrix_of_likeliks, matrix_of_likeliks_off)
-      globalBed <- rbind(bedFile, bedFileOfftarget)
-      sizesOfPointsFromLocalSdsOff <- 0.5 / localSdsOff
-      vecOfOrder = order(globalBed[,1], globalBed[,2])
-      globalSizesOfPoints <- c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[vecOfOrder]
-      globalMatrOfLikeliks <- globalMatrOfLikeliks[vecOfOrder,]
-      globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])[vecOfOrder]
-      globalSds <-  c(localSds, localSdsOff)[vecOfOrder]
-      globalBed <- globalBed[vecOfOrder,]
-    }
-    
-    
-    
-    
-    
-    found_CNVs_total <- matrix(0, nrow=0, ncol=6)
-    colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "genes")
-    for (l in 1:length(left_borders)) {
-      
-      
-      chrom = names(left_borders)[l]
-      start = left_borders[[l]]
-      end = right_borders[[l]]
-      for (k in 1:2) {
-        
-        output_of_plots <-  paste0(folder_name, sample_name)
-        which_to_allow <- "NA"
-        if (sampleInOfftarget) {
-          if (k == 1) {
-            which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] <= start )
-          } else {
-            which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] >= end )
-          }
-          toyBedFile = globalBed[which_to_allow,]
-          
-          toyMatrixOfLikeliks = globalMatrOfLikeliks[which_to_allow,]
-          toyLogFoldChange = globalLogFold[which_to_allow]
-          
-          found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1))
-          
-          toySds <- globalSds[which_to_allow]
-          
-          #if (pvalueForThisArmQC > 0) {
-          #pvalsForQC <- c(pvalsForQC, pvalueForThisArmQC)
-          #}
-          
-          toySizesOfPointsFromLocalSds = c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[vecOfOrder]
-          toySizesOfPointsFromLocalSds = toySizesOfPointsFromLocalSds[which_to_allow]
-        } else {
-          if (k == 1) {
-            which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] <= start )
-          } else {
-            which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] >= end )
-          }
-          toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
-          toyBedFile = bedFile[which_to_allow,]
-          found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1))
-          toyLogFoldChange = matrixOfLogFold[which_to_allow,]
-          toySds <- localSds[which_to_allow]
-          
-          
-          # if (pvalueForThisArmQC > 0) {
-          #pvalsForQC <- c(pvalsForQC, pvalueForThisArmQC)
-          #}
-          
-          toyLogFoldChange = matrixOfLogFold[which_to_allow, sam_no]
-          toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
-        }
-        
-        
-        if(opt$debug) {
-          print(found_CNVs)
-          print(l)
-          print(k)
-        }
-        
-        
-        
-        ### IGV PLOTTING
-        if(opt$debug) {
-          print("START OF IGV PLOTTING")
-        }
-        
-        outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
-        outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
-        reverseFunctionUsedToTransform = function(x) {return((2 ** (x + 1)))}
-        outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
-                                            outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, cn_states)
-        if(opt$debug) {
-          print("END OF IGV PLOTTING")
-        }
-        ### END OF IGV PLOTTING
-        
-        
-        
-        if (nrow(found_CNVs) == 0 & length(which_to_allow) > 1) {
-          found_CNVs = matrix(c(-1000, 1, length(which_to_allow), 1), nrow=1)
-          output_of_plots = paste0(output_of_plots, "/normal")
-          if (!dir.exists(output_of_plots)) {
-            dir.create(output_of_plots)
-          }
-        }
-        
-        
-        
-        if (nrow(found_CNVs) > 0) {
-          cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, cn_states, toySizesOfPointsFromLocalSds, plottingOfPNGs)
-          if (found_CNVs[1,1] != -1000) {
-            found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
-          }
-        }
-      }
-    }
-    if (length(pvalsForQC > 1)) {
-      finalPValue <- 0
-    } else {
-      finalPValue = 0
-    }
-    fileToOut <- paste0(folder_name, sample_name, "/CNAs.txt")
-    fileConn<-file(fileToOut)
-    writeLines(c(paste("##"," QC ", 0, collapse = " ")), fileConn)
-    close(fileConn)
-    if(opt$debug) {
+      fileToOut <- paste0(folder_name, sample_name, "/CNAs.txt")
+      fileConn<-file(fileToOut)
+      writeLines(c(paste("##"," QC ", 0, "purity by BAF (if != 1):", round(expectedMaxPurity - 0.05, digits=3), collapse = " ")), fileConn)
+      close(fileConn)
+      if(opt$debug) {
         print(found_CNVs_total)
-    }
-    write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
-  }  
+      }
+      write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
+    }  
+  }
 }
