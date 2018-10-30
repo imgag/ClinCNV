@@ -28,9 +28,9 @@ Current version of ClinCNV works with 3 possible types of data: on-target reads,
 
 ### .bed format
 We expect .bed file annotated with GC-content and (optionally) intersecting genes. Header should be removed or commented with # symbol.
-
+```
 chrI[char, "chr" is a prefix] \t startCoord[int] \t endCoord[int] \t gcContent[real, from 0 to 1] \t genesName[character comma delimited] \n
-
+```
 ### .cov format
 We expect AVERAGE coverage depths of samples to be written as (starting from header): 
 ```
@@ -42,7 +42,6 @@ Example:
 chr   start   end     Sam1     Sam2
 chr1    11166636        11166864        2374.32 1224.54
 ```
-Please be sure that you do not round your coverage of shallow-sequenced samples too much (e.g., the average coverage of the region is 0.0005, and you round it to 0.00).
 
 *Note1:* you may create such files for your samples separately and use the mergeFilesFromFolder.R script to merge them together.
 
@@ -57,6 +56,8 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=F, all
 in the file generalHelpers.R.
 
 *Note3:* on-target and off-target reads should be pre-processed in .cov formats. If you do not have off-target reads for some samples - don't worry, ClinCNV will work with available data only.
+
+*Note4:* Please be sure that you do not round your coverage of shallow-sequenced samples too much (e.g., the average coverage of the region is 0.0005, and you round it to 0.00).
 
 ### B-allele frequency format (expected file extension is .tsv)
 
