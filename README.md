@@ -22,6 +22,22 @@ For now we do not provide our own tool for pre-processing of the data. We recomm
 
 You should also have .bed file with the coordinates of targeted regions.
 
+## Quick launch
+
+You can try to start ClinCNV as follows:
+
+```
+	Rscript firstStep.R --normal normal.cov --out outputFolder --bed annotatedBedFile --folderWithScript $PWD
+```
+
+for *germline* samples and for *somatic* as
+
+```
+	Rscript firstStep.R --normal normal.cov --tumor tumor.cov  --out outputFolder --pair fileWithPairs --bed annotatedBedFile --folderWithScript $folderWithScript 
+```
+
+If it does not work, check if your files (.cov, .bed, file with pairs) are concordant with the descriptions below.
+
 ## File formats
 
 Current version of ClinCNV works with 3 possible types of data: on-target reads, off-target reads, B-allele frequencies. For WGS obviously we work with only 2 of them (on-target and B-allele)
