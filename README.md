@@ -100,7 +100,13 @@ rm "gcAnnotated.""$bedFile
 
 ### How to calculate coverage and form .cov file
 
-With samtools:
+With *ngs-bits*:
+```
+BedCoverage -bam $bamPath -in $bedPath -min_mapq 3 -out $sampleName".cov"
+```
+
+
+With *samtools*:
 
 ```
 samtools bedcov $bedFilePath -Q 3 $bamPath > $sampleName".cov"
