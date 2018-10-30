@@ -18,7 +18,7 @@ install.packages("data.table")
 install.packages("foreach")
 install.packages("doParallel")
 ```
-For now we do not provide our own tool for pre-processing of the data. We recommend you to use *ngs-bits* (https://github.com/imgag/ngs-bits), however, as soon as your data match the format expected by ClinCNV you may proceed with any tool of choice (eg, samtools).
+For now we do not provide our own tool for pre-processing of the data. We recommend you to use *ngs-bits* (https://github.com/imgag/ngs-bits), however, as soon as your data match the format expected by ClinCNV you may proceed with any tool of choice (eg, *samtools*).
 
 You should also have .bed file with the coordinates of targeted regions.
 
@@ -81,12 +81,30 @@ chr1    2488153 2488153 chr1_2488153    0.4913  289
 *Note2:* if you do not have B-allele frequencies for some samples - don't worry, ClinCNV will work with available data only.
 
 
+### File with information about pairs (normal vs tumor from the same sample)
+
+We require presence of both normal and tumor input files to work in somatic context. To explain ClinCNV the connection between normals and tumors, you need to prepare file with the following format:
+
+```
+TumorSampleFromPatient1,NormalSampleFromPatient1
+TumorSampleFromPatient2,NormalSampleFromPatient2
+```
+
+Please take care - sample names such as "TumorSampleFromPatient1" should match column name in .cov files and file name in .baf (if you want to use B-allele frequencies for this sample). The file can have any extension, we use "pairs.txt" to name such files.
+
+
+
+
+
+
+
+
 
 ## Hints and advices
 
 ### How to create .bed file for WGS
 
-You will need a .bed file with start and end of each chromsome. For hg19 lengths of chromosomes can be found at http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes , just add 0s as a seoncd column.
+You will need a .bed file with start and end of each chromsome. For hg19 lengths of chromosomes can be found at http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes , just add 0s as a second column.
 
 Segmentation of whole genome with *ngs-bits*:
 
