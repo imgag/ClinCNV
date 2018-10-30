@@ -235,7 +235,7 @@ VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" 
 
 `--scoreS` - somatic score threshold. Since CNAs (copy-number changes in caner) are usually long and quite significant, but FFPE introduce huge noise into the tumor sequencing data, we do not recommend to keep it lower than 50.
 
-`--lengthS` - minimum length of germline CNA.
+`--lengthS` - minimum length of somatic CNA (# of markers, for WES it can be ~5-10 since CNAs are usually long).
 
 `--maxNumGermCNVs` - maximum number of allowed germline CNVs. If sample has too many variants, thresholds will be automatically increased and the sample will be reanalysed several times.
 
