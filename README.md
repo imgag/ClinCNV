@@ -84,6 +84,8 @@ in the file generalHelpers.R.
 
 *Note4:* Please be sure that you do not round your coverage of shallow-sequenced samples too much (e.g., the average coverage of the region is 0.0005, and you round it to 0.00).
 
+*Note5:* Names of column (sample names) are meaningful and should match between `normal.cov`, `tumor.cov`, `pairs.txt` files.
+
 ### B-allele frequency format (expected file extension is .tsv)
 
 Without header:
