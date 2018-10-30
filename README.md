@@ -29,13 +29,13 @@ You should also have .bed file with the coordinates of targeted regions.
 You can try to start ClinCNV as follows:
 
 ```
-	Rscript firstStep.R --normal normal.cov --out outputFolder --bed annotatedBedFile --folderWithScript $PWD
+Rscript firstStep.R --normal normal.cov --out outputFolder --bed annotatedBedFile --folderWithScript $PWD
 ```
 
 for *germline* samples and for *somatic* as
 
 ```
-	Rscript firstStep.R --normal normal.cov --tumor tumor.cov  --out outputFolder --pair fileWithPairs --bed annotatedBedFile --folderWithScript $PWD 
+Rscript firstStep.R --normal normal.cov --tumor tumor.cov  --out outputFolder --pair fileWithPairs --bed annotatedBedFile --folderWithScript $PWD 
 ```
 
 If it does not work, check if your files (.cov, .bed, file with pairs) are concordant with the descriptions below.
@@ -45,12 +45,12 @@ If it does not work, check if your files (.cov, .bed, file with pairs) are conco
 Current version of ClinCNV works with 3 possible types of data: on-target reads, off-target reads, B-allele frequencies. For WGS obviously we work with only 2 of them (on-target and B-allele)
 
 ### .bed format
-We expect .bed file annotated with GC-content and (optionally) intersecting genes. Header should be removed or commented with # symbol.
+We expect `.bed` file annotated with GC-content and (optionally) intersecting genes. Header should be removed or commented with # symbol.
 ```
 chrI[char, "chr" is a prefix] \t startCoord[int] \t endCoord[int] \t gcContent[real, from 0 to 1] \t genesName[character comma delimited] \n
 ```
 
-Example of .bed (here and below we provide only one line, assuming that there are as many as needed):
+Example of `.bed` (here and below we provide only one line, assuming that there are as many as needed):
 
 ```
 chr1    12171   12245   0.4595  DDX11L1
@@ -68,7 +68,7 @@ chr   start   end     Sam1     Sam2
 chr1    11166636        11166864        2374.32 1224.54
 ```
 
-*Note1:* you may create such files for your samples separately and use the mergeFilesFromFolder.R script to merge them together.
+*Note1:* you may create such files for your samples separately and use the `mergeFilesFromFolder.R` script to merge them together.
 
 *Note2:* if you suffer a lot with calculating average coverage, but you have the raw coverage depths, you can change the function
 ```
@@ -80,11 +80,11 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=F, all
 ```
 in the file generalHelpers.R.
 
-*Note3:* on-target and off-target reads should be pre-processed in .cov formats. If you do not have off-target reads for some samples - don't worry, ClinCNV will work with available data only.
+*Note3:* on-target and off-target reads should be pre-processed in `.cov` formats. If you do not have off-target reads for some samples - don't worry, ClinCNV will work with available data only.
 
 *Note4:* Please be sure that you do not round your coverage of shallow-sequenced samples too much (e.g., the average coverage of the region is 0.0005, and you round it to 0.00).
 
-*Note5:* Names of column (sample names) are meaningful and should match between `normal.cov`, `tumor.cov`, `pairs.txt` files.
+*Note5:* Names of columns (sample names) are meaningful and should match between `normal.cov`, `tumor.cov`, `pairs.txt` files.
 
 ### B-allele frequency format (expected file extension is .tsv)
 
@@ -110,7 +110,7 @@ TumorSampleFromPatient1,NormalSampleFromPatient1
 TumorSampleFromPatient2,NormalSampleFromPatient2
 ```
 
-Please take care - sample names such as "TumorSampleFromPatient1" should match column name in .cov files and file name in .baf (if you want to use B-allele frequencies for this sample). The file can have any extension, we use "pairs.txt" to name such files.
+Please take care - sample names such as "TumorSampleFromPatient1" should match column name in `.cov` files and file name in `.baf` (if you want to use B-allele frequencies for this sample). The file can have any extension, we use "pairs.txt" to name such files.
 
 
 
@@ -124,7 +124,7 @@ Please take care - sample names such as "TumorSampleFromPatient1" should match c
 
 ### How to create .bed file for WGS
 
-You will need a .bed file with start and end of each chromsome. For hg19 lengths of chromosomes can be found at http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes , just add 0s as a second column.
+You will need a `.bed` file with start and end of each chromsome. For hg19 lengths of chromosomes can be found at http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes , just add 0s as a second column.
 
 Segmentation of whole genome with *ngs-bits*:
 
@@ -136,7 +136,7 @@ where $sizeOfBin means pre-specified size of the segment (see below).
 
 ### How to create .bed file for off-target regions
 
-Assume you have a .bed file $bedFile. This is how you create offtarget .bed:
+Assume you have a `.bed` file $bedFile. This is how you create offtarget .bed:
 
 ```
 # Determine offtarget with offset of 400 to the left and to the right of the targeted region
@@ -154,7 +154,7 @@ BedShrink -in offtarget_chunks.bed -n 12500 | BedExtend -n 12500 -out "offtarget
 
 To use ClinCNV in WGS and off-target contexts you need to choose a size of the window you want to segment your genome with.
 
-From our experience, if you have shallow coverage (0.5x on average) - the window size should be 25kb at least, for 30x 1kb windows are totally OK and you can probably go to smaller window sizes. But if you have something intermediate, the criteria to choose the window size of off-target reads is: 1) not a lot of zero coverage regions (then the distributions will become zero-inflated and ClinCNV's results will be inaccurate), 2) approximate normality of coverage. To check the 2nd assumption, we recommend you to choose your desired window size, calculate coverage for ~30 samples, choose like 10-20 regions on random from the autosomes and built a density plot (plot(density(coverages)) in R). If you will see something that does not even remind you a bell shape, but has a large tail - you should increase the window size.
+From our experience, if you have shallow coverage (0.5x on average) - the window size should be 25kb at least, for 30x 1kb windows are totally OK and you can probably go to smaller window sizes. But if you have something intermediate, the criteria to choose the window size of off-target reads is: 1) not a lot of zero coverage regions (then the distributions will become zero-inflated and ClinCNV's results will be inaccurate), 2) approximate normality of coverage. To check the 2nd assumption, we recommend you to choose your desired window size, calculate coverage for ~30 samples, choose like 10-20 regions on random from the autosomes and built a density plot (`plot(density(coverages)`) in `R`). If you will see something that does not even remind you a bell shape, but has a large tail - you should increase the window size.
 
 ### How to annotate your .bed file with *ngs-bits*
 
