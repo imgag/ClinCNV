@@ -4,6 +4,8 @@ A tool for large-scale CNV and CNA detection.
 
 Authors: G. Demidov, S. Ossowski.
 
+Any issues should be reported to german.demidov at medizin dot uni-tuebingen dot de .
+
 ## About this software
 
 ClinCNV is supposed to detect CNVs in germline and somatic context (no mosaicism for now, but it can easily be implemented on request) in NGS data (targeted and whole-genome). We work in cohorts, so it makes sense to try ClinCNV if you have more than 10 samples (recommended amount - 40 since we estimate variances from the data). Note: by "cohort" we mean samples sequenced with the same enrichment kit with approximately the same depth (ie 1x WGS and 30x WGS better be analysed in a separate runs of ClinCNV). Of course it is better if your samples were sequenced within the same sequencing facility. Currently we work with hg19 only. For hg38 or mouse genome or any other diploid organism you have to replace *cytobands.txt* with the corresponding file. ClinCNV do not work with small panels (hundreds of regions) since GC-correction can not be performed accurately for samples sequenced with such panels.
@@ -33,7 +35,7 @@ You can try to start ClinCNV as follows:
 for *germline* samples and for *somatic* as
 
 ```
-	Rscript firstStep.R --normal normal.cov --tumor tumor.cov  --out outputFolder --pair fileWithPairs --bed annotatedBedFile --folderWithScript $folderWithScript 
+	Rscript firstStep.R --normal normal.cov --tumor tumor.cov  --out outputFolder --pair fileWithPairs --bed annotatedBedFile --folderWithScript $PWD 
 ```
 
 If it does not work, check if your files (.cov, .bed, file with pairs) are concordant with the descriptions below.
