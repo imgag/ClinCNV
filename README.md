@@ -14,7 +14,7 @@ NOTE: version of ClinCNV we are talking about is located in the folder `somatic`
 
 ## Pre-requisites
 
-We expect you to install ClinCNV on Linux or MacOS platforms. We expect you to install R (as new version as possible, we used ClinCNV with R 3.2.3, but you may experience problems installing libraries using the old version) and the following libraries: 
+We expect you to install ClinCNV on Linux or MacOS platforms. We expect you to install `R` (as new version as possible, we used ClinCNV with `R 3.2.3`, but you may experience problems installing libraries using the old version) and the following libraries: 
 ```
 install.packages("robustbase")
 install.packages("MASS")
@@ -44,9 +44,11 @@ If it does not work, check if your files (.cov, .bed, file with pairs) are conco
 
 ## File formats
 
-Current version of ClinCNV works with 3 possible types of data: on-target reads, off-target reads, B-allele frequencies. For WGS obviously we work with only 2 of them (on-target and B-allele)
+Current version of ClinCNV works with 3 possible types of data: on-target reads, off-target reads, B-allele frequencies. For WGS obviously we work with only 2 of them (on-target and B-allele). For shallow WGS only "on-target" coverage is informative.
 
-### .bed format
+To perform operations with these types of data, we specify several formats of files: annotated `.bed` file, `.cov` file, `.tsv` file with information about BAF.
+
+### Annotated .bed format
 We expect `.bed` file annotated with GC-content and (optionally) intersecting genes. Header should be removed or commented with # symbol.
 ```
 chrI[char, "chr" is a prefix] \t startCoord[int] \t endCoord[int] \t gcContent[real, from 0 to 1] \t genesName[character comma delimited] \n
@@ -112,7 +114,7 @@ TumorSampleFromPatient1,NormalSampleFromPatient1
 TumorSampleFromPatient2,NormalSampleFromPatient2
 ```
 
-Please take care - sample names such as "TumorSampleFromPatient1" should match column name in `.cov` files and file name in `.baf` (if you want to use B-allele frequencies for this sample). The file can have any extension, we use "pairs.txt" to name such files.
+Please take care - sample names such as "TumorSampleFromPatient1" should match column name in `.cov` files and file name in BAF `TumorSampleFromPatient1.tsv` files (if you want to use B-allele frequencies for this sample). The file can have any extension, we use "pairs.txt" to name such files.
 
 
 
