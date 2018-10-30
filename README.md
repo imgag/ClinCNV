@@ -84,6 +84,34 @@ chr1    2488153 2488153 chr1_2488153    0.4913  289
 
 ## Hints and advices
 
+### How to create .bed file for WGS
+
+You will need a .bed file with start and end of each chromsome. For hg19 lengths of chromosomes can be found at http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes , just add 0s as a seoncd column.
+
+Segmentation of whole genome with *ngs-bits*:
+
+```
+BedChunk -in hg19.bed -n $sizeOfBin -out "preparedBedHg19.bin"$sizeOfBin".bed"
+```
+
+where $sizeOfBin means pre-specified size of the segment (see below).
+
+### How to create .bed file for off-target regions
+
+Assume you have a .bed file $bedFile. This is how you create offtarget .bed:
+
+```
+# Determine offtarget with offset of 400 to the left and to the right of the targeted region
+BedExtend -in $bedFile -n 400 | BedMerge -out "extended_"$bedFile
+# hg19.bed here is from the previous paragraph
+BedSubtract -in hg19.bed -in2 "extended_"$bedFile -out offtarget.bed
+# Chunk offtarget into pieces of 50kbps
+BedChunk -in offtarget.bed -n 50000 -out offtarget_chunks.bed
+# Remove regions <25k
+BedShrink -in offtarget_chunks.bed -n 12500 | BedExtend -n 12500 -out "offtarget_chunks_"$bedFile
+```
+
+
 ### Off-target or WGS region size - how to choose?
 
 To use ClinCNV in WGS and off-target contexts you need to choose a size of the window you want to segment your genome with.
@@ -112,6 +140,14 @@ With *samtools*:
 samtools bedcov $bedFilePath -Q 3 $bamPath > $sampleName".cov"
 ```
 
+### How to calculate BAF-files
+
+```
+VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" -out $nameOfSample".tsv" -depth
+ grep "^[^#]" $nameOfSample".tsv" | nawk -F'\t' '(length($4) == 1) && (length($5) == 1) {print $1 "\t" $2 "\t" $3 "\t" $1 "_" $2 "\t" $(NF-1) "\t" $NF}' > $nameOfSample".tsv"
+```
+
+*Not1:* ClinCNV uses BAF files only in somatic context now so you have to perform this procedure for both somatic and normal samples.
 
 ## Citation
 
