@@ -98,6 +98,13 @@ BedAnnotateGenes -in "gcAnnotated."$bedFile -out "annotated."$bedFile
 rm "gcAnnotated.""$bedFile
 ```
 
+### How to calculate coverage and form .cov file
+
+With samtools:
+
+```
+samtools bedcov $bedFilePath -Q 3 $bamPath > $sampleName".cov"
+```
 
 
 ## Citation
