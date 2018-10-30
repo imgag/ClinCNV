@@ -76,7 +76,7 @@ chr1    12171   12245   0.4595  DDX11L1
 We expect AVERAGE coverage depths of samples to be written as (starting from header): 
 ```
 chr \t start \t end \t sampleName1 \t sampleName2 \n
-chrI[char, "chr" is a prefix] \t startCoord[int] \t endCoord[int] \t averageCoverageDepth1[real] \t averageCoverageDepth1[real] \n
+chrI[char, "chr" is a prefix] \t startCoord[int] \t endCoord[int] \t averageCoverageDepth1[real] \t averageCoverageDepth2[real] \n
 ```
 Example: 
 ```
@@ -203,7 +203,47 @@ VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" 
  grep "^[^#]" $nameOfSample".tsv" | nawk -F'\t' '(length($4) == 1) && (length($5) == 1) {print $1 "\t" $2 "\t" $3 "\t" $1 "_" $2 "\t" $(NF-1) "\t" $NF}' > $nameOfSample".tsv"
 ```
 
-*Not1:* ClinCNV uses BAF files only in somatic context now so you have to perform this procedure for both somatic and normal samples.
+*Note1:* ClinCNV uses BAF files only in somatic context now so you have to perform this procedure for both somatic and normal samples.
+
+## Full list of parameters of ClinCNV
+
+`--normal` - file with normal samples' coverages depths in `.cov` format. On-target or WGS coverage.
+
+`--tumor` - file with tumor samples' coverages depths in `.cov` format. On-target or WGS coverage.
+
+`--normalOfftarget` - file with normal samples' coverages depths in `.cov` format. Off-target coverage.
+
+`--tumorOfftarget` - file with tumor samples' coverages depths in `.cov` format. Off-target coverage.
+
+`--out` - output folder, default: `./result/`
+
+`--pair` - comma separated table. Each row = "tumorSampleName,normalSampleName"
+
+`--bed` - `.bed` file with coordinates of on-target regions and GC-annotated. Gene anotations in the last column can be used in output.
+
+`--bedOfftarget` - `.bed` file with coordinates of on-target regions and GC-annotated. Gene anotations in the last column can be used in output.
+
+`--colNum` - number of column in `.cov` file where coverage depth columns start. Normally equal to 4.
+
+`--folderWithScript` - $PWD
+
+`--reanalyseCohort` - if equal to "T", all the samples are analysed. If equal to "F", only samples which subfolders do not exist in output folder will be analysed
+
+`--scoreG` - germline CNV score threshold (loglikelihood difference). For additional information: https://en.wikipedia.org/wiki/Bayes_factor#Interpretation . As a guideline: 30 is usually a sensitive, but not specific option, 50 is balanced, 100 is quite strict and leads to high specificity, but (possibly) low sensitivity. 
+
+`--lengthG` - minimum length of germline CNV (number of markers = on- and off-target regions). Depends on your desired purposes. Recomended to keep up not smaller than 2.
+
+`--scoreS` - somatic score threshold. Since CNAs (copy-number changes in caner) are usually long and quite significant, but FFPE introduce huge noise into the tumor sequencing data, we do not recommend to keep it lower than 50.
+
+`--lengthS` - minimum length of germline CNA.
+
+`--maxNumGermCNVs` - maximum number of allowed germline CNVs. If sample has too many variants, thresholds will be automatically increased and the sample will be reanalysed several times.
+
+`--maxNumSomCNAs` - maximum number of allowed somatic CNAs.
+
+`--maxNumIter` - maximum number of iterations "increase threshold - detect CNVs - check if the number of detected variants less than specified above numbers"
+
+`--bafFolder` - folder with `.tsv` files containing information about B-allele frequencies in tumor and normal samples. Note: both tumor and normal sample have to be presented if you want to use it as a predictor.
 
 ## Citation
 
