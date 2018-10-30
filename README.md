@@ -219,9 +219,9 @@ VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" 
 
 `--pair` - comma separated table. Each row = "tumorSampleName,normalSampleName"
 
-`--bed` - `.bed` file with coordinates of on-target regions and GC-annotated. Gene anotations in the last column can be used in output.
+`--bed` - `.bed` file with coordinates of on-target regions, GC-annotated. Gene anotations in the last column can be used in output.
 
-`--bedOfftarget` - `.bed` file with coordinates of on-target regions and GC-annotated. Gene anotations in the last column can be used in output.
+`--bedOfftarget` - `.bed` file with coordinates of off-target regions, GC-annotated. Gene anotations in the last column can be used in output.
 
 `--colNum` - number of column in `.cov` file where coverage depth columns start. Normally equal to 4.
 
