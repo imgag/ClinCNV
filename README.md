@@ -4,7 +4,7 @@ A tool for large-scale CNV and CNA detection.
 
 Authors: G. Demidov, S. Ossowski.
 
-Any issues should be reported to: **german dot demidov at medizin dot uni-tuebingen dot de **.
+Any issues should be reported to: *german dot demidov at medizin dot uni-tuebingen dot de *.
 
 ## About this software
 
