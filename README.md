@@ -6,7 +6,7 @@ Authors: G. Demidov, S. Ossowski.
 
 ## About this software
 
-ClinCNV is supposed to detect CNVs in germline and somatic context (no mosaicism for now, but it can easily be implemented on request) in NGS data (targeted and whole-genome). We work in cohorts, so it makes sense to try ClinCNV if you have more than 10 samples (recommended amount - 40 since we estimate variances from the data). Note: by "cohort" we mean samples sequenced with the same enrichment kit with approximately the same depth (ie 1x WGS and 30x WGS better be analysed in a separate runs of ClinCNV). Of course it is better if your samples were sequenced within the same sequencing facility. Currently we work with hg19 only. For hg38 or mouse genome or any other diploid organism you have to replace *cytobands.txt* with the corresponding file.
+ClinCNV is supposed to detect CNVs in germline and somatic context (no mosaicism for now, but it can easily be implemented on request) in NGS data (targeted and whole-genome). We work in cohorts, so it makes sense to try ClinCNV if you have more than 10 samples (recommended amount - 40 since we estimate variances from the data). Note: by "cohort" we mean samples sequenced with the same enrichment kit with approximately the same depth (ie 1x WGS and 30x WGS better be analysed in a separate runs of ClinCNV). Of course it is better if your samples were sequenced within the same sequencing facility. Currently we work with hg19 only. For hg38 or mouse genome or any other diploid organism you have to replace *cytobands.txt* with the corresponding file. ClinCNV do not work with small panels (hundreds of regions) since GC-correction can not be performed accurately for samples sequenced with such panels.
 
 ## Pre-requisites
 
@@ -31,6 +31,13 @@ We expect .bed file annotated with GC-content and (optionally) intersecting gene
 ```
 chrI[char, "chr" is a prefix] \t startCoord[int] \t endCoord[int] \t gcContent[real, from 0 to 1] \t genesName[character comma delimited] \n
 ```
+
+Example of .bed (here and below we provide only one line, assuming that there are as many as needed):
+
+```
+chr1    12171   12245   0.4595  DDX11L1
+```
+
 ### .cov format
 We expect AVERAGE coverage depths of samples to be written as (starting from header): 
 ```
