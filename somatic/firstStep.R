@@ -567,8 +567,19 @@ copy_numbers_used <- c(2, copy_numbers_used)
 cn_states <- c(2, cn_states)
 
 # CORRECTION OF CNS!!!
-normalCoverage <- rpois(1000000, lambda=50)
-tumorCoverage <- rpois(1000000, lambda=50)
+sdsOfNormals <- apply(normal, 1, sd)
+medianBaselineSD <- median(sdsOfNormals)
+
+sdsPois <- c()
+for (i in 1:1000) {
+  samplePois <- rpois(lambda=i, n=10000)
+  sdsPois <- c(sdsPois, sd(samplePois / i))
+}
+diffs <- abs(sdsPois - medianBaselineSD)
+lambdaFromSimulation <- which.min(diffs)
+
+normalCoverage <- rpois(1000000, lambda=lambdaFromSimulation)
+tumorCoverage <- rpois(1000000, lambda=lambdaFromSimulation)
 sd_to_normalise = sd(log2(tumorCoverage / normalCoverage))
 multipliersDueToLog <- c(1)
 for (state in 2:length(cn_states)) {
