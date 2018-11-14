@@ -30,22 +30,22 @@ determineHeterozygousPositions <- function(freq, depth) {
 
 
 likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn) {
+  multiplierDueToMapping = 0.475 / 0.5
   overallNumberOfReads <- (1 - pur) * 2 + pur * (cn)
   if (cn != 0 & cn != 2) {
-    numberOfReadsSupportiveOne1 <- (1 - pur) * 1 + pur * (cn - 1)
-    numberOfReadsSupportiveOne2 <- (1 - pur) * 1 + pur * 1
-    finalLikelihood = log(0.5 * likelihoodOfSNV(value, depth, min(0.999, numberOfReadsSupportiveOne1 / overallNumberOfReads)) + 
-                       0.5 * likelihoodOfSNV(value, depth, max(0.001, numberOfReadsSupportiveOne2 / overallNumberOfReads))
+    numberOfReadsSupportiveOne1 <- (1 - pur) + pur * (cn - 1)
+    numberOfReadsSupportiveOne2 <- 1 # (1 - pur) + pur * 1
+    finalLikelihood = log(0.5 * likelihoodOfSNV(value, depth, multiplierDueToMapping * min(0.999, numberOfReadsSupportiveOne1 / overallNumberOfReads)) + 
+                       0.5 * likelihoodOfSNV(value, depth, multiplierDueToMapping * max(0.001, numberOfReadsSupportiveOne2 / overallNumberOfReads))
                        )
   } else if (cn == 0) {
     finalLikelihood = log(likelihoodOfSNV(value, depth, 0.5))
   } else if (cn == 2) {
     if (pur == 0) {
-      finalLikelihood = log(0.99 * likelihoodOfSNV(value, depth, 0.485) + 
-                              0.01 * likelihoodOfSNV(value, depth, 0.515) )
+      finalLikelihood = log(likelihoodOfSNV(value, depth, multiplierDueToMapping * 0.5))
     } else {
-      finalLikelihood = log(0.5 * likelihoodOfSNV(value, depth, max(0.001, 0.5 - pur/2)) + 
-                              0.5 * likelihoodOfSNV(value, depth, min(0.999, 0.5 + pur/2)))
+      finalLikelihood = log(0.5 * likelihoodOfSNV(value, depth, multiplierDueToMapping * max(0.001, 0.5 - pur/2)) + 
+                              0.5 * likelihoodOfSNV(value, depth, multiplierDueToMapping * min(0.999, 0.5 + pur/2)))
     }
   }
   return(finalLikelihood)

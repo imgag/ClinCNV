@@ -2,14 +2,21 @@ EstimateModeSimple <- function(x, chrom) {
   if (chrom %in% c("X", "Y", "chrX", "chrY")) {
     x = x[which(x > median(x))]
   }
-  density_of_x <-  density(x, kernel="gaussian")
-  mu = density_of_x$x[which.max(density_of_x$y)]
+  if (length(x) > 100) {
+    density_of_x <-  density(x, kernel="gaussian")
+    mu = density_of_x$x[which.max(density_of_x$y)]
+  } else if (length(x) > 30 ){
+    mu = median(x)
+  } else {
+    mu = lehmanHodges(x)
+  }
   if (mu < 0.3) {
     mu = median(x)
   }
   mu
 }
 
+    
 
 
 determineSDsOfGermlineSample <- function(x) {

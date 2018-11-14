@@ -86,6 +86,8 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
     }
   } else {
     gc_normalisation_factors = foreach (i = 1:length(uniques_gcs), .combine="rbind", .export=c("EstimateModeSimple", "lehmanHodges")) %dopar% {
+      
+      
       gc()
       curr_gc = uniques_gcs[i]
       vector_of_gc <- which(gcs == curr_gc)
@@ -99,6 +101,12 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
           allowedChromosomesAutosomesOnly = which(!info[,1] %in% c("chrX", "chrY"))
         }
         vector_of_gcs_in_allowed_chroms = intersect(vector_of_gc, allowedChromosomesAutosomesOnly)
+        borderOfDistnace = 0.01
+        while (length(vector_of_gcs_in_allowed_chroms) < 10) {
+          borderOfDistnace = borderOfDistnace + 0.01
+          tmpVectorOfGC = which(gcs %in% c(curr_gc + seq(from=-borderOfDistnace, to=borderOfDistnace, by=0.01)))
+          vector_of_gcs_in_allowed_chroms = intersect(tmpVectorOfGC, allowedChromosomesAutosomesOnly)
+        }
         if (length(vector_of_gcs_in_allowed_chroms) >= 50) {
           gc_norm_factor[j] = median(coverages[vector_of_gcs_in_allowed_chroms,j])
         } else {

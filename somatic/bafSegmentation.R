@@ -11,7 +11,7 @@ makeTrackAnnotation <- function(fileName, ID, viewLimits, trackType="points", ad
 }
 
 
-returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF) {
+returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, bedFileForFiltering) {
   setwd(folderBAF)
   healthySample = NULL
   tumorSample = NULL
@@ -45,6 +45,34 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF) {
     healthySample = healthySample[which(healthySample[,6] > median(healthySample[,6]) / 10),]
     tumorSample = tumorSample[which(tumorSample[,6] > median(tumorSample[,6]) / 10),]
     
+    indicesOfSNVsToRemove <- c()
+    currentChrom = "chrN"
+    matrOfBedRegionsInChrom = c()
+    for (i in 1:nrow(healthySample)) {
+      if (healthySample[i,1] != currentChrom) {
+        currentChrom = healthySample[i,1]
+        matrOfBedRegionsInChrom = bedFileForFiltering[which(bedFileForFiltering[,1] == currentChrom),]
+      }
+      ifItIsInsideBed <- which(matrOfBedRegionsInChrom[,2] - 10 <= healthySample[i,2] & matrOfBedRegionsInChrom[,3] + 10 >= healthySample[i,3])
+      if (length(ifItIsInsideBed) == 0) {
+        indicesOfSNVsToRemove <- c(indicesOfSNVsToRemove, i)
+      }
+    }
+    if (length(indicesOfSNVsToRemove) > 0)
+    healthySample = healthySample[-indicesOfSNVsToRemove,]
+    
+    i = 1
+    indicesToRemove <- c()
+    lengthOfClusteredVariants <- 20
+    while (i != nrow(healthySample) - 1) {
+      if (abs(healthySample[i,2] - healthySample[i + 1,2]) < lengthOfClusteredVariants) {
+        indicesToRemove <- c(indicesToRemove, i)
+        indicesToRemove <- c(indicesToRemove, i + 1)
+      }
+      i = i + 1
+    }
+    if (length(indicesToRemove) > 0)
+    healthySample = healthySample[-unique(indicesToRemove),]
 
 
     
@@ -151,7 +179,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
 }
 
 
-returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF) {
+returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF, bedFileForFiltering) {
   allowedChromsBaf <- list()
   bAlleleFreqsAllSamples <- list()
   for (i in 1:ncol(normalCov)) {
@@ -160,7 +188,7 @@ returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF) {
       sampleName2 <- which(colnames(tumorCov) == pairs[sampleName1,1])
       print(i)
       print(sampleName2)
-      bAlleleFreqs <- returnBAlleleFreqs(colnames(normalCov)[i], colnames(tumorCov)[sampleName2], inputFolderBAF)
+      bAlleleFreqs <- returnBAlleleFreqs(colnames(normalCov)[i], colnames(tumorCov)[sampleName2], inputFolderBAF, bedFileForFiltering)
       if (!is.null(bAlleleFreqs[[1]])) {
         allowedChromsBaf[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]] = determineAllowedChroms(bAlleleFreqs[[1]], bAlleleFreqs[[2]],
                                                                                                                              colnames(normalCov)[i], colnames(tumorCov)[sampleName2],
@@ -245,7 +273,7 @@ predictWholeGenomeEvent <- function(healthySampleBAF, tumorSampleBAF, matrixOfCo
       purDup = purDel
     }
   }
-  readline(prompt="Press [enter] to continue")
+  #readline(prompt="Press [enter] to continue")
   
   lessThan0 = which(logFoldChanges < 0)
   mod <- densityMclust(values[lessThan0], modelNames=c("E"))
@@ -276,7 +304,7 @@ predictWholeGenomeEvent <- function(healthySampleBAF, tumorSampleBAF, matrixOfCo
   }
   
   
-  readline(prompt="Press [enter] to continue")
+  #readline(prompt="Press [enter] to continue")
   
   print(paste("Max purity:", max(purDel, purDup)))
   
@@ -323,7 +351,7 @@ returnPurityPloidy <- function(pairs, normalCov, tumorCov, inputFolderBAF, bedFi
     sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
     for (sampleName1 in sampleNames1) {
       sampleName2 <- which(colnames(tumorCov) == pairs[sampleName1,1])
-      bAlleleFreqs <- returnBAlleleFreqs(colnames(normalCov)[i], colnames(tumorCov)[sampleName2], inputFolderBAF)
+      bAlleleFreqs <- returnBAlleleFreqs(colnames(normalCov)[i], colnames(tumorCov)[sampleName2], inputFolderBAF, bedFile)
       if (!is.null(bAlleleFreqs[[1]])) {
         
         print(paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-"))
