@@ -68,19 +68,7 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
 
-### TESTING PART
-opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v4.annotated.bed"
-opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_tumor.cov"
-opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_normal.cov"
-opt$colNum = 4
-opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairs-2.txt"
-opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
-opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic"
-opt$reanalyseCohort = F
-opt$bedOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/annotated_offtarget_v4.bed"
-opt$tumorOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_tumor_off.cov"
-opt$normalOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_normal_off.cov"
-opt$bafFolder = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/baf"
+
 
 ### PLOTTING OF PICTURES (DOES NOT REALLY NECESSARY IF YOU HAVE IGV SEGMENTS)
 plottingOfPNGs = F
