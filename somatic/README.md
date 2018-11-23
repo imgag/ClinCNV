@@ -233,7 +233,7 @@ VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" 
 
 `--lengthG` - minimum length of germline CNV (number of markers = on- and off-target regions). Depends on your desired purposes. Recomended to keep up not smaller than 2.
 
-`--scoreS` - somatic score threshold. Since CNAs (copy-number changes in caner) are usually long and quite significant, but FFPE introduce huge noise into the tumor sequencing data, we do not recommend to keep it lower than 50.
+`--scoreS` - somatic score threshold. Since CNAs (copy-number changes in caner) are usually long and quite significant, but FFPE introduce huge noise into the tumor sequencing data, we do not recommend to keep it lower than 50. As a rule of thumb, we use threshold of 100 for panel of ~500 cancer genes and 200 for WES samples.
 
 `--lengthS` - minimum length of somatic CNA (# of markers, for WES it can be ~5-10 since CNAs are usually long).
 
@@ -245,9 +245,9 @@ VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" 
 
 `--bafFolder` - folder with `.tsv` files containing information about B-allele frequencies in tumor and normal samples. Note: both tumor and normal sample have to be presented if you want to use it as a predictor.
 
-`--normalSample` - name of the sample (if only one germline sample is expected to be calculated). All the parameters are estimated for the whole cohort. Has to be presented in a header of the file with normal samples.
+`--normalSample` - name of the sample (if only one germline sample is expected to be calculated). All the parameters are estimated for the whole cohort. Has to be presented in a header of the file with normal samples. Otherwise, the tool will fail with assert message.
 
-`--tumorSample` - name of the tumor sample (if only one sample is expected to be calculated). Has to be presented in file 1) pairs.txt in pair with the sample specified by --normalSample option. Has to be presented in a header of the file with tumor samples.
+`--tumorSample` - name of the tumor sample (if only one sample is expected to be calculated). Has to be presented in 1) file pairs.txt in pair with the sample specified by --normalSample option, 2) in a header of the file with tumor samples. Otherwise, the tool will fail with assert message.
 
 ## Citation
 
