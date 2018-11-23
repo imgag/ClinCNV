@@ -1,7 +1,11 @@
 
 likelihoodOfSNV <- function(a, b, p) {
-  value = dbinom(a, size=b, prob=p)
-  if (is.nan(value) | value < 10**-30) return(10**-30)
+  if ((b * p >= 10 & b * (1 - p) >= 10) ) {
+    value = return_norm_likelik((a - b * p) / sqrt(b * p * (1-p)))
+    } else {
+    value = dbinom(a, size=b, prob=p)
+    }
+  if (is.nan(value) | value < 10**-40) return(10**-40)
   return((value))
 }
 
@@ -29,24 +33,54 @@ determineHeterozygousPositions <- function(freq, depth) {
 
 
 
-likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn) {
-  multiplierDueToMapping = 0.475 / 0.5
+likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, pList) {
+  multiplierDueToMapping = 0.48 / 0.5
   overallNumberOfReads <- (1 - pur) * 2 + pur * (cn)
+  pListChanged = F
   if (cn != 0 & cn != 2) {
     numberOfReadsSupportiveOne1 <- (1 - pur) + pur * (cn - 1)
     numberOfReadsSupportiveOne2 <- 1 # (1 - pur) + pur * 1
-    finalLikelihood = log(0.5 * likelihoodOfSNV(value, depth, multiplierDueToMapping * min(0.999, numberOfReadsSupportiveOne1 / overallNumberOfReads)) + 
-                       0.5 * likelihoodOfSNV(value, depth, multiplierDueToMapping * max(0.001, numberOfReadsSupportiveOne2 / overallNumberOfReads))
-                       )
+    pUsed1=round(multiplierDueToMapping * min(0.99, numberOfReadsSupportiveOne1 / overallNumberOfReads), digits=2)
+    pUsed2=round(multiplierDueToMapping * max(0.01, numberOfReadsSupportiveOne2 / overallNumberOfReads), digits=2)
+    if (!as.character(pUsed1) %in% names(pList)) {
+      pList[[as.character(pUsed1)]] = likelihoodOfSNV(value, depth, pUsed1)
+      pListChanged=T
+    }
+    firstLikelihood = (pList[[as.character(pUsed1)]])
+    if (!as.character(pUsed2) %in% names(pList)) {
+      pList[[as.character(pUsed2)]] = (likelihoodOfSNV(value, depth, pUsed2))
+      pListChanged=T
+    }
+    secondLikelihood = (pList[[as.character(pUsed2)]])
+    finalLikelihood = log(0.5 * firstLikelihood + 0.5 * secondLikelihood)
   } else if (cn == 0) {
-    finalLikelihood = log(likelihoodOfSNV(value, depth, 0.5))
+    finalLikelihood = log(likelihoodOfSNV(value, depth, multiplierDueToMapping * 0.5))
   } else if (cn == 2) {
     if (pur == 0) {
-      finalLikelihood = log(likelihoodOfSNV(value, depth, multiplierDueToMapping * 0.5))
+      pUsed = round((multiplierDueToMapping * 0.5), digits=2)
+      if (!as.character(pUsed) %in% names(pList)) {
+        pList[[as.character(pUsed)]] = (likelihoodOfSNV(value, depth, pUsed))
+        pListChanged=T
+      }
+      finalLikelihood = log(pList[[as.character(pUsed)]])
     } else {
-      finalLikelihood = log(0.5 * likelihoodOfSNV(value, depth, multiplierDueToMapping * max(0.001, 0.5 - pur/2)) + 
-                              0.5 * likelihoodOfSNV(value, depth, multiplierDueToMapping * min(0.999, 0.5 + pur/2)))
+      pUsed1=round(multiplierDueToMapping * max(0.01, 0.5 - pur/2), digits=2)
+      pUsed2=round(multiplierDueToMapping * min(0.99, 0.5 + pur/2), digits=2)
+      if (!as.character(pUsed1) %in% names(pList)) {
+        pList[[as.character(pUsed1)]] = likelihoodOfSNV(value, depth, pUsed1)
+        pListChanged=T
+      }
+      firstLikelihood = (pList[[as.character(pUsed1)]])
+      if (!as.character(pUsed2) %in% names(pList)) {
+        pList[[as.character(pUsed2)]] = (likelihoodOfSNV(value, depth, pUsed2))
+        pListChanged=T
+      }
+      finalLikelihood = log(0.5 * pList[[as.character(pUsed1)]] + 
+                              0.5 * pList[[as.character(pUsed2)]])
     }
   }
-  return(finalLikelihood)
+  if (pListChanged){
+  return(list(finalLikelihood, pListChanged, pList))} else {
+    return(list(finalLikelihood, pListChanged))
+  }
 }

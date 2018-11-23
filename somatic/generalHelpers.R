@@ -13,6 +13,22 @@ return_likelik <- function(x) {
 }
 
 
+fast_dnorm_list <- function() {
+  values <- seq(from = 0.0, to = 10000.0, by=1)
+  vect_of_norm_likeliks <- dnorm(values / 1000)
+  return((vect_of_norm_likeliks))
+}
+
+
+return_norm_likelik <- function(x) {
+  x = as.vector(x)
+  x = round(abs(x * 1000)) + 1
+  x = replace(x, which(x >= length(vect_of_norm_likeliks)), length(vect_of_norm_likeliks) - 1)
+  return(vect_of_norm_likeliks[x])
+}
+
+
+
 EstimateModeSimple <- function(x) {
   density_of_x <-  density(x, kernel="gaussian")
   mu = density_of_x$x[which.max(density_of_x$y)]

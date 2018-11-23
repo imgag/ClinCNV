@@ -1,6 +1,6 @@
-setwd("/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic")
-source("helpersBalleleFreq.R")
 
+source("helpersBalleleFreq.R")
+setwd(opt$bafFolder)
 
 makeTrackAnnotation <- function(fileName, ID, viewLimits, trackType="points", addText="", color="0,0,255") {
     file.create(fileName)
@@ -24,13 +24,21 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     if (length(empty) > 0) {
       return(list(NULL, NULL))
     }
-    
+
     # FILE IS NOT EMPTY => READING
     healthySample <- read.table(paste0(healthySampleName, ".tsv"), stringsAsFactors = F, header=F, sep="\t")
     tumorSample <- read.table(paste0(tumorSampleName, ".tsv"), stringsAsFactors=F, header=F, sep="\t")
-    if (nrow(healthySample) == 0 | is.na(healthySample[1,5]) | is.na(tumorSample[1,5]) |
-        is.na(as.numeric(healthySample[1,5])) | is.na(as.numeric(tumorSample[1,5]))) {
+    if (nrow(healthySample) == 0) {
       return(list(NULL, NULL))
+    }
+    whichAreNAHealthy = which(healthySample[,5] == "n/a")
+    whichAreNATumor = which(tumorSample[,5] == "n/a")
+    
+    if (length(whichAreNAHealthy) > 0) {
+      healthySample = healthySample[-whichAreNAHealthy,]
+    }
+    if (length(whichAreNAHealthy) > 0) {
+      tumorSample = tumorSample[-whichAreNATumor,]
     }
 
     if (ncol(healthySample) == 5) {
@@ -39,11 +47,12 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     if (ncol(tumorSample) == 5) {
       tumorSample = cbind(tumorSample[,1:3], apply(tumorSample[,1:3], 1, function(x) {paste0(x, collapse="_")}), tumorSample[,4:5])
     }
+    
     colnames(healthySample) <- c("chr", "start", "end", "Feature", "freq", "depth")
     colnames(tumorSample) <- c("chr", "start", "end", "Feature", "freq", "depth")
 
-    healthySample = healthySample[which(healthySample[,6] > median(healthySample[,6]) / 10),]
-    tumorSample = tumorSample[which(tumorSample[,6] > median(tumorSample[,6]) / 10),]
+    healthySample = healthySample[which(healthySample[,6] > max(median(healthySample[,6]) / 10, 40) & healthySample[,6] < quantile(healthySample[,6], 0.975)),]
+    tumorSample = tumorSample[which(tumorSample[,6] > max(median(tumorSample[,6]) / 10, 40)),]
     
     indicesOfSNVsToRemove <- c()
     currentChrom = "chrN"
@@ -63,7 +72,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     
     i = 1
     indicesToRemove <- c()
-    lengthOfClusteredVariants <- 20
+    lengthOfClusteredVariants <- 30
     while (i != nrow(healthySample) - 1) {
       if (abs(healthySample[i,2] - healthySample[i + 1,2]) < lengthOfClusteredVariants) {
         indicesToRemove <- c(indicesToRemove, i)
@@ -142,9 +151,9 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
     
     counter = counter + 1
   }
-  indicesOfAllowedChroms = which(evaluated < max(quantile(evaluated, 0.2), 0.1))
+  indicesOfAllowedChroms = which(evaluated < max(sort(evaluated)[3], 0.1))
   colVec <- rep("red", length(chroms))
-  indicesOfAllowedButNotBestChroms = which(evaluated > 0.1 & evaluated < quantile(evaluated, 0.2))
+  indicesOfAllowedButNotBestChroms = which(evaluated > 0.1 & evaluated < sort(evaluated)[3])
   colVec[indicesOfAllowedChroms] = "darkgreen"
   colVec[indicesOfAllowedButNotBestChroms] = "darkorange"
   names(evaluated) = paste(chroms, "\n", numberOfSNVs)
@@ -194,7 +203,12 @@ returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF, b
                                                                                                                              colnames(normalCov)[i], colnames(tumorCov)[sampleName2],
                                                                                                                              inputFolderBAF)
         bAlleleFreqsAllSamples[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]] = bAlleleFreqs
-      } 
+      } else {
+        print("BAF did not work well")
+        print(i)
+        print(sampleNames1)
+        print(sampleName2)
+      }
     }
   }
   return(list(allowedChromsBaf, bAlleleFreqsAllSamples))

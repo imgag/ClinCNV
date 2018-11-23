@@ -37,16 +37,16 @@ option_list = list(
   make_option(c("-r", "--reanalyseCohort"), type="logical", default=F, 
               help="if T, reanalyses whole cohort [default= %default]", metavar="character"),
   
-  make_option(c("-sg", "--scoreG"), type="double", default="60", 
+  make_option(c("-sg", "--scoreG"), type="double", default="40", 
               help="minimum threshold for significance germline variants", metavar="character"),
   
-  make_option(c("-lg", "--lengthG"), type="double", default="3", 
+  make_option(c("-lg", "--lengthG"), type="double", default="2", 
               help="minimum threshold for length of germline variants", metavar="character"),
   
-  make_option(c("-ss", "--scoreS"), type="double", default="100", 
+  make_option(c("-ss", "--scoreS"), type="double", default="200", 
               help="minimum threshold for significance somatic variants", metavar="character"),
   
-  make_option(c("-ls", "--lengthS"), type="double", default="5", 
+  make_option(c("-ls", "--lengthS"), type="double", default="4", 
               help="minimum threshold for length of somatic variants", metavar="character"),
   
   make_option(c("-mnaxnumg", "--maxNumGermCNVs"), type="double", default="100", 
@@ -61,14 +61,33 @@ option_list = list(
   make_option(c("-bafF", "--bafFolder"), type="character", default=NULL, 
               help="folder where you put BAF frequencies (one per normal, one per tumor sample)", metavar="character"),
   
+  make_option(c("-normS", "--normalSample"), type="character", default=NULL, 
+              help="name of normal sample to analyse (if only one sample has to be analysed)", metavar="character"),
+  
+  make_option(c("-tumorS", "--tumorSample"), type="character", default=NULL, 
+              help="name of tumor sample to analyse (if only one sample has to be analysed, normal has to be provided too)", metavar="character"),
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
-
-
+### TESTING PART
+opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v4.annotated.bed"
+opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_tumor.cov"
+opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_normal.cov"
+opt$colNum = 4
+opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairs-2.txt"
+opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
+opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic"
+opt$reanalyseCohort = F
+opt$bedOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/annotated_offtarget_v4.bed"
+opt$tumorOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_tumor_off.cov"
+opt$normalOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_normal_off.cov"
+opt$bafFolder = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/baf"
+opt$normalSample = "DX180943_01"
+opt$tumorSample = "DX180915_01"
 
 ### PLOTTING OF PICTURES (DOES NOT REALLY NECESSARY IF YOU HAVE IGV SEGMENTS)
 plottingOfPNGs = F
@@ -94,6 +113,7 @@ if (!is.null(opt$bafFolder)) {
   print("Folder with BAFs were provided. Framework swithced to BAF.")
   frameworkDataTypes = "covdepthBAF"
 }
+
 
 
 ### PART WITH LIBRARIES
@@ -124,18 +144,21 @@ for (i in 1:20) {
 }
 bedFile[,4] <- round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i
 whichBedIsNA <- which(is.na(bedFile[,4]))
-bedFile = bedFile[-whichBedIsNA,]
+if (length(whichBedIsNA) > 0)
+  bedFile = bedFile[-whichBedIsNA,]
 
 normal <- read.table(opt$normal, header=T, stringsAsFactors = F)
 normal <- normal[order(normal$X.chr, as.numeric(normal$start)),]
 normal <- as.matrix(normal[,opt$colNum:ncol(normal)])
-normal = normal[-whichBedIsNA,]
+if (length(whichBedIsNA) > 0)
+  normal = normal[-whichBedIsNA,]
 
 if (framework == "somatic") {
   tumor <- read.table(opt$tumor, header=T, stringsAsFactors = F)
   tumor <- tumor[order(tumor$X.chr, as.numeric(tumor$start)),]
   tumor <- as.matrix(tumor[,opt$colNum:ncol(tumor)])
-  tumor = tumor[-whichBedIsNA,]
+  if (length(whichBedIsNA) > 0)
+    tumor = tumor[-whichBedIsNA,]
 }
 
 if (frameworkOff == "offtarget") {
@@ -143,7 +166,12 @@ if (frameworkOff == "offtarget") {
   colnames(bedFileOfftarget) <- c("chr.X", "start", "end", "gc")
   bedFileOfftarget <- bedFileOfftarget[order(bedFileOfftarget$chr.X, as.numeric(bedFileOfftarget$start)),]
   
-  bedFileOfftarget[,4] <- round(as.numeric(as.character(bedFileOfftarget[,4])), digits = 2)
+  for (i in 1:20) {
+    tableOfValues <- table(round(as.numeric(as.character(bedFileOfftarget[,4])) / i, digits = 2) * i)
+    if(sum(tableOfValues[which(tableOfValues > 100)]) / sum(tableOfValues) > 0.95) break 
+  }
+  bedFileOfftarget[,4] <- round(as.numeric(as.character(bedFileOfftarget[,4])) / i, digits = 2) * i
+  
   
   normalOff <- read.table(opt$normalOfftarget, header=T, stringsAsFactors = F)
   normalOff <- normalOff[order(normalOff$X.chr, as.numeric(normalOff$start)),]
@@ -182,13 +210,30 @@ if (framework == "somatic") {
 }
 
 
+## CHECK INPUT VALIDITY
+if (!is.null(opt$normalSample)) {
+  stopifnot(!opt$normalSample %in% colnames(normal))
+}
+if (!is.null(opt$tumorSample)) {
+  stopifnot(!is.null(opt$normalSample))
+  stopifnot(!opt$tumorSample %in% colnames(normal))
+  stopifnot(!opt$tumorSample %in% pairs[,1])
+  stopifnot(!opt$normalSample %in% pairs[,2])
+  coordOfNormalInPairs = which(pairs[,2] == opt$normalSample)
+  stopifnot(!opt$tumorSample %in% pairs[coordOfNormalInPairs,1])
+}
+
 if (frameworkDataTypes == "covdepthBAF") {
   setwd(opt$folderWithScript)
   source("bafSegmentation.R",local=TRUE)
   if (!dir.exists(file.path(opt$bafFolder, "/result"))) {
     dir.create(file.path(opt$bafFolder, "/result"))
   }
-  listOfValues <- returnAllowedChromsBaf(pairs, normal, tumor, opt$bafFolder, bedFile)
+  if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
+    coordOfNormalInPairs = which(pairs[,2] == opt$normalSample & pairs[,1] == opt$tumorSample)
+    pairsForBAF = pairs[coordOfNormalInPairs,,drop=F]
+  }
+  listOfValues <- returnAllowedChromsBaf(pairsForBAF, normal, tumor, opt$bafFolder, bedFile)
   allowedChromsBaf <- listOfValues[[1]]
   bAlleleFreqsAllSamples <- listOfValues[[2]]
 }
@@ -268,9 +313,11 @@ coverage <- sqrt(as.matrix(normal))
 
 medians <- sapply(1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1])})
 whichMediansAreSmall <- which(medians < 0.5)
-coverage <- coverage[-whichMediansAreSmall,]
-bedFile <- bedFile[-whichMediansAreSmall,]
-medians <- medians[-whichMediansAreSmall]
+if (length(whichMediansAreSmall) > 0) {
+  coverage <- coverage[-whichMediansAreSmall,]
+  bedFile <- bedFile[-whichMediansAreSmall,]
+  medians <- medians[-whichMediansAreSmall]
+}
 coverage.normalised = sweep(coverage, 1, medians, FUN="/")
 coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]
 
@@ -287,7 +334,7 @@ bedFile <- bedFile[-probesToRemove,]
 sdsOfProbes <- sdsOfProbes[-probesToRemove]
 normal <- normal[-probesToRemove,]
 if (framework=="somatic")
-tumor <- tumor[-probesToRemove,]
+  tumor <- tumor[-probesToRemove,]
 
 
 autosomes <- which(!bedFile[,1] %in% c("chrX", "chrY", "X", "Y"))
@@ -304,6 +351,8 @@ esimtatedVarianceFromSampleNoise <- listOfVarianceAndMultiplicator[[2]]
 multiplicator <- listOfVarianceAndMultiplicator[[1]]
 
 vect_of_t_likeliks <- fast_dt_list(ncol(coverage.normalised) - 1)
+vect_of_norm_likeliks <- fast_dnorm_list()
+
 
 cn_states <- 0:20
 
@@ -336,6 +385,14 @@ if (!dir.exists(folder_name)) {
 
 
 for (sam_no in 1:ncol(coverage.normalised)) {
+  sample_name <- colnames(coverage.normalised)[sam_no]
+  
+  if (!is.null(opt$normalSample)) {
+    if (!sample_name == opt$normalSample) {
+      next
+    }
+  }
+  
   threshold = opt$scoreG
   minimum_length_of_CNV = opt$lengthG
   price_per_tile = 1
@@ -346,7 +403,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   
   
   
-  sample_name <- colnames(coverage.normalised)[sam_no]
+  
   if(opt$debug) {
     print(sam_no)
   }
@@ -491,8 +548,6 @@ if (framework == "germline") quit()
 
 
 
-
-bordersOfChroms <- getBordersOfChromosomes(bedFile)
 ### PROCESSING OF SOMATIC VARIANTS
 setwd(opt$folderWithScript)
 source("helpersSomatic.R",local=TRUE)
@@ -501,7 +556,7 @@ listOfValue <- formilngLogFoldChange(pairs, normal, tumor)
 matrixOfLogFold <- listOfValue[[1]]
 dictFromColumnToTumor <- listOfValue[[2]]
 
-
+bordersOfChroms <- getBordersOfChromosomes(bedFile)
 sdsOfSomaticSamples <- apply(matrixOfLogFold, 2, determineSDsOfSomaticSample)
 
 
@@ -515,6 +570,7 @@ if (frameworkOff == "offtarget") {
   listOfValue <- formilngLogFoldChange(pairs, normalOff, tumorOff)
   matrixOfLogFoldOff =  listOfValue[[1]]
   dictFromColumnToTumor = listOfValue[[2]]
+  bordersOfChroms <- getBordersOfChromosomes(bedFileOfftarget)
   sdsOfSomaticSamplesOff <- apply(matrixOfLogFoldOff, 2, determineSDsOfSomaticSample)
   
   sdsOfProbesOff <- sapply(1:nrow(matrixOfLogFoldOff), function(i) {determineSDsOfSomaticProbe(matrixOfLogFoldOff[i,], i)})
@@ -542,8 +598,8 @@ vect_of_t_likeliks <- fast_dt_list(ncol(matrixOfLogFold) - 1)
 
 
 cn_states <- c()
-copy_numbers = 0:20
-purity <- seq(from=10, to=101, by=5) / 100
+copy_numbers = 0:15
+purity <- seq(from=5, to=101, by=5) / 100
 purities <- c()
 copy_numbers_used <- c()
 
@@ -566,7 +622,7 @@ for (pur in purity) {
   }
 }
 
-cn_state[which(cn_state < 0.01)] = 0.01
+cn_state[which(cn_state < 0.0001)] = 0.0001
 
 
 final_order <- order(cn_states)
@@ -629,13 +685,20 @@ if (!dir.exists(folder_name)) {
 
 allPotentialPurities <- unique(purities)
 for (sam_no in 1:ncol(matrixOfLogFold)) {
+  sample_name <- colnames(matrixOfLogFold)[sam_no]
+  
+  if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
+    if (!sample_name == paste(opt$tumorSample, opt$normalSample, sep="-")) {
+      next
+    }
+  }
   # To speed up reiteration, we do not want match between BAF file and bed file a lot of times
   if (frameworkDataTypes == "covdepthBAF") {
     closestBedRegions <- c()
     vectorsWithRegionCoordsFilled = F
   }
   
-  sample_name <- colnames(matrixOfLogFold)[sam_no]
+  
   print(paste("We are working on sample name:", sample_name))
   print(Sys.time())
   
@@ -700,8 +763,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       minimum_length_of_CNV = opt$lengthS
       if (!finalIteration) {
         threshold = opt$scoreS + 100
-      }
-      else {
+      } else {
         threshold = opt$scoreS
       }
       price_per_tile = 0.1
@@ -760,6 +822,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFold), matrixOfLogFold[,sam_no], localSds, log2(local_cn_states/2), local_multipliersDueToLog)
       
       matrOfSNVlikeliks <- matrix(0, nrow=0, ncol=length(local_purities))
+      
+
+      
       ### ADD LIKELIHOODS
       if (frameworkDataTypes == "covdepthBAF") {
         print("Started BAF calculation")
@@ -771,8 +836,23 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         if (length(position) == 1) {
           bAlleleFreqsTumor <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] ]]
           bAlleleFreqsNormal <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2] ]]
+          numOfSNVs = nrow(bAlleleFreqsTumor)
+          reduceOfSNVsSize = 1
+          if (numOfSNVs > 1500) {
+            for (reduceOfSNVsSize in 2:100) {
+              if (numOfSNVs / reduceOfSNVsSize < 1000 ) {
+                break
+              }
+            }
+            reduceOfSNVsSize = reduceOfSNVsSize - 1
+          }
           if (length(closestBedRegions) == 0) closestBedRegions = rep(0, nrow(bAlleleFreqsTumor))
           for (i in 1:nrow(bAlleleFreqsTumor)) {
+            # To avoid computationally expensive steps on the start of estimation
+            if (i %% 100 == 0) {
+              print(i / nrow(bAlleleFreqsTumor))
+              print(Sys.time())
+            }
             if (vectorsWithRegionCoordsFilled) {
               closestBedRegion = closestBedRegions[i]
             } else {
@@ -786,6 +866,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                 closestBedRegion = 0
               }
             }
+            if (!finalIteration) {
+              if (i %% reduceOfSNVsSize != 0) next
+            }
             altAlleleDepth <- as.numeric(bAlleleFreqsTumor[i,5])
             overallDepth <- round(as.numeric(bAlleleFreqsTumor[i,6]))
             altAlleleDepth = round(altAlleleDepth * overallDepth)
@@ -793,13 +876,27 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             if (length(closestBedRegion) == 1 & closestBedRegion != 0) {
               numberOfAssignedPositions = numberOfAssignedPositions + 1
               
+              pList = list()
               vecOfLikeliks <- rep(0, ncol(matrix_of_likeliks))
               for (j in 1:length(local_cn_states)) {
                 pur = local_purities[j]
                 cn = local_copy_numbers_used[j]
-                likelihood = -2 * likelihoodOfSNVBasedOnCN(altAlleleDepth, overallDepth, pur, cn)
+                listOfLikelikAndPList = likelihoodOfSNVBasedOnCN(altAlleleDepth, overallDepth, pur, cn, pList)
+                likelihood = -2 * listOfLikelikAndPList[[1]]
+                if (listOfLikelikAndPList[[2]])
+                  pList = listOfLikelikAndPList[[3]]
                 vecOfLikeliks[j] = likelihood
               }
+              # 
+              # pList = list()
+              # vecOfLikeliks = foreach (j = 1:length(local_cn_states), .combine="c", .export=c("likelihoodOfSNVBasedOnCN")) %dopar% {
+              #   gc()
+              #   pur = local_purities[j]
+              #   cn = local_copy_numbers_used[j]
+              #   likelihood = -2 * likelihoodOfSNVBasedOnCN(altAlleleDepth, overallDepth, pur, cn, pList)
+              #   likelihood
+              # }
+              # 
               oldLikeliks <- matrix_of_likeliks[i,] 
               matrix_of_likeliks[closestBedRegion,] = matrix_of_likeliks[closestBedRegion,] + vecOfLikeliks
             }
@@ -830,7 +927,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       
       found_CNVs_total <- matrix(0, nrow=0, ncol=8)
-      colnames(found_CNVs_total) <- c("#chr", "start", "end", "tumor_CN_change", "tumor_purity", "absolute_CN_change", "loglikelihood", "genes")
+      colnames(found_CNVs_total) <- c("#chr", "start", "end", "tumor_CN_change", "tumor_clonality", "absolute_CN_change", "loglikelihood", "genes")
       allDetectedPurities = c()
       for (l in 1:length(left_borders)) {
         
@@ -955,9 +1052,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
         }
       }
-      minPointToNormalise = min(matrixOfClonality)
+      minPointToNormalise = quantile(matrixOfClonality, 0.75)
       matrixOfClonalityForPlotting = matrixOfClonality
-      matrixOfClonalityForPlotting[which(matrixOfClonalityForPlotting > minPointToNormalise + 10000)] = minPointToNormalise + 10000
+      matrixOfClonalityForPlotting[which(matrixOfClonalityForPlotting > minPointToNormalise)] = minPointToNormalise
       matrixOfClonalityForPlotting[upper.tri(matrixOfClonalityForPlotting)] <- NA
       hmcols<-colorRampPalette(c("blue","white","red"))(256)
       if (!finalIteration) {
@@ -978,7 +1075,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     }
     fileToOut <- paste0(folder_name, sample_name, paste0("/CNAs_", sample_name, ".txt"))
     fileConn<-file(fileToOut)
-    writeLines(c(paste("##"," QC ", 0, "purity by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
+    writeLines(c(paste("##"," QC ", 0, "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
     close(fileConn)
     if(opt$debug) {
       print(found_CNVs_total)
@@ -986,3 +1083,5 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
   }
 }
+
+
