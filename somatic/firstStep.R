@@ -86,8 +86,7 @@ opt$bedOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/annotated_off
 opt$tumorOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_tumor_off.cov"
 opt$normalOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_normal_off.cov"
 opt$bafFolder = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/baf"
-opt$normalSample = "DX180943_01"
-opt$tumorSample = "DX180915_01"
+
 
 ### PLOTTING OF PICTURES (DOES NOT REALLY NECESSARY IF YOU HAVE IGV SEGMENTS)
 plottingOfPNGs = F
@@ -232,6 +231,8 @@ if (frameworkDataTypes == "covdepthBAF") {
   if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
     coordOfNormalInPairs = which(pairs[,2] == opt$normalSample & pairs[,1] == opt$tumorSample)
     pairsForBAF = pairs[coordOfNormalInPairs,,drop=F]
+  } else {
+    pairsForBAF = pairs
   }
   listOfValues <- returnAllowedChromsBaf(pairsForBAF, normal, tumor, opt$bafFolder, bedFile)
   allowedChromsBaf <- listOfValues[[1]]

@@ -20,7 +20,6 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     info = file.info(paste0(healthySampleName, ".tsv"), paste0(tumorSampleName, ".tsv"))
     empty = rownames(info[info$size == 0, ])
 
-    print(empty)
     if (length(empty) > 0) {
       return(list(NULL, NULL))
     }
@@ -37,7 +36,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     if (length(whichAreNAHealthy) > 0) {
       healthySample = healthySample[-whichAreNAHealthy,]
     }
-    if (length(whichAreNAHealthy) > 0) {
+    if (length(whichAreNATumor) > 0) {
       tumorSample = tumorSample[-whichAreNATumor,]
     }
 
