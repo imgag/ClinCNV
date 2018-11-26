@@ -155,7 +155,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
         plotLabels[counter] = paste(chrom, "right #", length(rowsFromChrom), "SNVs")
       }
       
-      if (length(rowsFromChrom) > 5) {
+      if (length(rowsFromChrom) > 10) {
         evaluationOfChorm = (length(which(pvalues[rowsFromChrom] < thresholdOfNonNormalVariant))) / (length(rowsFromChrom))
       } else {
         evaluationOfChorm = 1.0
@@ -167,9 +167,9 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
       counter = counter + 1
     }
   }
-  indicesOfAllowedChroms = which(evaluated < max(sort(evaluated)[3], 0.075))
+  indicesOfAllowedChroms = which(evaluated < max(sort(evaluated)[3], 0.05))
   colVec <- rep("red", length(evaluated))
-  indicesOfAllowedButNotBestChroms = which(evaluated > 0.075 & evaluated < sort(evaluated)[5])
+  indicesOfAllowedButNotBestChroms = which(evaluated > 0.05 & evaluated < sort(evaluated)[6])
   colVec[indicesOfAllowedChroms] = "darkgreen"
   colVec[indicesOfAllowedButNotBestChroms] = "darkorange"
   names(evaluated) = namesOfChromArms

@@ -133,11 +133,13 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
           for (allowedArm in allowedChroms[[position]]) {
             splittedValue <- strsplit(allowedArm, "-")
             chrom = splittedValue[[1]][1]
-            startOfArm = as.numeric(splittedValue[[1]][2])
-            endOfArm = as.numeric(splittedValue[[1]][3])
-            allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(info[,1] == chrom &
-                                                                                             info[,2] >= startOfArm &
-                                                                                             info[,3] <= endOfArm))
+            if (!chrom %in% c("chrX", "chrY", "X", "Y")) {
+              startOfArm = as.numeric(splittedValue[[1]][2])
+              endOfArm = as.numeric(splittedValue[[1]][3])
+              allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(info[,1] == chrom &
+                                                                                               info[,2] >= startOfArm &
+                                                                                               info[,3] <= endOfArm))
+            }
           }
         } else {
           allowedChromosomesAutosomesOnly = which(!info[,1] %in% c("chrX", "chrY"))
