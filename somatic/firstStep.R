@@ -222,6 +222,11 @@ if (!is.null(opt$tumorSample)) {
   stopifnot(!opt$tumorSample %in% pairs[coordOfNormalInPairs,1])
 }
 
+lstOfChromBorders <- getCytobands("cytobands.txt")
+left_borders <- lstOfChromBorders[[1]]
+right_borders <- lstOfChromBorders[[2]]
+ends_of_chroms <- lstOfChromBorders[[3]]
+
 if (frameworkDataTypes == "covdepthBAF") {
   setwd(opt$folderWithScript)
   source("bafSegmentation.R",local=TRUE)
@@ -234,7 +239,7 @@ if (frameworkDataTypes == "covdepthBAF") {
   } else {
     pairsForBAF = pairs
   }
-  listOfValues <- returnAllowedChromsBaf(pairsForBAF, normal, tumor, opt$bafFolder, bedFile)
+  listOfValues <- returnAllowedChromsBaf(pairsForBAF, normal, tumor, opt$bafFolder, bedFile, left_borders, right_borders, ends_of_chroms)
   allowedChromsBaf <- listOfValues[[1]]
   bAlleleFreqsAllSamples <- listOfValues[[2]]
 }
@@ -347,7 +352,7 @@ sdsOfGermlineSamples <- apply(coverage.normalised[autosomes,], 2, determineSDsOf
 
 #locationsShiftedLogFoldChanges <- sweep(matrixOfLogFold, 1, locations)
 
-listOfVarianceAndMultiplicator <- esimtateVarianceFromSampleNoise(sdsOfGermlineSamples, 30000)
+listOfVarianceAndMultiplicator <- esimtateVarianceFromSampleNoise(sdsOfGermlineSamples, 100000)
 esimtatedVarianceFromSampleNoise <- listOfVarianceAndMultiplicator[[2]]
 multiplicator <- listOfVarianceAndMultiplicator[[1]]
 
@@ -359,17 +364,7 @@ cn_states <- 0:20
 
 
 
-cytobands <- read.table("cytobands.txt",stringsAsFactors = F, header = F, sep="\t", row.names=NULL)
-left_borders <- vector(mode="list", length=nrow(cytobands)/2)
-right_borders <- vector(mode="list", length=nrow(cytobands)/2)
-odd_numbers <- seq(from=1, to=nrow(cytobands), by=2)
-even_numbers <- seq(from=2, to=nrow(cytobands), by=2)
-names(left_borders) = as.vector(t(cytobands[,1]))[odd_numbers]
-names(right_borders) = as.vector(t(cytobands[,1]))[even_numbers]
-for (i in 1:length(odd_numbers)) {
-  left_borders[[i]] = cytobands[odd_numbers[i], 2]
-  right_borders[[i]] = cytobands[even_numbers[i], 3]
-}
+
 
 
 

@@ -111,7 +111,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
 }
 
 
-determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName, tumorSampleName, folderBAF) {
+determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName, tumorSampleName, folderBAF, leftBorders, rightBorders, endsOfChroms) {
   vecOfPvalues <- rep(0, nrow(tumorSample))
   for (i in 1:nrow(tumorSample)) {
     refAleleTum <- (round(as.numeric(tumorSample[i,5]) * as.numeric(tumorSample[i,6])))
@@ -134,37 +134,58 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   thresholdOfNonNormalVariant = 0.01 # pvalue, if lower = BAF is different in normal and tumor
   chroms = paste0("chr", 1:22)
   chroms = c(chroms, "chrX")
-  numberOfSNVs = rep(0, length(chroms))
-  evaluated = rep(0, length(chroms))
+  numberOfSNVs = rep(0, 2 * length(left_borders))
+  evaluated = rep(0, 2 * length(left_borders))
+  namesOfChromArms <- rep(0, 2 * length(left_borders))
+  plotLabels <- rep(0, 2 * length(left_borders))
   counter = 1
-  for (chrom in chroms) {
-    rowsFromChrom = which(healthySample[,1] == chrom)
-    if (length(rowsFromChrom) > 1) {
-      evaluationOfChorm = (length(which(pvalues[rowsFromChrom] < thresholdOfNonNormalVariant))) / (length(rowsFromChrom))
-    } else {
-      evaluationOfChorm = 1.0
+  for (l in 1:length(left_borders)) {
+    chrom = names(left_borders)[l]
+    start = left_borders[[l]]
+    end = right_borders[[l]]
+    endOfChrom = endsOfChroms[[l]]
+    for (k in 1:2) {
+      if (k == 1) {
+        rowsFromChrom = which(healthySample[,1] == chrom & healthySample[,2] <= as.numeric(start) )
+        namesOfChromArms[counter] = paste(chrom, 0, start, sep="-")
+        plotLabels[counter] = paste(chrom, "left #", length(rowsFromChrom), "SNVs")
+      } else {
+        rowsFromChrom = which(healthySample[,1] == chrom & healthySample[,2] >= as.numeric(end) )
+        namesOfChromArms[counter] = paste(chrom, end, endOfChrom, sep="-")
+        plotLabels[counter] = paste(chrom, "right #", length(rowsFromChrom), "SNVs")
+      }
+      
+      if (length(rowsFromChrom) > 5) {
+        evaluationOfChorm = (length(which(pvalues[rowsFromChrom] < thresholdOfNonNormalVariant))) / (length(rowsFromChrom))
+      } else {
+        evaluationOfChorm = 1.0
+      }
+      
+      evaluated[counter] = evaluationOfChorm
+      numberOfSNVs[counter] = length(rowsFromChrom)
+      
+      counter = counter + 1
     }
-    
-    evaluated[counter] = evaluationOfChorm
-    numberOfSNVs[counter] = length(rowsFromChrom)
-    
-    counter = counter + 1
   }
-  indicesOfAllowedChroms = which(evaluated < max(sort(evaluated)[3], 0.1))
-  colVec <- rep("red", length(chroms))
-  indicesOfAllowedButNotBestChroms = which(evaluated > 0.1 & evaluated < sort(evaluated)[3])
+  indicesOfAllowedChroms = which(evaluated < max(sort(evaluated)[3], 0.075))
+  colVec <- rep("red", length(evaluated))
+  indicesOfAllowedButNotBestChroms = which(evaluated > 0.075 & evaluated < sort(evaluated)[5])
   colVec[indicesOfAllowedChroms] = "darkgreen"
   colVec[indicesOfAllowedButNotBestChroms] = "darkorange"
-  names(evaluated) = paste(chroms, "\n", numberOfSNVs)
+  names(evaluated) = namesOfChromArms
+  allowedChroms = names(evaluated)[indicesOfAllowedChroms]
+
   
   
   subDir = paste0(tumorSampleName, "_", healthySampleName)
   dir.create(file.path(folderBAF, "result", subDir))
   setwd(file.path(folderBAF, "result", subDir))
-  png(paste0(tumorSampleName, "_", healthySampleName, ".png"), width=1200, height=600)
-  barplot(evaluated, col=colVec, main=paste(tumorSampleName, healthySampleName), ylim=c(0,1))
+  png(paste0(tumorSampleName, "_", healthySampleName, ".png"), width=1400, height=600)
+  op <- par(mar=c(11,4,4,2))
+  x <- barplot(evaluated, col=colVec, main=paste(tumorSampleName, healthySampleName), ylim=c(0,1), xaxt="n")
+  text(x-2.5, par("usr")[3] - 0.15, labels = plotLabels, srt = 45, pos = 1, xpd = TRUE)
+  par(mar=c(5.1, 4.1, 4.1, 2.1), mgp=c(3, 1, 0), las=0)
   dev.off()
-  allowedChroms = chroms[indicesOfAllowedChroms]
   
   
   trackFilename = paste0(tumorSampleName, "_", healthySampleName, ".igv")
@@ -187,7 +208,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
 }
 
 
-returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF, bedFileForFiltering) {
+returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF, bedFileForFiltering, leftBorders, rightBorders, endsOfChroms) {
   allowedChromsBaf <- list()
   bAlleleFreqsAllSamples <- list()
   for (i in 1:ncol(normalCov)) {
@@ -200,7 +221,8 @@ returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF, b
       if (!is.null(bAlleleFreqs[[1]])) {
         allowedChromsBaf[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]] = determineAllowedChroms(bAlleleFreqs[[1]], bAlleleFreqs[[2]],
                                                                                                                              colnames(normalCov)[i], colnames(tumorCov)[sampleName2],
-                                                                                                                             inputFolderBAF)
+                                                                                                                             inputFolderBAF,
+                                                                                                                             leftBorders, rightBorders, endsOfChroms)
         bAlleleFreqsAllSamples[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]] = bAlleleFreqs
       } else {
         print("BAF did not work well")

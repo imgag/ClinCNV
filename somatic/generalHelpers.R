@@ -27,6 +27,23 @@ return_norm_likelik <- function(x) {
   return(vect_of_norm_likeliks[x])
 }
 
+getCytobands <- function(fileName) {
+  cytobands <- read.table(fileName,stringsAsFactors = F, header = F, sep="\t", row.names=NULL)
+  left_borders <- vector(mode="list", length=nrow(cytobands)/2)
+  right_borders <- vector(mode="list", length=nrow(cytobands)/2)
+  ends_of_chroms <- vector(mode="list", length=nrow(cytobands)/2)
+  odd_numbers <- seq(from=1, to=nrow(cytobands), by=2)
+  even_numbers <- seq(from=2, to=nrow(cytobands), by=2)
+  names(left_borders) = as.vector(t(cytobands[,1]))[odd_numbers]
+  names(right_borders) = as.vector(t(cytobands[,1]))[even_numbers]
+  names(ends_of_chroms) = as.vector(t(cytobands[,1]))[even_numbers]
+  for (i in 1:length(odd_numbers)) {
+    left_borders[[i]] = cytobands[odd_numbers[i], 2]
+    right_borders[[i]] = cytobands[even_numbers[i], 3]
+    ends_of_chroms[[i]] = cytobands[even_numbers[i], 5]
+  }
+  return(list(left_borders, right_borders, ends_of_chroms))
+}
 
 
 EstimateModeSimple <- function(x) {
@@ -112,7 +129,16 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
         tumorName = colnames(coverages)[j]
         position <- which(startsWith(names(allowedChroms), prefix=tumorName))
         if (length(position) == 1) {
-        allowedChromosomesAutosomesOnly = which(!info[,1] %in% c("chrX", "chrY") & info[,1] %in% allowedChroms[[position]])
+          allowedChromosomesAutosomesOnly = c()
+          for (allowedArm in allowedChroms[[position]]) {
+            splittedValue <- strsplit(allowedArm, "-")
+            chrom = splittedValue[[1]][1]
+            startOfArm = as.numeric(splittedValue[[1]][2])
+            endOfArm = as.numeric(splittedValue[[1]][3])
+            allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(info[,1] == chrom &
+                                                                                             info[,2] >= startOfArm &
+                                                                                             info[,3] <= endOfArm))
+          }
         } else {
           allowedChromosomesAutosomesOnly = which(!info[,1] %in% c("chrX", "chrY"))
         }
