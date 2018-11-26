@@ -74,6 +74,8 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
 
+
+
 ### PLOTTING OF PICTURES (DOES NOT REALLY NECESSARY IF YOU HAVE IGV SEGMENTS)
 plottingOfPNGs = F
 
@@ -743,8 +745,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   
   
   
-  
-  matrixOfClonality = matrix(0, nrow=length(uniqueLocalPurities), ncol=length(uniqueLocalPurities))
+
+  matrixOfClonality = matrix(0, nrow=1, ncol=1)
   if (!dir.exists(paste0(folder_name, sample_name)) | (opt$reanalyseCohort == T)) {
     
     dir.create(paste0(folder_name, sample_name))
@@ -921,6 +923,24 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         if (length(position) == 1) {
           bAlleleFreqsTumor <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] ]]
           bAlleleFreqsNormal <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2] ]]
+          
+          # calculate median correction factor
+          allowedChromosomesAutosomesOnly = c()
+          for (allowedArm in allowedChromsBafSample) {
+            splittedValue <- strsplit(allowedArm, "-")
+            chrom = splittedValue[[1]][1]
+            if (!chrom %in% c("chrY", "Y", "chrX", "X")) {
+              startOfArm = as.numeric(splittedValue[[1]][2])
+              endOfArm = as.numeric(splittedValue[[1]][3])
+              allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(bAlleleFreqsTumor[,1] == chrom &
+                                                                                               bAlleleFreqsTumor[,2] >= startOfArm &
+                                                                                               bAlleleFreqsTumor[,3] <= endOfArm))
+            }
+          }
+          multiplierOfSNVsDueToMapping <- median(as.numeric(bAlleleFreqsNormal[allowedChromosomesAutosomesOnly,5]))
+          print("Multiplier of allele balance of a particular sample")
+          print(multiplierOfSNVsDueToMapping)
+          
           numOfSNVs = nrow(bAlleleFreqsTumor)
           reduceOfSNVsSize = 1
           if (numOfSNVs > 2000) {
@@ -967,7 +987,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                 pur = local_purities[j]
                 cn = local_copy_numbers_used[j]
                 stateUsed = local_cnv_states[j]
-                listOfLikelikAndPList = likelihoodOfSNVBasedOnCN(altAlleleDepth, overallDepth, pur, cn, stateUsed, pList)
+                listOfLikelikAndPList = likelihoodOfSNVBasedOnCN(altAlleleDepth, overallDepth, pur, cn, stateUsed, multiplierOfSNVsDueToMapping, pList)
                 
                 likelihood = -2 * listOfLikelikAndPList[[1]]
                 if (listOfLikelikAndPList[[2]])

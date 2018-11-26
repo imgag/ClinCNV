@@ -22,7 +22,8 @@ passPropTest <- function(numOne, numTwo, refOne, refTwo) {
 
 determineHeterozygousPositions <- function(freq, depth) {
   prob = pbinom(round(freq * depth), prob=0.48, size=depth)
-  if (prob > 0.01 & prob < 0.99) {
+  if ((prob > 0.01 & prob < 0.99 & depth < 100) |
+      (prob > 0.001 & prob < 0.999 & depth >= 100)) {
     return(T)
   } else {
     return(F)
@@ -31,8 +32,8 @@ determineHeterozygousPositions <- function(freq, depth) {
 
 
 
-likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, stateUsed, pList) {
-  multiplierDueToMapping = 0.48 / 0.5
+likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, stateUsed, multiplierOfSNVsDueToMapping, pList) {
+  multiplierDueToMapping = multiplierOfSNVsDueToMapping / 0.5
   overallNumberOfReads <- (1 - pur) * 2 + pur * (cn)
   pListChanged = F
   if (cn != 0 & cn != 2 & stateUsed == "CNV") {
