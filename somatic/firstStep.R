@@ -73,20 +73,6 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
-### TESTING PART
-opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v4.annotated.bed"
-opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_tumor.cov"
-opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_normal.cov"
-opt$colNum = 4
-opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairs-2.txt"
-opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
-opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev/ClinCNV/somatic"
-opt$reanalyseCohort = F
-opt$bedOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/annotated_offtarget_v4.bed"
-opt$tumorOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_tumor_off.cov"
-opt$normalOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/v4_normal_off.cov"
-opt$bafFolder = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/baf"
-
 
 ### PLOTTING OF PICTURES (DOES NOT REALLY NECESSARY IF YOU HAVE IGV SEGMENTS)
 plottingOfPNGs = F
@@ -1023,7 +1009,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       
       found_CNVs_total <- matrix(0, nrow=0, ncol=9)
-      colnames(found_CNVs_total) <- c("#chr", "start", "end", "tumor_CN_change", "tumor_clonality", "absolute_CN_change", "loglikelihood", "state", "genes")
+      colnames(found_CNVs_total) <- c("#chr", "start", "end", "tumor_CN_change", "tumor_clonality", "CN_change", "loglikelihood", "state", "genes")
       allDetectedPurities = c()
       for (l in 1:length(left_borders)) {
         
