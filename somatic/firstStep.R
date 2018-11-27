@@ -925,18 +925,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           bAlleleFreqsNormal <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2] ]]
           
           # calculate median correction factor
-          allowedChromosomesAutosomesOnly = c()
-          for (allowedArm in allowedChromsBafSample) {
-            splittedValue <- strsplit(allowedArm, "-")
-            chrom = splittedValue[[1]][1]
-            if (!chrom %in% c("chrY", "Y", "chrX", "X")) {
-              startOfArm = as.numeric(splittedValue[[1]][2])
-              endOfArm = as.numeric(splittedValue[[1]][3])
-              allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(bAlleleFreqsTumor[,1] == chrom &
-                                                                                               bAlleleFreqsTumor[,2] >= startOfArm &
-                                                                                               bAlleleFreqsTumor[,3] <= endOfArm))
-            }
-          }
+          allowedChromosomesAutosomesOnly = which(!bAlleleFreqsTumor[,1] %in% c("X","Y","chrX","chrY"))
           multiplierOfSNVsDueToMapping <- median(as.numeric(bAlleleFreqsNormal[allowedChromosomesAutosomesOnly,5]))
           print("Multiplier of allele balance of a particular sample")
           print(multiplierOfSNVsDueToMapping)

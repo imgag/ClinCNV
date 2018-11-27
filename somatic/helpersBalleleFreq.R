@@ -3,7 +3,7 @@ likelihoodOfSNV <- function(a, b, p) {
 
     value = dbinom(a, size=b, prob=p)
     
-  if (is.nan(value) | value < 10**-100) return(10**-100)
+  if (is.nan(value) | value < 10**-50) return(10**-50)
   return((value))
 }
 
@@ -20,10 +20,9 @@ passPropTest <- function(numOne, numTwo, refOne, refTwo) {
   }
 }
 
-determineHeterozygousPositions <- function(freq, depth) {
-  prob = pbinom(round(freq * depth), prob=0.48, size=depth)
-  if ((prob > 0.01 & prob < 0.99 & depth < 100) |
-      (prob > 0.001 & prob < 0.999 & depth >= 100)) {
+determineHeterozygousPositions <- function(freq, depth, probAB=0.48) {
+  prob = pbinom(round(freq * depth), prob=probAB, size=depth)
+  if ((prob > 0.01 & prob < 0.99)) {
     return(T)
   } else {
     return(F)

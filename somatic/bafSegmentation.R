@@ -50,8 +50,8 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     colnames(healthySample) <- c("chr", "start", "end", "Feature", "freq", "depth")
     colnames(tumorSample) <- c("chr", "start", "end", "Feature", "freq", "depth")
 
-    healthySample = healthySample[which(healthySample[,6] > max(median(healthySample[,6]) / 10, 40) & healthySample[,6] < quantile(healthySample[,6], 0.975)),]
-    tumorSample = tumorSample[which(tumorSample[,6] > max(median(tumorSample[,6]) / 10, 40)),]
+    healthySample = healthySample[which(healthySample[,6] > max(median(healthySample[,6]) / 10, 30) & healthySample[,6] < quantile(healthySample[,6], 0.975)),]
+    tumorSample = tumorSample[which(tumorSample[,6] > max(median(tumorSample[,6]) / 10, 30)),]
     
     indicesOfSNVsToRemove <- c()
     currentChrom = "chrN"
@@ -96,8 +96,14 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     tumorSample = tumorSample[order(tumorSample[,1],tumorSample[,2] ),]
     healthySample = healthySample[order(healthySample[,1], healthySample[,2]),]
     
-    
-    heterozygousPositions <- apply(healthySample[,5:6], 1, function(vec) {determineHeterozygousPositions(as.numeric(vec[1]), as.numeric(vec[2]))})
+    # Determining positions which are heterozygous 
+    potentiallyHeterozygous = as.numeric(healthySample[which(!(healthySample[,1] %in% c("chrX","chrY","X","Y")) & as.numeric(healthySample[,6]) > 30),5])
+    potentiallyHeterozygous <- potentiallyHeterozygous[which(potentiallyHeterozygous > 0.25 & potentiallyHeterozygous < 0.75)]
+    if (!is.na(potentiallyHeterozygous)) {
+    heterozygousAlleleShift <- median(potentiallyHeterozygous)
+    } else { heterozygousAlleleShift = 0.48 }
+    print(paste("Heterozygous allele shift for particular sample", heterozygousAlleleShift))
+    heterozygousPositions <- apply(healthySample[,5:6], 1, function(vec) {determineHeterozygousPositions(as.numeric(vec[1]), as.numeric(vec[2]), heterozygousAlleleShift)})
     healthySample = healthySample[heterozygousPositions, ]
     tumorSample = tumorSample[heterozygousPositions, ]
     
@@ -227,8 +233,8 @@ returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF, b
       } else {
         print("BAF did not work well")
         print(i)
-        print(sampleNames1)
-        print(sampleName2)
+        print(colnames(tumorCov)[sampleName2])
+        print(colnames(normalCov)[i])
       }
     }
   }
