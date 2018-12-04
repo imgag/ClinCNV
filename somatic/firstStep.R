@@ -120,7 +120,7 @@ registerDoParallel(cl)
 
 ### READING DATA
 setwd(opt$folderWithScript)
-bedFile <- read.table(opt$bed, stringsAsFactors = F, sep="\t")
+bedFile <- read.table(opt$bed, stringsAsFactors = F, sep="\t", comment.char="&", header=F)
 colnames(bedFile) <- c("chr.X", "start", "end", "gc")
 bedFile <- bedFile[order(bedFile$chr.X, as.numeric(bedFile$start)),]
 
@@ -134,8 +134,9 @@ whichBedIsNA <- which(is.na(bedFile[,4]))
 if (length(whichBedIsNA) > 0)
   bedFile = bedFile[-whichBedIsNA,]
 
-normal <- read.table(opt$normal, header=T, stringsAsFactors = F)
-normal <- normal[order(normal$X.chr, as.numeric(normal$start)),]
+normal <- read.table(opt$normal, header=T, stringsAsFactors = F, comment.char="&" )
+
+normal <- normal[order(normal[,1], as.numeric(normal[,2])),]
 normal <- as.matrix(normal[,opt$colNum:ncol(normal)])
 if (length(whichBedIsNA) > 0)
   normal = normal[-whichBedIsNA,]
@@ -275,13 +276,18 @@ if (frameworkOff == "offtarget") {
 # FILTER LOW COVERED REGIONS
 regionsToFilerOutOn <- c()
 for (i in 1:nrow(normal)) {
+if (framework == "somatic"){
   if (min(median(normal[i,], tumor[i,])) < 0.3) {
     regionsToFilerOutOn <- c(regionsToFilerOutOn, i)
   }
+ }
 }
-normal = normal[-regionsToFilerOutOn,] + 10**-20
-tumor = tumor[-regionsToFilerOutOn,] + 10**-20
-bedFile = bedFile[-regionsToFilerOutOn,]
+if (length(regionsToFilerOutOn)>0)
+{
+	normal = normal[-regionsToFilerOutOn,] + 10**-20
+	tumor = tumor[-regionsToFilerOutOn,] + 10**-20
+	bedFile = bedFile[-regionsToFilerOutOn,]
+}
 if (frameworkOff == "offtarget") {
   regionsToFilerOutOff <- c()
   for (i in 1:nrow(normalOff)) {
