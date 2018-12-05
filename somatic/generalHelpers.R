@@ -1,3 +1,12 @@
+startsWith <- function(x, prefix) {
+  if (substring(x, 1, nchar(prefix)) == prefix) {
+    return(T)
+  } else {
+    return(F)
+  }
+}
+
+
 fast_dt_list <- function(degreesOfFreedom) {
   values <- seq(from = 0.0, to = 10000.0, by=1)
   vect_of_t_likeliks <- dt(values / 1000, df=degreesOfFreedom)
