@@ -127,7 +127,7 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
       gc_norm_factor = rep(1, ncol(coverages))
       for (j in 1:ncol(coverages)) {
         tumorName = colnames(coverages)[j]
-        position <- which(startsWith(names(allowedChroms), prefix=tumorName))
+        position <- which(substring(names(allowedChroms), 1, nchar(tumorName)) == tumorName)
         if (length(position) == 1) {
           allowedChromosomesAutosomesOnly = c()
           for (allowedArm in allowedChroms[[position]]) {
