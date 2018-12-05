@@ -31,7 +31,7 @@ option_list = list(
   make_option(c("-num", "--colNum"), type="double", default=4, 
               help="column where coverages start", metavar="character"),
   
-  make_option(c("-script", "--folderWithScript"), type="character", default="./", 
+  make_option(c("-script", "--folderWithScript"), type="character", default=getwd(), 
               help="folder where you put script", metavar="character"),
   
   make_option(c("-r", "--reanalyseCohort"), type="logical", default=F, 
@@ -73,7 +73,8 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
-
+setwd(opt$folderWithScript)
+source("generalHelpers.R")
 
 
 ### PLOTTING OF PICTURES (DOES NOT REALLY NECESSARY IF YOU HAVE IGV SEGMENTS)
@@ -148,7 +149,7 @@ if (framework == "somatic") {
   tumor <- read.table(opt$tumor, header=T, stringsAsFactors = F, comment.char="&" )
   if (!startsWith(tumor[,1], "chr"))
     tumor[,1] <- paste0("chr", tumor[,1])
-  tumor <- tumor[order(tumor$X.chr, as.numeric(tumor$start)),]
+  tumor <- tumor[order(tumor[,1], as.numeric(tumor[,2])),]
   tumor <- as.matrix(tumor[,opt$colNum:ncol(tumor)])
   if (length(whichBedIsNA) > 0)
     tumor = tumor[-whichBedIsNA,]
@@ -159,7 +160,7 @@ if (frameworkOff == "offtarget") {
   if (!startsWith(bedFileOfftarget[,1], "chr"))
     bedFileOfftarget[,1] <- paste0("chr", bedFileOfftarget[,1])
   colnames(bedFileOfftarget) <- c("chr.X", "start", "end", "gc")
-  bedFileOfftarget <- bedFileOfftarget[order(bedFileOfftarget$chr.X, as.numeric(bedFileOfftarget$start)),]
+  bedFileOfftarget <- bedFileOfftarget[order(bedFileOfftarget[,1], as.numeric(bedFileOfftarget[,2])),]
   
   for (i in 1:20) {
     tableOfValues <- table(round(as.numeric(as.character(bedFileOfftarget[,4])) / i, digits = 2) * i)
@@ -171,7 +172,7 @@ if (frameworkOff == "offtarget") {
   normalOff <- read.table(opt$normalOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
   if (!startsWith(normalOff[,1], "chr"))
     normalOff[,1] <- paste0("chr", normalOff[,1])
-  normalOff <- normalOff[order(normalOff$X.chr, as.numeric(normalOff$start)),]
+  normalOff <- normalOff[order(normalOff[,1], as.numeric(normalOff[,2])),]
   normalOff <- as.matrix(normalOff[,opt$colNum:ncol(normalOff)])
   # remain only samples that are in Normal cohort 
   normalOff <- normalOff[,which(colnames(normalOff) %in% colnames(normal))]
@@ -179,14 +180,13 @@ if (frameworkOff == "offtarget") {
   tumorOff <- read.table(opt$tumorOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
   if (!startsWith(tumorOff[,1], "chr"))
     tumorOff[,1] <- paste0("chr", tumorOff[,1])
-  tumorOff <- tumorOff[order(tumorOff$X.chr, as.numeric(tumorOff$start)),]
+  tumorOff <- tumorOff[order(tumorOff[,1], as.numeric(tumorOff[,2])),]
   tumorOff <- as.matrix(tumorOff[,opt$colNum:ncol(tumorOff)])
   # remain only samples that are in Tumor cohort 
   tumorOff <- tumorOff[,which(colnames(tumorOff) %in% colnames(tumor))]
 }
 
-setwd(opt$folderWithScript)
-source("generalHelpers.R")
+
 rowsToRemove <- cleanDatasetFromLowCoveredFiles(normal)
 bedFile <- bedFile[-rowsToRemove,]
 normal <- normal[-rowsToRemove,]
