@@ -74,20 +74,7 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
   
   autosomes <- which(!info[,1] %in% c("chrX", "chrY"))
   
-  # sample size normalisation
-  normalization_factors <- rep(1, ncol(coverages))
-  
-  
-  logarithms <- apply(coverages[autosomes,], 1, function(x) {return(sum(log(x)) / ncol(coverages))})
-  root_of_mth_power <- exp(logarithms)
-  
-  for (i in 1:ncol(coverages)) {
-    array_to_calculaste_medians <- coverages[autosomes,i] / root_of_mth_power
-    normalization_factors[i] <- median(array_to_calculaste_medians)
-  }
-  for (i in 1:ncol(coverages)) {
-    coverages[,i] <- (coverages[,i] / (normalization_factors [i]))
-  }
+
   
   coverages = log2(coverages)
   
@@ -466,4 +453,79 @@ cleanDatasetFromLowCoveredFiles <- function(normal) {
   minAllowedCoverage = max(quantile(medians, 0.01), 0.05)
   rowsToRemove <- which(medians < minAllowedCoverage)
   return(rowsToRemove)
+}
+
+
+
+
+
+
+lengthBasedNormalization = function(coverage, bedFile, allowedChroms="") {
+  lengthBed = log2(bedFile[,3] - bedFile[,2])
+  orderOfLengths = order(lengthBed)
+  chroms <- bedFile[orderOfLengths, 1]
+  lengthBedOrdered = lengthBed[orderOfLengths]
+  chromsToRemoveSex = which(!chroms %in% c("chrX", "chrY"))
+  
+  
+  for (j in 1:ncol(coverage)) {
+    
+    if (allowedChroms == "") {
+      chromsToRemove = chromsToRemoveSex
+    } else {
+      tumorName = colnames(coverage)[j]
+      position <- which(startsWith(names(allowedChroms), prefix=tumorName))
+      if (length(position) == 1) {
+        chromsToRemove = c()
+        for (allowedArm in allowedChroms[[position]]) {
+          splittedValue <- strsplit(allowedArm, "-")
+          chrom = splittedValue[[1]][1]
+          if (!chrom %in% c("chrX", "chrY", "X", "Y")) {
+            startOfArm = as.numeric(splittedValue[[1]][2])
+            endOfArm = as.numeric(splittedValue[[1]][3])
+            chromsToRemove = union(chromsToRemove, which(bedFile[,1] == chrom &
+                                                           bedFile[,2] >= startOfArm &
+                                                           bedFile[,3] <= endOfArm))
+          }
+        }
+      } else {
+        chromsToRemove = chromsToRemoveSex
+      }
+    }
+    lengthBedOrderedLocal = lengthBedOrdered[chromsToRemove]
+    
+    
+    
+    
+    
+    print(j)
+    coverageForNormalization = coverage[orderOfLengths,j]
+    medians <- rep(1, length(lengthBed))
+    if (length(chromsToRemove) > 0.5 * nrow(bedFile)) {
+      listOfMedians = list()
+      coverageForNormalizationWithoutBadRegions = coverageForNormalization[chromsToRemove]
+      zerosInData = which(coverageForNormalizationWithoutBadRegions < 0.001)
+      coverageForNormalizationWithoutZeros = coverageForNormalizationWithoutBadRegions
+      if (length(zerosInData > 0)) {
+        coverageForNormalizationWithoutZeros = coverageForNormalizationWithoutBadRegions[-zerosInData]
+        lengthBedOrderedLocal = lengthBedOrderedLocal[-zerosInData]
+      }
+      lws = lowess(sqrt(coverageForNormalizationWithoutZeros) ~ lengthBedOrderedLocal)
+      
+      for (i in 1:length(coverageForNormalization)) {
+        lengthOfRegions = lengthBed[i]
+        if (as.character(lengthOfRegions) %in% names(listOfMedians)) {
+          medians[i] = listOfMedians[[as.character(lengthOfRegions)]]
+        } else {
+          
+          closestX = which.min(abs(lws$x - lengthOfRegions))
+          listOfMedians[[as.character(lengthOfRegions)]]  = lws$y[closestX]
+          medians[i] = listOfMedians[[as.character(lengthOfRegions)]]
+        }
+      }
+      medians[which(medians == 0)] = median(coverageForNormalizationWithoutBadRegions)
+    }
+    coverage[,j] = coverage[,j] / (medians ** 2)
+  }
+  return(coverage)
 }

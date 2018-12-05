@@ -121,6 +121,8 @@ registerDoParallel(cl)
 ### READING DATA
 setwd(opt$folderWithScript)
 bedFile <- read.table(opt$bed, stringsAsFactors = F, sep="\t", comment.char="&", header=F)
+if (!startsWith(bedFile[,1], "chr"))
+  bedFile[,1] <- paste0("chr", bedFile[,1])
 colnames(bedFile) <- c("chr.X", "start", "end", "gc")
 bedFile <- bedFile[order(bedFile$chr.X, as.numeric(bedFile$start)),]
 
@@ -130,19 +132,22 @@ for (i in 1:20) {
   if(sum(tableOfValues[which(tableOfValues > 100)]) / sum(tableOfValues) > 0.95) break 
 }
 bedFile[,4] <- round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i
-whichBedIsNA <- which(is.na(bedFile[,4]))
+whichBedIsNA <- which(is.na(bedFile[,4]) | bedFile[,3] - bedFile[,2] < 80)
 if (length(whichBedIsNA) > 0)
   bedFile = bedFile[-whichBedIsNA,]
 
 normal <- read.table(opt$normal, header=T, stringsAsFactors = F, comment.char="&" )
-
+if (!startsWith(normal[,1], "chr"))
+  normal[,1] <- paste0("chr", normal[,1])
 normal <- normal[order(normal[,1], as.numeric(normal[,2])),]
 normal <- as.matrix(normal[,opt$colNum:ncol(normal)])
 if (length(whichBedIsNA) > 0)
   normal = normal[-whichBedIsNA,]
 
 if (framework == "somatic") {
-  tumor <- read.table(opt$tumor, header=T, stringsAsFactors = F)
+  tumor <- read.table(opt$tumor, header=T, stringsAsFactors = F, comment.char="&" )
+  if (!startsWith(tumor[,1], "chr"))
+    tumor[,1] <- paste0("chr", tumor[,1])
   tumor <- tumor[order(tumor$X.chr, as.numeric(tumor$start)),]
   tumor <- as.matrix(tumor[,opt$colNum:ncol(tumor)])
   if (length(whichBedIsNA) > 0)
@@ -151,6 +156,8 @@ if (framework == "somatic") {
 
 if (frameworkOff == "offtarget") {
   bedFileOfftarget <- read.table(opt$bedOfftarget, stringsAsFactors = F, sep="\t")
+  if (!startsWith(bedFileOfftarget[,1], "chr"))
+    bedFileOfftarget[,1] <- paste0("chr", bedFileOfftarget[,1])
   colnames(bedFileOfftarget) <- c("chr.X", "start", "end", "gc")
   bedFileOfftarget <- bedFileOfftarget[order(bedFileOfftarget$chr.X, as.numeric(bedFileOfftarget$start)),]
   
@@ -161,13 +168,17 @@ if (frameworkOff == "offtarget") {
   bedFileOfftarget[,4] <- round(as.numeric(as.character(bedFileOfftarget[,4])) / i, digits = 2) * i
   
   
-  normalOff <- read.table(opt$normalOfftarget, header=T, stringsAsFactors = F)
+  normalOff <- read.table(opt$normalOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
+  if (!startsWith(normalOff[,1], "chr"))
+    normalOff[,1] <- paste0("chr", normalOff[,1])
   normalOff <- normalOff[order(normalOff$X.chr, as.numeric(normalOff$start)),]
   normalOff <- as.matrix(normalOff[,opt$colNum:ncol(normalOff)])
   # remain only samples that are in Normal cohort 
   normalOff <- normalOff[,which(colnames(normalOff) %in% colnames(normal))]
   
-  tumorOff <- read.table(opt$tumorOfftarget, header=T, stringsAsFactors = F)
+  tumorOff <- read.table(opt$tumorOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
+  if (!startsWith(tumorOff[,1], "chr"))
+    tumorOff[,1] <- paste0("chr", tumorOff[,1])
   tumorOff <- tumorOff[order(tumorOff$X.chr, as.numeric(tumorOff$start)),]
   tumorOff <- as.matrix(tumorOff[,opt$colNum:ncol(tumorOff)])
   # remain only samples that are in Tumor cohort 
@@ -235,12 +246,17 @@ if (frameworkDataTypes == "covdepthBAF") {
 setwd(opt$folderWithScript)
 
 ### ON TARGET GC NORMALIZATION
+if (max(bedFile[,3] - bedFile[,2]) / min(bedFile[,3] - bedFile[,2]) > 16)
+  normal <- lengthBasedNormalization(normal, bedFile)
 lst <- gc_and_sample_size_normalise(bedFile, normal)
 normal <- lst[[1]]
 if (framework == "somatic") {
   if (frameworkDataTypes == "covdepthBAF") {
+    if (max(bedFile[,3] - bedFile[,2]) / min(bedFile[,3] - bedFile[,2]) > 16)
+      tumor <- lengthBasedNormalization(tumor, bedFile, allowedChroms=allowedChromsBaf)
     lst <- gc_and_sample_size_normalise(bedFile, tumor, allowedChroms=allowedChromsBaf)
   } else {
+    tumor <- lengthBasedNormalization(tumor, bedFile)
     lst <- gc_and_sample_size_normalise(bedFile, tumor)
   }
   tumor <- lst[[1]]
