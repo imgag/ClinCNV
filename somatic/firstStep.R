@@ -1,5 +1,11 @@
 #!/usr/bin/env Rscript
 set.seed(100)
+
+## CHECK R VERSION
+if (!(as.numeric(version$major) >= 3 & as.numeric(version$minor) > 2.0)) {
+ print("Your R version is too old. We can not guarantee stable work.")
+ print(version)
+}
 ### PART WITH PARSING OPTIONS
 library("optparse")
 
