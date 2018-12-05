@@ -330,37 +330,6 @@ bordersOfChroms <- getBordersOfChromosomes(bedFile)
 
 
 ### PROCESSING OF GERMLINE VARIANTS
-setwd(opt$folderWithScript)
-source("helpersGermline.R")
-coverage <- sqrt(as.matrix(normal))
-
-
-
-medians <- sapply(1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1])})
-whichMediansAreSmall <- which(medians < 0.5)
-if (length(whichMediansAreSmall) > 0) {
-  coverage <- coverage[-whichMediansAreSmall,]
-  bedFile <- bedFile[-whichMediansAreSmall,]
-  medians <- medians[-whichMediansAreSmall]
-}
-coverage.normalised = sweep(coverage, 1, medians, FUN="/")
-coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]
-
-
-sdsOfProbes <- sapply(1:nrow(coverage.normalised), function(i) {determineSDsOfGermlineProbe(coverage.normalised[i,], i)})
-
-# In exome seq it is often the case that some hypervariable regions cause false positive calls.
-# We remove all probes that look suspicious to us
-# Moreover - probes with huge variability does not allow detection of CNVs and are useless
-threshold <- min(quantile(sdsOfProbes, 0.99), 0.5)
-probesToRemove <- which(sdsOfProbes > threshold)
-coverage.normalised <- coverage.normalised[-probesToRemove,]
-bedFile <- bedFile[-probesToRemove,]
-sdsOfProbes <- sdsOfProbes[-probesToRemove]
-normal <- normal[-probesToRemove,]
-if (framework=="somatic")
-  tumor <- tumor[-probesToRemove,]
-
 
 
 
@@ -374,6 +343,10 @@ if (framework == "germline") quit()
 
 
 
+
+
+if (framework=="somatic")
+  tumor <- tumor[-probesToRemove,]
 
 
 

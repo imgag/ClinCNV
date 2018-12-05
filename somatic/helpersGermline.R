@@ -1,6 +1,23 @@
-EstimateModeSimple <- function(x, chrom) {
-  if (chrom %in% c("X", "Y", "chrX", "chrY")) {
-    x = x[which(x > median(x))]
+EstimateModeSimple <- function(x, chrom="", genders=NULL) {
+  if (chrom != "") {
+    if (chrom %in% c("X", "Y", "chrX", "chrY")) {
+      if (is.null(genders)) {
+      x = x[which(x > median(x))]
+      } else {
+        if (chrom == "chrX") {
+          x = x[which(genders == F)]
+          if (length(x) < 2) {
+            x = x[which(x > median(x))]
+          }
+        }
+        if (chrom == "chrY") {
+          x = 2 * x[which(genders == M)]
+          if (length(x) < 2) {
+            return(1)
+          }
+        }
+      }
+    }
   }
   if (length(x) > 100) {
     density_of_x <-  density(x, kernel="gaussian")
@@ -171,4 +188,21 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
     }
   }
   return(cnvsToOutput)
+}
+
+
+
+
+Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
+  set.seed(100)
+  matrix_of_values <- cbind(apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrY"),], 2, EstimateModeSimple), apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrX"),], 2, EstimateModeSimple))
+  cl <- kmeans(matrix_of_values, centers=matrix(c(0,1,sqrt(1/2), sqrt(1/2)), nrow=2))
+  clusters <- cl$cluster
+  clusters[clusters == 1] <- "F"
+  clusters[clusters == 2] <- "M"
+  png(filename=paste0(opt$out, "genders.pcawg.png"), width=800, height=800)
+  plot(matrix_of_values, col = cl$cluster, xlab="Y Chromsome", ylab="X Chromosome", pch=19, cex=2)
+  points(cl$centers, col = 1:2, pch = 8, cex = 10)
+  dev.off()
+  return(clusters)
 }

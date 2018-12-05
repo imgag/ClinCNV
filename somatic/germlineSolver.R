@@ -1,3 +1,36 @@
+setwd(opt$folderWithScript)
+source("helpersGermline.R")
+coverage <- sqrt(as.matrix(normal))
+
+genderOfSamples <- Determine.gender(coverage, bedFile)
+
+medians <- sapply(1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], genderOfSamples)})
+whichMediansAreSmall <- which(medians < 0.5)
+if (length(whichMediansAreSmall) > 0) {
+  coverage <- coverage[-whichMediansAreSmall,]
+  bedFile <- bedFile[-whichMediansAreSmall,]
+  medians <- medians[-whichMediansAreSmall]
+}
+coverage.normalised = sweep(coverage, 1, medians, FUN="/")
+coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]
+
+
+sdsOfProbes <- sapply(1:nrow(coverage.normalised), function(i) {determineSDsOfGermlineProbe(coverage.normalised[i,], i)})
+
+# In exome seq it is often the case that some hypervariable regions cause false positive calls.
+# We remove all probes that look suspicious to us
+# Moreover - probes with huge variability does not allow detection of CNVs and are useless
+threshold <- min(quantile(sdsOfProbes, 0.99), 0.5)
+probesToRemove <- which(sdsOfProbes > threshold)
+coverage.normalised <- coverage.normalised[-probesToRemove,]
+bedFile <- bedFile[-probesToRemove,]
+sdsOfProbes <- sdsOfProbes[-probesToRemove]
+normal <- normal[-probesToRemove,]
+
+
+
+
+
 autosomes <- which(!bedFile[,1] %in% c("chrX", "chrY", "X", "Y"))
 sdsOfGermlineSamples <- apply(coverage.normalised[autosomes,], 2, determineSDsOfGermlineSample)
 
@@ -89,6 +122,13 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     iterations = iterations + 1
     for (l in 1:length(left_borders)) {
       chrom = names(left_borders)[l]
+      if (chrom == "chrX" & genderOfSamples[sam_no] == "M") {
+        initial_state <- 2
+      } else if (chrom == "chrY" & genderOfSamples[sam_no] == "F") {
+        initial_state <- 1
+      } else {
+        initial_state <- 3
+      }
       start = left_borders[[l]]
       end = right_borders[[l]]
       for (k in 1:2) {
@@ -104,7 +144,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         }
         toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
         toyBedFile = bedFile[which_to_allow,]
-        found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 3))
+        found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, initial_state))
         toyLogFoldChange = coverage.normalised[which_to_allow,sam_no]
         toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
         

@@ -20,23 +20,27 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
 }
 
 
-determineSDsOfSomaticSample <- function(x) {
+determineSDsOfSomaticSample <- function(x, bedFile) {
+  lengtBed = bedFile[,3] - bedFile[,2]
   sdsS <- rep(0, length(bordersOfChroms) - 1)
   if (length(bordersOfChroms) == 1) {
-    sdsS[1] = Sn(x)
+    sdsS[1] = Qn(x)
   }
   else {
     for (i in 2:length(bordersOfChroms)) {
       valuesBetweenBorders <- x[bordersOfChroms[i-1]:bordersOfChroms[i]]
+      if (unique(bedFile[bordersOfChroms[i-1]:bordersOfChroms[i],1]) %in% c("chrX","chrY")) next
+      regionLengthsBetweenBorders = lengtBed[bordersOfChroms[i-1]:bordersOfChroms[i]]
+      valuesBetweenBorders = valuesBetweenBorders[which(regionLengthsBetweenBorders > min(200, median(lengtBed)))]
       if (length(valuesBetweenBorders) > 1)
-        sdsS[i] = Sn(valuesBetweenBorders)
+        sdsS[i] = Qn(valuesBetweenBorders)
     }
   }
   return(median(sdsS[which(sdsS > 0)]))
 }
 
 determineSDsOfSomaticSampleWithAllowdChroms <- function(x) {
-  return(Sn(x))
+  return(Qn(x))
 }
 
 

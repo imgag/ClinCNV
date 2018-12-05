@@ -9,7 +9,7 @@ matrixOfLogFold <- listOfValue[[1]]
 dictFromColumnToTumor <- listOfValue[[2]]
 
 bordersOfChroms <- getBordersOfChromosomes(bedFile)
-sdsOfSomaticSamples <- apply(matrixOfLogFold, 2, determineSDsOfSomaticSample)
+sdsOfSomaticSamples <- sapply(1:ncol(matrixOfLogFold), function(i) {determineSDsOfSomaticSample(matrixOfLogFold[,i], bedFile)})
 
 
 sdsOfProbes <- sapply(1:nrow(matrixOfLogFold), function(i) {determineSDsOfSomaticProbe(matrixOfLogFold[i,], i)})
