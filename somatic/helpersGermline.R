@@ -5,13 +5,13 @@ EstimateModeSimple <- function(x, chrom="", genders=NULL) {
       x = x[which(x > median(x))]
       } else {
         if (chrom == "chrX") {
-          x = x[which(genders == F)]
+          x = x[which(genders == "F")]
           if (length(x) < 2) {
             x = x[which(x > median(x))]
           }
         }
         if (chrom == "chrY") {
-          x = 2 * x[which(genders == M)]
+          x = sqrt(2) * x[which(genders == "M")]
           if (length(x) < 2) {
             return(1)
           }
@@ -200,7 +200,7 @@ Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
   clusters <- cl$cluster
   clusters[clusters == 1] <- "F"
   clusters[clusters == 2] <- "M"
-  png(filename=paste0(opt$out, "genders.pcawg.png"), width=800, height=800)
+  png(filename=paste0(opt$out, "genders.png"), width=800, height=800)
   plot(matrix_of_values, col = cl$cluster, xlab="Y Chromsome", ylab="X Chromosome", pch=19, cex=2)
   points(cl$centers, col = 1:2, pch = 8, cex = 10)
   dev.off()

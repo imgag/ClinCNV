@@ -126,6 +126,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         initial_state <- 2
       } else if (chrom == "chrY" & genderOfSamples[sam_no] == "F") {
         initial_state <- 1
+      } else if (chrom == "chrY" & genderOfSamples[sam_no] == "M") {
+        initial_state <- 2
       } else {
         initial_state <- 3
       }
