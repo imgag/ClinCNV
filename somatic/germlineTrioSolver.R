@@ -1,3 +1,5 @@
+
+
 cn_states <- 0:6
 
 frameworkTrios = "single"
@@ -144,10 +146,16 @@ for (trioRow in 1:nrow(trios)) {
         }
         local_vectors_of_cn_states = vectors_of_cn_states
         if (chrom %in% c("chrX", "X")) {
-          local_vectors_of_cn_states[1,] = c(2,2,1)
+          if (genderOfSamples[child_number] == "F")
+            local_vectors_of_cn_states[1,] = c(2,2,1)
+          else 
+            local_vectors_of_cn_states[1,] = c(1,2,1)
         }
         if (chrom %in% c("chrY", "Y")) {
+          if (genderOfSamples[child_number] == "F")
           local_vectors_of_cn_states[1,] = c(0,0,1)
+          else
+            local_vectors_of_cn_states[1,] = c(1,0,1)
         }
         output_of_plots <-  paste0(folder_name, sample_name)
         which_to_allow <- "NA"
