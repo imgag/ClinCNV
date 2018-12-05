@@ -225,7 +225,7 @@ VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" 
 
 `--colNum` - number of column in `.cov` file where coverage depth columns start. Normally equal to 4.
 
-`--folderWithScript` - $PWD
+`--folderWithScript` - obsolete. Basically it was $PWD
 
 `--reanalyseCohort` - if equal to "T", all the samples are analysed. If equal to "F", only samples which subfolders do not exist in output folder will be analysed
 

@@ -533,6 +533,7 @@ lengthBasedNormalization = function(coverage, bedFile, allowedChroms="") {
         }
       }
       medians[which(medians == 0)] = median(coverageForNormalizationWithoutBadRegions)
+      plot(medians[1:10000] ~  lengthBed[1:10000])
     }
     coverage[,j] = coverage[,j] / (medians ** 2)
   }
