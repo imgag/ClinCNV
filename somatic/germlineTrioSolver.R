@@ -124,7 +124,7 @@ for (trioRow in 1:nrow(trios)) {
   
   matrix_of_likeliks_read_depth_only = matrix_of_likeliks
   
-  sizesOfPointsFromLocalSds <- 0.1 / localSds 
+  sizesOfPointsFromLocalSds <- 0.1 / localSdsChild 
   
   
   

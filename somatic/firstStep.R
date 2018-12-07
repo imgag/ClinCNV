@@ -84,7 +84,6 @@ opt = parse_args(opt_parser);
 
 
 
-
 setwd(opt$folderWithScript)
 source("generalHelpers.R")
 
@@ -257,6 +256,11 @@ if (frameworkDataTypes == "covdepthBAF") {
 }
 setwd(opt$folderWithScript)
 
+
+normal <- normalTmp
+bedFile <- bedTmp
+tumor  <- tumorTmp
+
 ### ON TARGET GC NORMALIZATION
 if (max(bedFile[,3] - bedFile[,2]) / min(bedFile[,3] - bedFile[,2]) > 16)
   normal <- lengthBasedNormalization(normal, bedFile)
@@ -277,7 +281,15 @@ if (framework == "somatic") {
   bedFile <- lst[[2]]
 }
 
-
+# checkSignalToNoise <- function(matr) {
+#   mediansWithoutNorm <- apply(matr, 2, median)
+#   sdsWithoutNorm <- apply(matr, 2, Sn)
+#   return(mediansWithoutNorm / sdsWithoutNorm)
+# }
+# snNormWith = checkSignalToNoise(normal)
+# snTumorWith = checkSignalToNoise(tumor)
+# snNormWithout = checkSignalToNoise(normal)
+# snTumorWithout = checkSignalToNoise(tumor)
 
 ### OFF TARGET GC NORMALIZATION
 if (frameworkOff == "offtarget") {

@@ -470,7 +470,11 @@ cleanDatasetFromLowCoveredFiles <- function(normal) {
 
 
 lengthBasedNormalization = function(coverage, bedFile, allowedChroms="") {
-  lengthBed = log2(bedFile[,3] - bedFile[,2])
+  lengthBed = round(log2(bedFile[,3] - bedFile[,2]), digits=1)
+  topPercent = quantile(lengthBed, 0.95)
+  lengthBed[which(lengthBed > topPercent)] = topPercent
+  bottomPercent = quantile(lengthBed, 0.05)
+  lengthBed[which(lengthBed < bottomPercent)] = bottomPercent
   orderOfLengths = order(lengthBed)
   chroms <- bedFile[orderOfLengths, 1]
   lengthBedOrdered = lengthBed[orderOfLengths]
@@ -510,7 +514,7 @@ lengthBasedNormalization = function(coverage, bedFile, allowedChroms="") {
     print(j)
     coverageForNormalization = coverage[orderOfLengths,j]
     medians <- rep(1, length(lengthBed))
-    if (length(chromsToRemove) > 0.5 * nrow(bedFile)) {
+    if (length(chromsToRemove) > 0.1 * nrow(bedFile)) {
       listOfMedians = list()
       coverageForNormalizationWithoutBadRegions = coverageForNormalization[chromsToRemove]
       zerosInData = which(coverageForNormalizationWithoutBadRegions < 0.001)
@@ -519,7 +523,7 @@ lengthBasedNormalization = function(coverage, bedFile, allowedChroms="") {
         coverageForNormalizationWithoutZeros = coverageForNormalizationWithoutBadRegions[-zerosInData]
         lengthBedOrderedLocal = lengthBedOrderedLocal[-zerosInData]
       }
-      lws = lowess(sqrt(coverageForNormalizationWithoutZeros) ~ lengthBedOrderedLocal)
+      lws = lowess(sqrt(coverageForNormalizationWithoutZeros) ~ lengthBedOrderedLocal, f=2/3)
       
       for (i in 1:length(coverageForNormalization)) {
         lengthOfRegions = lengthBed[i]
