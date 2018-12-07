@@ -115,7 +115,7 @@ qcControl <- function(sam_no, toyMatrixOfLogFold, toyLocalSds, toyMultipliersDue
 
 plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, toySizesOfPointsFromLocalSds, plottingOfPNGs) {
   vector_of_states <- cn_states
-  cnvsToOutput <- matrix(0, nrow=0, ncol=6)
+  cnvsToOutput <- matrix(0, nrow=0, ncol=7)
   if (nrow(found_CNVs) > 0) {
     for (s in 1:nrow(found_CNVs)) {
       CNV_name <- paste(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], "CN:", vector_of_states[found_CNVs[s,4]], "-2ln(loglik):", found_CNVs[s,1], 
@@ -134,7 +134,10 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
         vectorOfGeneNamesTrimmed = c(vectorOfGeneNamesTrimmed,trimws(elem) )
       }
       annotationGenes <- paste(unique(vectorOfGeneNamesTrimmed), collapse=",")
-      CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], vector_of_states[found_CNVs[s,4]], -1 * found_CNVs[s,1], annotationGenes), nrow=1)
+      CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], 
+                           vector_of_states[found_CNVs[s,4]], -1 * found_CNVs[s,1], 
+                           found_CNVs[s,3] - found_CNVs[s,2] + 1,
+                           annotationGenes), nrow=1)
       cnvsToOutput = rbind(cnvsToOutput, CNVtoOut)
       
       length_of_repr <- 1000

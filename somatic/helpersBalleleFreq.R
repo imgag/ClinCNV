@@ -3,7 +3,7 @@ likelihoodOfSNV <- function(a, b, p) {
 
     value = dbinom(a, size=b, prob=p)
     
-  if (is.nan(value) | value < 10**-50) return(10**-50)
+  if (is.nan(value) | value < 10**-30) return(10**-30)
   return((value))
 }
 

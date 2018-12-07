@@ -20,8 +20,9 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
 }
 
 
-determineSDsOfSomaticSample <- function(x, bedFile) {
-  lengtBed = bedFile[,3] - bedFile[,2]
+determineSDsOfSomaticSample <- function(x, bedFile="") {
+  if (!bedFile == "")
+    lengtBed = bedFile[,3] - bedFile[,2]
   sdsS <- rep(0, length(bordersOfChroms) - 1)
   if (length(bordersOfChroms) == 1) {
     sdsS[1] = Qn(x)
@@ -29,8 +30,10 @@ determineSDsOfSomaticSample <- function(x, bedFile) {
   else {
     for (i in 2:length(bordersOfChroms)) {
       valuesBetweenBorders <- x[bordersOfChroms[i-1]:bordersOfChroms[i]]
+      if (!bedFile == "")
       if (unique(bedFile[bordersOfChroms[i-1]:bordersOfChroms[i],1]) %in% c("chrX","chrY")) next
       regionLengthsBetweenBorders = lengtBed[bordersOfChroms[i-1]:bordersOfChroms[i]]
+      if (!bedFile == "")
       valuesBetweenBorders = valuesBetweenBorders[which(regionLengthsBetweenBorders > min(200, median(lengtBed)))]
       if (length(valuesBetweenBorders) > 1)
         sdsS[i] = Qn(valuesBetweenBorders)
@@ -71,7 +74,7 @@ form_matrix_of_likeliks_one_sample <- function(i, j, vector_of_values, sds, cn_s
 
 plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, copy_numbers_used, purities, local_cnv_states, toySizesOfPointsFromLocalSds, plottingOfPNGs) {
   vector_of_states <- cn_states
-  cnvsToOutput <- matrix(0, nrow=0, ncol=9)
+  cnvsToOutput <- matrix(0, nrow=0, ncol=10)
   if (nrow(found_CNVs) > 0) {
     for (s in 1:nrow(found_CNVs)) {
 	  if(opt$debug) {
@@ -98,12 +101,14 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       }
       CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], 
                            copy_numbers_used[found_CNVs[s,4]], purities[found_CNVs[s,4]],
-                           vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), local_cnv_states[found_CNVs[s,4]], annotationGenes), nrow=1)
+                           vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), 
+                           found_CNVs[s,3] - found_CNVs[s,2] + 1,
+                           local_cnv_states[found_CNVs[s,4]], annotationGenes), nrow=1)
       if(opt$debug)
       {
         print(CNVtoOut)
       }
-      cnvsToOutput = as.matrix(rbind(cnvsToOutput, CNVtoOut), ncol=9, drop=F)
+      cnvsToOutput = as.matrix(rbind(cnvsToOutput, CNVtoOut), ncol=10, drop=F)
 
       
       length_of_repr <- 500

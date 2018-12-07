@@ -23,7 +23,7 @@ if (frameworkOff == "offtarget") {
   matrixOfLogFoldOff =  listOfValue[[1]]
   dictFromColumnToTumor = listOfValue[[2]]
   bordersOfChroms <- getBordersOfChromosomes(bedFileOfftarget)
-  sdsOfSomaticSamplesOff <- apply(matrixOfLogFoldOff, 2, determineSDsOfSomaticSample)
+  sdsOfSomaticSamplesOff <- apply(matrixOfLogFoldOff, 2, function(x) {determineSDsOfSomaticSample(x, bedFileOfftarget)})
   
   sdsOfProbesOff <- sapply(1:nrow(matrixOfLogFoldOff), function(i) {determineSDsOfSomaticProbe(matrixOfLogFoldOff[i,], i)})
   
@@ -237,28 +237,35 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       local_cnv_states <- statesUsed
       
       if (finalIteration ) {
-        if ((abs(max(matrixOfClonality) - min(matrixOfClonality)) > 1000)) {
-          clonalSignificanceThreshold = 1000
-          indices = which(matrixOfClonality == min(matrixOfClonality), arr.ind = TRUE)
-          oneClone = min(matrixOfClonality[indices[1], indices[1]], matrixOfClonality[indices[2], indices[2]])
-          if (abs(oneClone - matrixOfClonality[indices[1,1], indices[1,2]]) > clonalSignificanceThreshold) {
-            clonalBestPurities <- rownames(which(matrixOfClonality == min(matrixOfClonality), arr.ind = TRUE))
-            clonalBestPurities = as.numeric(clonalBestPurities)
-          } else {
-            clonalBestPurities <- rownames(which(matrixOfClonality == oneClone, arr.ind = TRUE))
-            clonalBestPurities = as.numeric(clonalBestPurities)
-            tableOfBestPurities <- table(rownames(which(matrixOfClonality == oneClone, arr.ind = TRUE)))
-            clonalBestPurities = as.numeric(names(tableOfBestPurities[which.max(tableOfBestPurities)]))
-          }
-          
-          clonalBestPurities <- c(as.numeric(clonalBestPurities), 0)
-          indices_to_remove_by_purity <- which(!(purities %in% clonalBestPurities))
-          local_purities <- purities[-indices_to_remove_by_purity]
-          local_copy_numbers_used <- copy_numbers_used[-indices_to_remove_by_purity]
-          local_cn_states <- cn_states[-indices_to_remove_by_purity]
-          local_multipliersDueToLog <- multipliersDueToLog[-indices_to_remove_by_purity]
-          local_cnv_states = local_cnv_states[-indices_to_remove_by_purity]
-        }
+        # if ((abs(max(matrixOfClonality) - min(matrixOfClonality)) > 1000)) {
+        #   clonalSignificanceThreshold = 1000
+        #   indices = which(matrixOfClonality == min(matrixOfClonality), arr.ind = TRUE)
+        #   oneClone = min(matrixOfClonality[indices[1], indices[1]], matrixOfClonality[indices[2], indices[2]])
+        #   if (abs(oneClone - matrixOfClonality[indices[1,1], indices[1,2]]) > clonalSignificanceThreshold) {
+        #     clonalBestPurities <- rownames(which(matrixOfClonality == min(matrixOfClonality), arr.ind = TRUE))
+        #     clonalBestPurities = as.numeric(clonalBestPurities)
+        #   } else {
+        #     clonalBestPurities <- rownames(which(matrixOfClonality == oneClone, arr.ind = TRUE))
+        #     clonalBestPurities = as.numeric(clonalBestPurities)
+        #     tableOfBestPurities <- table(rownames(which(matrixOfClonality == oneClone, arr.ind = TRUE)))
+        #     clonalBestPurities = as.numeric(names(tableOfBestPurities[which.max(tableOfBestPurities)]))
+        #   }
+        #   
+        #   clonalBestPurities <- c(as.numeric(clonalBestPurities), 0)
+        #   indices_to_remove_by_purity <- which(!(purities %in% clonalBestPurities))
+        #   local_purities <- purities[-indices_to_remove_by_purity]
+        #   local_copy_numbers_used <- copy_numbers_used[-indices_to_remove_by_purity]
+        #   local_cn_states <- cn_states[-indices_to_remove_by_purity]
+        #   local_multipliersDueToLog <- multipliersDueToLog[-indices_to_remove_by_purity]
+        #   local_cnv_states = local_cnv_states[-indices_to_remove_by_purity]
+        # }
+        clonalBestPurities <- c(as.numeric(clonalBestPurities), 0)
+        indices_to_remove_by_purity <- which(!(purities %in% clonalBestPurities))
+        local_purities <- purities[-indices_to_remove_by_purity]
+        local_copy_numbers_used <- copy_numbers_used[-indices_to_remove_by_purity]
+        local_cn_states <- cn_states[-indices_to_remove_by_purity]
+        local_multipliersDueToLog <- multipliersDueToLog[-indices_to_remove_by_purity]
+        local_cnv_states = local_cnv_states[-indices_to_remove_by_purity]
       }
       
       # PART FOR MATRIX OF CLONALITY (ONLY 2 CLONES)
@@ -485,8 +492,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       
       
-      found_CNVs_total <- matrix(0, nrow=0, ncol=9)
-      colnames(found_CNVs_total) <- c("#chr", "start", "end", "tumor_CN_change", "tumor_clonality", "CN_change", "loglikelihood", "state", "genes")
+      found_CNVs_total <- matrix(0, nrow=0, ncol=10)
+      colnames(found_CNVs_total) <- c("#chr", "start", "end", "tumor_CN_change", "tumor_clonality", "CN_change", "loglikelihood", "number_of_regions", "state", "genes")
       allDetectedPurities = c()
       for (l in 1:length(left_borders)) {
         
@@ -624,6 +631,47 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             width = 640, height = 640)
         heatmap((matrixOfClonalityForPlotting), scale="none", Rowv = NA, Colv = NA, col=hmcols, main=sample_name)
         dev.off()
+        
+        
+        # true clonal structure
+        maxNumOfClones <- 7
+        localPurityStates = 1:length(uniqueLocalPurities)
+        resultBestCombination = 0
+        for (m in 1:maxNumOfClones) {
+          combinationsOfPurities <- combn(localPurityStates, m)
+          bestCombination = 1
+          minResult = 0
+          for (r in 1:nrow(likeliksFoundCNVsVsPuritiesGlobal)) {
+            minResult = minResult + min(likeliksFoundCNVsVsPuritiesGlobal[r,combinationsOfPurities[,1]])
+          }
+          
+          for (q in 1:ncol(combinationsOfPurities)) {
+            minResultForCombination = 0
+            for (r in 1:nrow(likeliksFoundCNVsVsPuritiesGlobal)) {
+              minResultForCombination = minResultForCombination + min(
+              likeliksFoundCNVsVsPuritiesGlobal[r,combinationsOfPurities[,q]])
+            }
+            if (minResult > minResultForCombination) {
+              bestCombination = q
+              minResult = minResultForCombination
+            }
+          }
+          if (m == 1) {
+            minResultSoFar = minResult
+            resultBestCombination = combinationsOfPurities[bestCombination]
+          } else {
+            if (minResult > minResultSoFar - opt$scoreS - 100) {
+              print(uniqueLocalPurities[resultBestCombination])
+              break
+            } else {
+              print("Current improve")
+              print(minResultSoFar - minResult)
+              minResultSoFar = minResult
+              resultBestCombination = combinationsOfPurities[,bestCombination]
+            }
+          }
+        }
+        clonalBestPurities = uniqueLocalPurities[resultBestCombination]
         
       }
       finalIteration = T

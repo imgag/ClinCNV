@@ -13,7 +13,6 @@ startCoordOfNonInterruptedSegment = 1
 shiftsOfCoverage <- c()
 colours = colors()[c(30, 114, 518, 148, 93, 456, 459, 552, 256, 652, 373, 68, 6, 600, 414,30, 114, 518, 148, 93, 456, 459, 552, 256, 652, 373, 68, 6, 600, 414)]
 
-overallResult <- matrix(0, nrow=0, ncol=7)
 folder_name <- paste0(opt$out, "/normal/")
 if (!dir.exists(folder_name)) {
   dir.create(folder_name)
@@ -68,8 +67,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   iterations = 0
   maxIteration = opt$maxNumIter
   while (!numberOfCNVsIsSufficientlySmall & iterations < maxIteration) {
-    found_CNVs_total <- matrix(0, nrow=0, ncol=6)
-    colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "genes")
+    found_CNVs_total <- matrix(0, nrow=0, ncol=7)
+    colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "no_of_regions", "genes")
     
     iterations = iterations + 1
     for (l in 1:length(left_borders)) {
@@ -146,7 +145,6 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             if(opt$debug) {
               print(CNVentry)
             }
-            overallResult = rbind(overallResult, CNVentry)
           }
         }
       }
@@ -169,7 +167,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     }
   }
   finalPValue = 1.0
-  fileToOut <- paste0(folder_name, sample_name, "/CNAs.txt")
+  fileToOut <- paste0(folder_name, sample_name, paste0("/CNVs_", sample_name, ".txt"))
   fileConn<-file(fileToOut)
   writeLines(c(paste("##"," QC ", finalPValue, collapse = " ")), fileConn)
   close(fileConn)

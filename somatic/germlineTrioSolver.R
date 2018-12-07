@@ -132,8 +132,8 @@ for (trioRow in 1:nrow(trios)) {
   iterations = 0
   maxIteration = opt$maxNumIter
   while (!numberOfCNVsIsSufficientlySmall & iterations < maxIteration) {
-    found_CNVs_total <- matrix(0, nrow=0, ncol=9)
-    colnames(found_CNVs_total) <- c("#chr", "start", "end", "kid_CN_change", "mother_CN_change", "father_CN_change", "priority", "loglikelihood", "genes")
+    found_CNVs_total <- matrix(0, nrow=0, ncol=10)
+    colnames(found_CNVs_total) <- c("#chr", "start", "end", "kid_CN_change", "mother_CN_change", "father_CN_change", "priority", "loglikelihood", "no_of_regions", "genes")
     
     iterations = iterations + 1
     for (l in 1:length(left_borders)) {
