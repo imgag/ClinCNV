@@ -37,7 +37,7 @@ option_list = list(
   make_option(c("-num", "--colNum"), type="double", default=4, 
               help="column where coverages start", metavar="character"),
   
-  make_option(c("-script", "--folderWithScript"), type="character", default=dirname(sys.frame(1)$ofile), 
+  make_option(c("-script", "--folderWithScript"), type="character", default=getwd(), 
               help="folder where you put script", metavar="character"),
   
   make_option(c("-r", "--reanalyseCohort"), type="logical", default=F, 
@@ -81,7 +81,6 @@ option_list = list(
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
-
 
 setwd(opt$folderWithScript)
 source("generalHelpers.R")

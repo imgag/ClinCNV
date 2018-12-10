@@ -71,7 +71,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   while (!numberOfCNVsIsSufficientlySmall & iterations < maxIteration) {
     found_CNVs_total <- matrix(0, nrow=0, ncol=9)
     colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "no_of_regions", "length_KB", "potential_AF", "genes")
-    
+
     iterations = iterations + 1
     for (l in 1:length(left_borders)) {
       chrom = names(left_borders)[l]
@@ -103,16 +103,20 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         toyCoverageGermline = coverage.normalised[which_to_allow,sam_no]
         toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
         
-        toyCoverageGermlineCohort = toyCoverageGermline[which_to_allow,]
-        alleleFrequency = rep(1 / ncol(coverage.normalised), nrow(found_CNVs))
-        for (i in 1:nrow(found_CNVs)) {
-          cnState = vector_of_states[found_CNVs[s,4]]
-          mediansOfCoveragesInsideTheCohort <- apply(toyCoverageGermlineCohort[found_CNVs[s,2]:found_CNVs[s,3]], 2, median)
-          if (cnState < 2) {
-            alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort) < (1 - (1 - sqrt(1/2)) / 2)) / ncol(coverage.normalised)
-          }
-          if (cnState > 2) {
-            alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort) > (1 + (sqrt(3/2) - 1) / 2)) / ncol(coverage.normalised)
+        toyCoverageGermlineCohort = coverage.normalised[which_to_allow,]
+        
+        if (nrow(found_CNVs) > 0) {
+          alleleFrequency = rep(1 / ncol(coverage.normalised), nrow(found_CNVs))
+          for (i in 1:nrow(found_CNVs)) {
+            
+            cnState = cn_states[found_CNVs[i,4]]
+            mediansOfCoveragesInsideTheCohort <- apply(toyCoverageGermlineCohort[found_CNVs[i,2]:found_CNVs[i,3],], 2, median)
+            if (cnState < 2) {
+              alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort < (1 - (1 - sqrt(1/2)) / 2))) / ncol(coverage.normalised)
+            }
+            if (cnState > 2) {
+              alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort > (1 + (sqrt(3/2) - 1) / 2))) / ncol(coverage.normalised)
+            }
           }
         }
         
