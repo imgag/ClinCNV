@@ -193,7 +193,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   finalPValue = 1.0
   fileToOut <- paste0(folder_name, sample_name, paste0("/", sample_name, "_cnvs.tsv"))
   fileConn<-file(fileToOut)
-  writeLines(c(paste("##"," QC,", "number of iterations:", iterations, ", number of outliers:", median(vectorWithNumberOfOutliers), collapse = " ")), fileConn)
+  writeLines(c(paste("##number of iterations:", iterations,  collapse = " ")), fileConn)
+  writeLines(c(paste("##number of outliers:", round(median(vectorWithNumberOfOutliers), digits=3), collapse = " ")), fileConn)
   close(fileConn)
   write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
 }
