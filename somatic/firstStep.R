@@ -256,9 +256,6 @@ if (frameworkDataTypes == "covdepthBAF") {
 setwd(opt$folderWithScript)
 
 
-normal <- normalTmp
-bedFile <- bedTmp
-tumor  <- tumorTmp
 
 ### ON TARGET GC NORMALIZATION
 if (max(bedFile[,3] - bedFile[,2]) / min(bedFile[,3] - bedFile[,2]) > 16)
