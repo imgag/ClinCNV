@@ -37,7 +37,7 @@ option_list = list(
   make_option(c("-num", "--colNum"), type="double", default=4, 
               help="column where coverages start", metavar="character"),
   
-  make_option(c("-script", "--folderWithScript"), type="character", default=getwd(), 
+  make_option(c("-script", "--folderWithScript"), type="character", default=dirname(sys.frame(1)$ofile), 
               help="folder where you put script", metavar="character"),
   
   make_option(c("-r", "--reanalyseCohort"), type="logical", default=F, 
@@ -85,7 +85,6 @@ opt = parse_args(opt_parser);
 
 setwd(opt$folderWithScript)
 source("generalHelpers.R")
-
 
 ### PLOTTING OF PICTURES (DOES NOT REALLY NECESSARY IF YOU HAVE IGV SEGMENTS)
 plottingOfPNGs = F

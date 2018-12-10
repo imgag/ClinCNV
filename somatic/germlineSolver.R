@@ -66,9 +66,11 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   numberOfCNVsIsSufficientlySmall = F
   iterations = 0
   maxIteration = opt$maxNumIter
+  vectorWithNumberOfOutliers <- c()
+  vectorOfZScores <- (coverage.normalised[,sam_no] - 1) / localSds
   while (!numberOfCNVsIsSufficientlySmall & iterations < maxIteration) {
-    found_CNVs_total <- matrix(0, nrow=0, ncol=7)
-    colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "no_of_regions", "genes")
+    found_CNVs_total <- matrix(0, nrow=0, ncol=9)
+    colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "no_of_regions", "length_KB", "potential_AF", "genes")
     
     iterations = iterations + 1
     for (l in 1:length(left_borders)) {
@@ -98,10 +100,27 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
         toyBedFile = bedFile[which_to_allow,]
         found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, initial_state))
-        toyLogFoldChange = coverage.normalised[which_to_allow,sam_no]
+        toyCoverageGermline = coverage.normalised[which_to_allow,sam_no]
         toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
         
+        toyCoverageGermlineCohort = toyCoverageGermline[which_to_allow,]
+        alleleFrequency = rep(1 / ncol(coverage.normalised), nrow(found_CNVs))
+        for (i in 1:nrow(found_CNVs)) {
+          cnState = vector_of_states[found_CNVs[s,4]]
+          mediansOfCoveragesInsideTheCohort <- apply(toyCoverageGermlineCohort[found_CNVs[s,2]:found_CNVs[s,3]], 2, median)
+          if (cnState < 2) {
+            alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort) < (1 - (1 - sqrt(1/2)) / 2)) / ncol(coverage.normalised)
+          }
+          if (cnState > 2) {
+            alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort) > (1 + (sqrt(3/2) - 1) / 2)) / ncol(coverage.normalised)
+          }
+        }
         
+        if (!chrom %in% c("chrX", "chrY")) {
+          vectorOfZScoresLocaL = vectorOfZScores[which_to_allow]
+          vectorWithNumberOfOutliers = c(vectorWithNumberOfOutliers, 
+                                         length(which(vectorOfZScoresLocaL > qnorm(0.975) | vectorOfZScoresLocaL < qnorm(0.025))) / length(vectorOfZScoresLocaL))
+        }
         
         ### IGV PLOTTING
         if(opt$debug) {
@@ -112,7 +131,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
         reverseFunctionUsedToTransform = function(x) {return((2 * x ** 2))}
         outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
-                                            outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, cn_states)
+                                            outputFileNameDots, sample_name, toyCoverageGermline, reverseFunctionUsedToTransform, cn_states)
         if(opt$debug) {
           print("END OF IGV PLOTTING")
         }
@@ -123,7 +142,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         if (nrow(found_CNVs) > 0) {
           # UNCOMMENT FOR PLOTTING!!!
           
-          cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, cn_states, toySizesOfPointsFromLocalSds, plottingOfPNGs)
+          cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyCoverageGermline, toyBedFile, output_of_plots, chrom, cn_states, 
+                                          toySizesOfPointsFromLocalSds,alleleFrequency, plottingOfPNGs)
           if (found_CNVs[1,1] != -1000) {
             found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
             if (nrow(found_CNVs_total) > opt$maxNumGermCNVs) {
@@ -154,7 +174,6 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     }
     if (nrow(found_CNVs_total) < opt$maxNumGermCNVs) {
       numberOfCNVsIsSufficientlySmall = T
-      iterations = 4
       break
     } else {
       if (iterations < maxIteration) {
@@ -167,9 +186,9 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     }
   }
   finalPValue = 1.0
-  fileToOut <- paste0(folder_name, sample_name, paste0("/CNVs_", sample_name, ".txt"))
+  fileToOut <- paste0(folder_name, sample_name, paste0("/", sample_name, "_cnvs.tsv"))
   fileConn<-file(fileToOut)
-  writeLines(c(paste("##"," QC ", finalPValue, collapse = " ")), fileConn)
+  writeLines(c(paste("##"," QC,", "number of iterations:", iterations, ", number of outliers:", median(vectorWithNumberOfOutliers), collapse = " ")), fileConn)
   close(fileConn)
   write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
 }
