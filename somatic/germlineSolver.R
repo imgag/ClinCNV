@@ -122,9 +122,10 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         
         if (!chrom %in% c("chrX", "chrY")) {
           vectorOfZScoresLocaL = vectorOfZScores[which_to_allow]
-          vectorWithNumberOfOutliers = c(vectorWithNumberOfOutliers, 
+          if (length(vectorOfZScoresLocaL) > 10)
+            vectorWithNumberOfOutliers = c(vectorWithNumberOfOutliers, 
                                          length(which(vectorOfZScoresLocaL > qnorm(0.975) | vectorOfZScoresLocaL < qnorm(0.025))) / length(vectorOfZScoresLocaL))
-        }
+           }
         
         ### IGV PLOTTING
         if(opt$debug) {
