@@ -3,11 +3,11 @@ source("helpersBalleleFreq.R")
 setwd(opt$bafFolder)
 
 makeTrackAnnotation <- function(fileName, ID, viewLimits, trackType="points", addText="", color="0,0,255") {
-    file.create(fileName)
-    fileConn<-file(fileName)
-    writeLines(c("#type=GENE_EXPRESSION",
-                 paste0("#track graphtype=", trackType, " name=\"", ID, "\" color=", color, " altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=", viewLimits, " ", addText)), fileConn)
-    close(fileConn)
+  file.create(fileName)
+  fileConn<-file(fileName)
+  writeLines(c("#type=GENE_EXPRESSION",
+               paste0("#track graphtype=", trackType, " name=\"", ID, "\" color=", color, " altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=", viewLimits, " ", addText)), fileConn)
+  close(fileConn)
 }
 
 
@@ -19,14 +19,21 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     # CHECK IF FILE IS EMPTY
     info = file.info(paste0(healthySampleName, ".tsv"), paste0(tumorSampleName, ".tsv"))
     empty = rownames(info[info$size == 0, ])
-
+    
     if (length(empty) > 0) {
       return(list(NULL, NULL))
     }
-
+    
     # FILE IS NOT EMPTY => READING
     healthySample <- read.table(paste0(healthySampleName, ".tsv"), stringsAsFactors = F, header=F, sep="\t")
+    if (!startsWith(healthySample[1,1], "chr")) {
+      healthySample[,1] = paste0("chr", healthySample[,1])
+    }
+    
     tumorSample <- read.table(paste0(tumorSampleName, ".tsv"), stringsAsFactors=F, header=F, sep="\t")
+    if (!startsWith(tumorSample[1,1], "chr")) {
+      tumorSample[,1] = paste0("chr", tumorSample[,1])
+    }
     if (nrow(healthySample) == 0) {
       return(list(NULL, NULL))
     }
@@ -39,7 +46,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     if (length(whichAreNATumor) > 0) {
       tumorSample = tumorSample[-whichAreNATumor,]
     }
-
+    
     if (ncol(healthySample) == 5) {
       healthySample = cbind(healthySample[,1:3], apply(healthySample[,1:3], 1, function(x) {paste0(x, collapse="_")}), healthySample[,4:5])
     }
@@ -49,7 +56,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     
     colnames(healthySample) <- c("chr", "start", "end", "Feature", "freq", "depth")
     colnames(tumorSample) <- c("chr", "start", "end", "Feature", "freq", "depth")
-
+    
     healthySample = healthySample[which(healthySample[,6] > max(median(healthySample[,6]) / 10, 30) & healthySample[,6] < quantile(healthySample[,6], 0.975)),]
     tumorSample = tumorSample[which(tumorSample[,6] > max(median(tumorSample[,6]) / 10, 30)),]
     
@@ -67,7 +74,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
       }
     }
     if (length(indicesOfSNVsToRemove) > 0)
-    healthySample = healthySample[-indicesOfSNVsToRemove,]
+      healthySample = healthySample[-indicesOfSNVsToRemove,]
     
     i = 1
     indicesToRemove <- c()
@@ -80,9 +87,9 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
       i = i + 1
     }
     if (length(indicesToRemove) > 0)
-    healthySample = healthySample[-unique(indicesToRemove),]
-
-
+      healthySample = healthySample[-unique(indicesToRemove),]
+    
+    
     
     healthyFeatures <- healthySample$Feature
     tumorFeatures <- tumorSample$Feature
@@ -99,8 +106,9 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     # Determining positions which are heterozygous 
     potentiallyHeterozygous = as.numeric(healthySample[which(!(healthySample[,1] %in% c("chrX","chrY","X","Y")) & as.numeric(healthySample[,6]) > 30),5])
     potentiallyHeterozygous <- potentiallyHeterozygous[which(potentiallyHeterozygous > 0.25 & potentiallyHeterozygous < 0.75)]
+    print(summary(potentiallyHeterozygous))
     if (!is.na(potentiallyHeterozygous)) {
-    heterozygousAlleleShift <- median(potentiallyHeterozygous)
+      heterozygousAlleleShift <- median(potentiallyHeterozygous)
     } else { heterozygousAlleleShift = 0.48 }
     print(paste("Heterozygous allele shift for particular sample", heterozygousAlleleShift))
     heterozygousPositions <- apply(healthySample[,5:6], 1, function(vec) {determineHeterozygousPositions(as.numeric(vec[1]), as.numeric(vec[2]), heterozygousAlleleShift)})
@@ -180,7 +188,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   colVec[indicesOfAllowedButNotBestChroms] = "darkorange"
   names(evaluated) = namesOfChromArms
   allowedChroms = names(evaluated)[indicesOfAllowedChroms]
-
+  
   
   
   subDir = paste0(tumorSampleName, "_", healthySampleName)
@@ -387,11 +395,14 @@ extractCoveragesHavingListOfSNVs <- function(sampleBAF, sampleNormalCoverage, sa
 
 
 returnPurityPloidy <- function(pairs, normalCov, tumorCov, inputFolderBAF, bedFile, allowedChromsBaf) {
+  
   purityPloidy <- list()
   for (i in 1:ncol(normalCov)) {
     sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
+    print(sampleNames1)
     for (sampleName1 in sampleNames1) {
       sampleName2 <- which(colnames(tumorCov) == pairs[sampleName1,1])
+      print(sampleName2)
       bAlleleFreqs <- returnBAlleleFreqs(colnames(normalCov)[i], colnames(tumorCov)[sampleName2], inputFolderBAF, bedFile)
       if (!is.null(bAlleleFreqs[[1]])) {
         
@@ -400,7 +411,7 @@ returnPurityPloidy <- function(pairs, normalCov, tumorCov, inputFolderBAF, bedFi
         matrixOfCoverages <- extractCoveragesHavingListOfSNVs(bAlleleFreqs[[1]], normalCov[,i], tumorCov[,sampleName2], bedFile)
         if (length(bAlleleFreqs) >= 2 & !is.null(bAlleleFreqs[[1]])) {
           purityPloidy[[paste0(colnames(tumorCov)[sampleName2], "-", colnames(normalCov)[i])]] = predictWholeGenomeEvent(bAlleleFreqs[[1]], bAlleleFreqs[[2]], 
-                                                                                           matrixOfCoverages, allowedChromsBafForThatSamples, bedFile)
+                                                                                                                         matrixOfCoverages, allowedChromsBafForThatSamples, bedFile)
         }
       } 
     }
