@@ -54,6 +54,10 @@ Rscript firstStep.R --normal normal.cov --tumor tumor.cov  --out outputFolder --
 
 If it does not work, check if your files (.cov, .bed, file with pairs) are concordant with the descriptions below.
 
+## Use cases
+
+ClinCNV now can work in 3 different contexts: germline calling, somatic calling (normal / tumor pairs) and trios. To run ClinCNV in germline context, you should minimally specify `--bed` and `--normal`. For trios, parameter `--triosFile` has to be specified (sample names for a child, his/hers mother and father, divided by comma). For somatic `--tumor` and `--pairs` has to be specified (pairs should contain tumor and normal sample names, divided by comma). It is highly recommended to use B-allele frequencies in somatic context. A folder with `.tsv` files has to be specified to switch to B-allele frequencies mode. Files need to have same sample names as column names in `--normal` and `--tumor` files. If ClinCNV does not find B-allele frequencies for a particular sample, it tries to detect CNVs using read depths only.
+
 ## File formats
 
 Current version of ClinCNV works with 3 possible types of data: on-target reads, off-target reads, B-allele frequencies. For WGS obviously we work with only 2 of them (on-target and B-allele). For shallow WGS only "on-target" coverage is informative.
