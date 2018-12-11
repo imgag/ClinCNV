@@ -147,6 +147,7 @@ if (length(whichBedIsNA) > 0)
   bedFile = bedFile[-whichBedIsNA,]
 
 normal <- read.table(opt$normal, header=T, stringsAsFactors = F, comment.char="&" )
+colnames(normal) = cutX(colnames(normal))
 if (!startsWith(normal[,1], "chr"))
   normal[,1] <- paste0("chr", normal[,1])
 normal <- normal[order(normal[,1], as.numeric(normal[,2])),]
@@ -156,6 +157,7 @@ if (length(whichBedIsNA) > 0)
 
 if (framework == "somatic") {
   tumor <- read.table(opt$tumor, header=T, stringsAsFactors = F, comment.char="&" )
+  colnames(tumor) = cutX(colnames(tumor))
   if (!startsWith(tumor[,1], "chr"))
     tumor[,1] <- paste0("chr", tumor[,1])
   tumor <- tumor[order(tumor[,1], as.numeric(tumor[,2])),]
@@ -179,6 +181,7 @@ if (frameworkOff == "offtarget") {
   
   
   normalOff <- read.table(opt$normalOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
+  colnames(normalOff) = cutX(colnames(normalOff))
   if (!startsWith(normalOff[,1], "chr"))
     normalOff[,1] <- paste0("chr", normalOff[,1])
   normalOff <- normalOff[order(normalOff[,1], as.numeric(normalOff[,2])),]
@@ -187,6 +190,7 @@ if (frameworkOff == "offtarget") {
   normalOff <- normalOff[,which(colnames(normalOff) %in% colnames(normal))]
   
   tumorOff <- read.table(opt$tumorOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
+  colnames(tumorOff) = cutX(colnames(tumorOff))
   if (!startsWith(tumorOff[,1], "chr"))
     tumorOff[,1] <- paste0("chr", tumorOff[,1])
   tumorOff <- tumorOff[order(tumorOff[,1], as.numeric(tumorOff[,2])),]
@@ -354,13 +358,15 @@ bordersOfChroms <- getBordersOfChromosomes(bedFile)
 setwd(opt$folderWithScript)
 source("helpersGermline.R")
 
-
+print("Processing of germline variants started.")
 coverage <- sqrt(as.matrix(normal))
 
-
+print("Gender determination started")
 genderOfSamples <- Determine.gender(coverage, bedFile)
+print("Gender succesfully determined. Plot is written in your results directory.")
 
-medians <- sapply(1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], genderOfSamples)})
+
+medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], genderOfSamples)})
 whichMediansAreSmall <- which(medians < 0.5)
 if (length(whichMediansAreSmall) > 0) {
   coverage <- coverage[-whichMediansAreSmall,]
@@ -371,7 +377,7 @@ coverage.normalised = sweep(coverage, 1, medians, FUN="/")
 coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]
 
 
-sdsOfProbes <- sapply(1:nrow(coverage.normalised), function(i) {determineSDsOfGermlineProbe(coverage.normalised[i,], i)})
+sdsOfProbes <- parSapply(cl=cl, 1:nrow(coverage.normalised), function(i) {determineSDsOfGermlineProbe(coverage.normalised[i,], i)})
 
 # In exome seq it is often the case that some hypervariable regions cause false positive calls.
 # We remove all probes that look suspicious to us

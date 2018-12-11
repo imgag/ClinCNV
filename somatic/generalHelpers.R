@@ -542,3 +542,16 @@ lengthBasedNormalization = function(coverage, bedFile, allowedChroms="") {
   }
   return(coverage)
 }
+
+
+
+cutX <- function(vec) {
+  newVec <- vec
+  for (i in 1:length(vec)) {
+    elem = vec[i]
+    if (startsWith(elem, "X")) {
+      newVec[i] = substr(elem, 2, nchar(elem))
+    }
+  }
+  return(newVec)
+}
