@@ -82,6 +82,7 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
+
 setwd(opt$folderWithScript)
 source("generalHelpers.R")
 
@@ -300,6 +301,10 @@ if (frameworkOff == "offtarget") {
 }
 
 ### BED FILE OFFTARGET MAY NOT CONTAIN COLUMN WITH GENES
+if (ncol(bedFile)  == 4) {
+  bedFile <- cbind(bedFile, rep(0, nrow(bedFile)))
+  colnames(bedFile) <- colnames(bedFile)
+}
 if (frameworkOff == "offtarget") {
   if (ncol(bedFileOfftarget)  == 4) {
     bedFileOfftarget <- cbind(bedFileOfftarget, rep(0, nrow(bedFileOfftarget)))
@@ -351,6 +356,7 @@ source("helpersGermline.R")
 
 
 coverage <- sqrt(as.matrix(normal))
+
 
 genderOfSamples <- Determine.gender(coverage, bedFile)
 
