@@ -207,14 +207,19 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
 
 Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
   set.seed(100)
-  matrix_of_values <- cbind(apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrY"),], 2, EstimateModeSimple), apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrX"),], 2, EstimateModeSimple))
-  cl <- kmeans(matrix_of_values, centers=matrix(c(0,1,sqrt(1/2), sqrt(1/2)), nrow=2))
-  clusters <- cl$cluster
-  clusters[clusters == 1] <- "F"
-  clusters[clusters == 2] <- "M"
-  png(filename=paste0(opt$out, "genders.png"), width=800, height=800)
-  plot(matrix_of_values, col = cl$cluster, xlab="Y Chromsome", ylab="X Chromosome", pch=19, cex=2)
-  points(cl$centers, col = 1:2, pch = 8, cex = 10)
-  dev.off()
+  if (length(which(probes[,1] == "chrX")) > 100 & length(which(probes[,1] == "chrY")) > 10) {
+    matrix_of_values <- cbind(apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrY"),], 2, EstimateModeSimple), apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrX"),], 2, EstimateModeSimple))
+    cl <- kmeans(matrix_of_values, centers=matrix(c(0,1,sqrt(1/2), sqrt(1/2)), nrow=2))
+    clusters <- cl$cluster
+    clusters[clusters == 1] <- "F"
+    clusters[clusters == 2] <- "M"
+    png(filename=paste0(opt$out, "genders.png"), width=800, height=800)
+    plot(matrix_of_values, col = cl$cluster, xlab="Y Chromsome", ylab="X Chromosome", pch=19, cex=2)
+    points(cl$centers, col = 1:2, pch = 8, cex = 10)
+    dev.off()
+  } else {
+    clusters = rep("M", ncol(normalized.coverage.corrected.gc))
+  }
+  
   return(clusters)
 }
