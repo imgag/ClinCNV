@@ -123,7 +123,7 @@ library(mclust)
 
 no_cores <- min(detectCores() - 1, 4)
 no_cores = 4
-cl<-makeCluster(no_cores)
+cl<-makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
 
 
@@ -147,6 +147,7 @@ if (length(whichBedIsNA) > 0)
   bedFile = bedFile[-whichBedIsNA,]
 
 normal <- read.table(opt$normal, header=T, stringsAsFactors = F, comment.char="&" )
+normal = normal
 colnames(normal) = cutX(colnames(normal))
 if (!startsWith(normal[,1], "chr"))
   normal[,1] <- paste0("chr", normal[,1])
@@ -157,6 +158,7 @@ if (length(whichBedIsNA) > 0)
 
 if (framework == "somatic") {
   tumor <- read.table(opt$tumor, header=T, stringsAsFactors = F, comment.char="&" )
+  tumor = tumor
   colnames(tumor) = cutX(colnames(tumor))
   if (!startsWith(tumor[,1], "chr"))
     tumor[,1] <- paste0("chr", tumor[,1])
@@ -239,6 +241,7 @@ lstOfChromBorders <- getCytobands("cytobands.txt")
 left_borders <- lstOfChromBorders[[1]]
 right_borders <- lstOfChromBorders[[2]]
 ends_of_chroms <- lstOfChromBorders[[3]]
+
 
 if (frameworkDataTypes == "covdepthBAF") {
   setwd(opt$folderWithScript)
@@ -366,6 +369,7 @@ genderOfSamples <- Determine.gender(coverage, bedFile)
 print("Gender succesfully determined. Plot is written in your results directory.")
 
 
+clusterExport(cl, c('EstimateModeSimple', 'bedFile', 'genderOfSamples', 'coverage', "lehmanHodges", 'Qn'))
 medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], genderOfSamples)})
 whichMediansAreSmall <- which(medians < 0.5)
 if (length(whichMediansAreSmall) > 0) {
@@ -377,6 +381,7 @@ coverage.normalised = sweep(coverage, 1, medians, FUN="/")
 coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]
 
 
+clusterExport(cl, c('coverage.normalised', 'determineSDsOfGermlineProbe'))
 sdsOfProbes <- parSapply(cl=cl, 1:nrow(coverage.normalised), function(i) {determineSDsOfGermlineProbe(coverage.normalised[i,], i)})
 
 # In exome seq it is often the case that some hypervariable regions cause false positive calls.
@@ -419,7 +424,7 @@ if (!is.null(opt$triosFile)) {
 } else {
   source("germlineSolver.R",local=TRUE)
 }
-
+stopCluster(cl)
 if (framework == "germline" | !is.null(opt$triosFile)) quit()
 
 
@@ -430,6 +435,12 @@ if (framework == "germline" | !is.null(opt$triosFile)) quit()
 
 
 
+no_cores <- min(detectCores() - 1, 4)
+no_cores = 4
+cl<-makeCluster(no_cores, type="FORK")
+registerDoParallel(cl)
+
+
 if (framework=="somatic")
   tumor <- tumor[-probesToRemove,]
 
@@ -437,3 +448,4 @@ if (framework=="somatic")
 
 setwd(opt$folderWithScript)
 source("somaticSolver.R",local=TRUE)
+stopCluster(cl)

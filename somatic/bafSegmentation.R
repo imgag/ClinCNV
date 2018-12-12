@@ -1,6 +1,7 @@
 
 source("helpersBalleleFreq.R")
 setwd(opt$bafFolder)
+clusterExport(cl, c('determineHeterozygousPositions'))
 
 makeTrackAnnotation <- function(fileName, ID, viewLimits, trackType="points", addText="", color="0,0,255") {
   file.create(fileName)
@@ -111,7 +112,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
       heterozygousAlleleShift <- median(potentiallyHeterozygous)
     } else { heterozygousAlleleShift = 0.48 }
     print(paste("Heterozygous allele shift for particular sample", heterozygousAlleleShift))
-    heterozygousPositions <- apply(healthySample[,5:6], 1, function(vec) {determineHeterozygousPositions(as.numeric(vec[1]), as.numeric(vec[2]), heterozygousAlleleShift)})
+    heterozygousPositions <- parApply(cl=cl, healthySample[,5:6], 1, function(vec) {determineHeterozygousPositions(as.numeric(vec[1]), as.numeric(vec[2]), heterozygousAlleleShift)})
     healthySample = healthySample[heterozygousPositions, ]
     tumorSample = tumorSample[heterozygousPositions, ]
     

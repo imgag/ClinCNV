@@ -85,19 +85,20 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       
       vectorOfGeneNames = c()
       genesThatHasToBeSeparated = unique(toyBedFile[found_CNVs[s,2]:found_CNVs[s,3],5])
-      if(opt$debug) {
-        print(genesThatHasToBeSeparated)
-      }
       for (i in 1:length(genesThatHasToBeSeparated)) {
-        vectorOfGeneNames = c(vectorOfGeneNames, unlist(strsplit(genesThatHasToBeSeparated[i], split=",")))
+        if (is.character(genesThatHasToBeSeparated[i]))
+          vectorOfGeneNames = c(vectorOfGeneNames, unlist(strsplit(genesThatHasToBeSeparated[i], split=",")))
       }
       vectorOfGeneNamesTrimmed = c()
-      for (elem in vectorOfGeneNames) {
-        vectorOfGeneNamesTrimmed = c(vectorOfGeneNamesTrimmed,trimws(elem) )
+      if (length(vectorOfGeneNames) > 0) {
+        for (elem in vectorOfGeneNames) {
+          vectorOfGeneNamesTrimmed = c(vectorOfGeneNamesTrimmed,trimws(elem) )
+        }
       }
-      annotationGenes <- paste(unique(vectorOfGeneNamesTrimmed), collapse=",")
-      if(opt$debug) {
-        print(annotationGenes)
+      if (length(vectorOfGeneNamesTrimmed) > 0) {
+        annotationGenes <- paste(unique(vectorOfGeneNamesTrimmed), collapse=",")
+      } else {
+        annotationGenes = "na"
       }
       CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], 
                            copy_numbers_used[found_CNVs[s,4]], purities[found_CNVs[s,4]],
