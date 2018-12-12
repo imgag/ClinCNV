@@ -22,12 +22,19 @@ passPropTest <- function(numOne, numTwo, refOne, refTwo) {
 
 determineHeterozygousPositions <- function(freq, depth, probAB=0.48) {
   prob = pbinom(round(freq * depth), prob=probAB, size=depth)
+  if (is.na(prob)) {
+    print("NA in B-allele")
+    print(freq)
+    print(depth)
+    return(F)
+  }
   if ((prob > 0.01 & prob < 0.99)) {
     return(T)
   } else {
     return(F)
   }
 }
+
 
 
 
