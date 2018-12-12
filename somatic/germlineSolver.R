@@ -1,6 +1,9 @@
+no_cores <- min(detectCores() - 1, 4)
+no_cores = 4
+cl<-makeCluster(no_cores, type="FORK")
+registerDoParallel(cl)
 
-
-cn_states <- 0:20
+cn_states <- 0:8
 
 
 

@@ -83,6 +83,8 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
 
+
+
 setwd(opt$folderWithScript)
 source("generalHelpers.R")
 
@@ -370,19 +372,31 @@ print("Gender succesfully determined. Plot is written in your results directory.
 
 
 clusterExport(cl, c('EstimateModeSimple', 'bedFile', 'genderOfSamples', 'coverage', "lehmanHodges", 'Qn'))
-medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], genderOfSamples)})
-whichMediansAreSmall <- which(medians < 0.5)
+
+bandwidths <- parSapply(cl=cl, 1:nrow(coverage), function(i) {x=coverage[i,]; 
+if (bedFile[i,1] == "chrX" & length(which(genderOfSamples=="F")) >= 5) {x = x[which(genderOfSamples == "F")]};
+if (bedFile[i,1] == "chrY" & length(which(genderOfSamples=="M")) >= 5) {x = x[which(genderOfSamples == "M")]};
+density(x, bw="SJ")$bw})
+
+bandwidths[which(bandwidths > quantile(bandwidths, 0.975))] = quantile(bandwidths, 0.975)
+#medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
+mediansAndSds <- foreach(i=1:nrow(coverage), .combine="rbind") %dopar% {
+  FindRobustMeanAndStandardDeviation(coverage[i,], bandwidths[i], genderOfSamples, bedFile[i,1])
+}
+medians = mediansAndSds[,1]
+whichMediansAreSmall <- which(medians < 0.5 | mediansAndSds[,2] < 10**-5)
 if (length(whichMediansAreSmall) > 0) {
   coverage <- coverage[-whichMediansAreSmall,]
   bedFile <- bedFile[-whichMediansAreSmall,]
   medians <- medians[-whichMediansAreSmall]
+  mediansAndSds = mediansAndSds[-whichMediansAreSmall,]
 }
 coverage.normalised = sweep(coverage, 1, medians, FUN="/")
 coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]
 
 
 clusterExport(cl, c('coverage.normalised', 'determineSDsOfGermlineProbe'))
-sdsOfProbes <- parSapply(cl=cl, 1:nrow(coverage.normalised), function(i) {determineSDsOfGermlineProbe(coverage.normalised[i,], i)})
+sdsOfProbes = mediansAndSds[,2] / mediansAndSds[,1]
 
 # In exome seq it is often the case that some hypervariable regions cause false positive calls.
 # We remove all probes that look suspicious to us
@@ -417,14 +431,14 @@ vect_of_norm_likeliks <- fast_dnorm_list()
 
 
 
-
+stopCluster(cl)
 setwd(opt$folderWithScript)
 if (!is.null(opt$triosFile)) {
   source("germlineTrioSolver.R",local=TRUE)
 } else {
   source("germlineSolver.R",local=TRUE)
 }
-stopCluster(cl)
+
 if (framework == "germline" | !is.null(opt$triosFile)) quit()
 
 
