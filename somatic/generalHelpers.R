@@ -410,7 +410,7 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
         file.create(fileName)
         fileConn<-file(fileName)
         writeLines(c("#type=GENE_EXPRESSION",
-                     paste0("#track graphtype=points name=\"", ID, "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:6 yLineMark=2 yLineOnOff=on"),
+                     paste0("#track graphtype=points name=\"", ID, "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:6 yLineMark=2 yLineOnOff=on"),
                      paste("ID", "chr", "start", "end", "CN", "loglik", "value", sep="\t")), fileConn)
         
         close(fileConn)
