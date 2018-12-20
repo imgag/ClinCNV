@@ -100,6 +100,9 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         } else {
           which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] >= as.numeric(end) )
         }
+        if (length(which_to_allow) <= 1) {
+          next
+        }
         toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
         toyBedFile = bedFile[which_to_allow,]
         found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, initial_state))

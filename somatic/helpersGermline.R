@@ -228,6 +228,8 @@ Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
 
 
 
+
+
 FindRobustMeanAndStandardDeviation <- function(x, bandwidth, genders, chrom, modeEstimated = NA) {
   if (length(x) < 50) {
     if (chrom != "") {
@@ -237,14 +239,18 @@ FindRobustMeanAndStandardDeviation <- function(x, bandwidth, genders, chrom, mod
         } else {
           if (chrom == "chrX") {
             x = x[which(genders == "F")]
-            if (length(x) < 2) {
-              x = x[which(x > median(x))]
+            if (length(x) <= 5) {
+              x = x[which(genders == "M")]
+              x = sqrt(2) * x
+            }
+            if (length(x) <= 5) {
+              return(matrix(c(1, 0.5, "sd"), nrow=1))
             }
           }
           if (chrom == "chrY") {
             x = sqrt(2) * x[which(genders == "M")]
-            if (length(x) < 2) {
-              return(matrix(c(1, 0.5), nrow=1))
+            if (length(x) <= 5) {
+              return(matrix(c(sqrt(1/2), 0.5, "sd"), nrow=1))
             }
           }
         }
@@ -258,24 +264,36 @@ FindRobustMeanAndStandardDeviation <- function(x, bandwidth, genders, chrom, mod
     if (mu < 0.3) {
       mu = median(x)
     }
-    return(matrix(c(mu, Qn(x)), nrow=1))
+    return(matrix(c(mu, Qn(x), "Qn"), nrow=1))
   }
-  if (length(x) < 100) {
-    x = apply(combn(x, 2), 2, mean)
-  }
+
   if (chrom == "chrX") {
     x = x[which(genders == "F")]
   }
   if (chrom == "chrY") {
-    x = x[which(genders == "F")]
+    x = x[which(genders == "M")]
   }
-  density_of_x <-  density(x, bw=bandwidth, kernel="gaussian")
+  
+  x = x[which(x > 0.1)]
+  forMeanX = x
+  if (length(forMeanX) < 10) {
+    return(matrix(c(median(forMeanX), Qn(forMeanX), "Qn"), nrow=1))
+  }
+  if (length(x) < 100) {
+    forMeanX = apply(combn(x, 2), 2, mean)
+    density_of_x <-  density(forMeanX, bw="SJ", kernel="gaussian")
+  } else {
+    density_of_x = density(forMeanX, bw=bandwidth, kernel="gaussian")
+  }
   if (is.na(modeEstimated)) {
     mu = density_of_x$x[which.max(density_of_x$y)]
   } else {
     mu = modeEstimated
   }
-  
+    if (length(x) < 100) {
+      density_of_x <-  density(x, bw=bandwidth, kernel="gaussian")
+    }
+
   closest_to_mu <- which.min(abs(density_of_x$x - mu))
   which_are_bigger <- which(density_of_x$y > density_of_x$y[closest_to_mu])
   density_of_x <- as.data.frame(cbind(density_of_x$x, density_of_x$y))
@@ -285,7 +303,7 @@ FindRobustMeanAndStandardDeviation <- function(x, bandwidth, genders, chrom, mod
   
   lower_bound = min(density_of_x$x)
   lower_bound_differs = F
-  bounded_on_lower_copy_nuber = which(density_of_x$x < sqrt(mu ** 2 - 1/4))
+  bounded_on_lower_copy_nuber = which(density_of_x$x < sqrt(mu ** 2 - 1/8))
   if (length(bounded_on_lower_copy_nuber) > 0) {
     start_to_the_left <- max(bounded_on_lower_copy_nuber)
     
@@ -300,11 +318,14 @@ FindRobustMeanAndStandardDeviation <- function(x, bandwidth, genders, chrom, mod
         previous_value = AB
       }
     }
-  } 
+  } else {
+    lower_bound = sqrt(mu ** 2 + 1/8)
+    lower_bound_differs = T
+  }
   
   upper_bound = max(density_of_x$x)
   upper_bound_differs = F
-  bounded_on_higher_copy_nuber = which(density_of_x$x > sqrt(mu ** 2 + 1/4))
+  bounded_on_higher_copy_nuber = which(density_of_x$x > sqrt(mu ** 2 + 1/16))
   if (length(bounded_on_higher_copy_nuber) > 0) {
     start_to_the_right <- min(bounded_on_higher_copy_nuber)
     previous_value = density_of_x$y[start_to_the_right]
@@ -318,31 +339,42 @@ FindRobustMeanAndStandardDeviation <- function(x, bandwidth, genders, chrom, mod
         previous_value = AB
       }
     }
+  } else {
+    upper_bound = sqrt(mu ** 2 + 1/16)
+    upper_bound_differs = T
   }
   
   if (upper_bound_differs & lower_bound_differs) {
-    dtnorm0 <- function(X, mean, sd, log = TRUE) {dtnorm(X, mean, sd, lower_bound, upper_bound,
-                                                         log)}
+    dtnorm0 <- function(X, mean, sd, log = TRUE) {msm::dtnorm(X, mean, sd, lower=lower_bound, upper=upper_bound,
+                                                         log=T)}
   } else if (!upper_bound_differs & !lower_bound_differs) {
-    return(matrix(c(median(x), Qn(x)), nrow=1))
+    return(matrix(c(median(x), Qn(x), "Qn"), nrow=1))
   } else if (upper_bound_differs) {
-    dtnorm0 <- function(X, mean, sd, log = FALSE) {dtnorm(X, mean, sd, lower = -10**10, upper=upper_bound,
-                                                          log)}
+    dtnorm0 <- function(X, mean, sd, log = FALSE) {msm::dtnorm(X, mean, sd, lower = -10**10, upper=upper_bound,
+                                                          log=T)}
   } else {
-    dtnorm0 <- function(X, mean, sd, log = FALSE) {dtnorm(X, mean, sd, lower=lower_bound, upper=10**10,
-                                                          log)}
+    dtnorm0 <- function(X, mean, sd, log = FALSE) {msm::dtnorm(X, mean, sd, lower=lower_bound, upper=10**10,
+                                                          log=T)}
   }
   QnX <- Qn(x)
   data = x[which(x >= lower_bound & x <= upper_bound)]
   if (is.na(modeEstimated)) {
-    result <- tryCatch({fitdistr(data, dtnorm0, start=list(mean=mean(data), sd=sd(data))); return(nres$estimate)}
-                       , error = function(e) {return(matrix(c(mu, QnX), nrow=1))})
+    
+    result <- tryCatch({nres=fitdistr(data, dtnorm0, start=list(mean=mean(data), sd=sd(data))); (nres$estimate)}
+                       , error = function(e) {return(matrix(c(mu, QnX, "Qn"), nrow=1))})
   } else {
-    result <- tryCatch({fitdistr(data, dtnorm0, fix.arg=list(mean=modeEstimated), start=list(mean=modeEstimated, sd=sd(data))); return(nres$estimate)}
-                       , error = function(e) {return(matrix(c(mu, QnX), nrow=1))})
+    result <- tryCatch({nres=fitdistr(data, dtnorm0, fix.arg=list(mean=modeEstimated), start=list(mean=modeEstimated, sd=sd(data))); (nres$estimate)}
+                       , error = function(e) {return(matrix(c(mu, QnX, "Qn"), nrow=1))})
   }
-  
+  if ((as.numeric(result[1]) / mu) > 1.1 | (as.numeric(result[1]) / as.numeric(mu)) < 0.9 | is.na(result[2])) {
+    return(matrix(c(mu, QnX, "Qn"), nrow=1))
+  }
   # Sometimes we miss one cluster and that's cause to increase of standard deviation
   result[2] = min(QnX, result[2], sd(x))
-  return(result)
+  if (result[2] == QnX) {
+    result = matrix(c(result[1], result[2], "Qn"), nrow=1)
+  } else {
+    result = matrix(c(result[1], result[2], "sd"), nrow=1)
+  }
+  result
 }

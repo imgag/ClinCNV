@@ -122,6 +122,7 @@ library("data.table")
 library(foreach)
 library(doParallel)
 library(mclust)
+library(msm)
 
 no_cores <- min(detectCores() - 1, 4)
 no_cores = 4
@@ -325,7 +326,11 @@ if (frameworkOff == "offtarget") {
 regionsToFilerOutOn <- c()
 for (i in 1:nrow(normal)) {
 if (framework == "somatic"){
-  if (min(median(normal[i,], tumor[i,])) < 0.3) {
+  if (min(median(normal[i,]), median(tumor[i,])) < 0.3) {
+    regionsToFilerOutOn <- c(regionsToFilerOutOn, i)
+  }
+} else {
+  if ((median(normal[i,])) < 0.3) {
     regionsToFilerOutOn <- c(regionsToFilerOutOn, i)
   }
  }
@@ -333,6 +338,7 @@ if (framework == "somatic"){
 if (length(regionsToFilerOutOn)>0)
 {
 	normal = normal[-regionsToFilerOutOn,] + 10**-20
+	if (framework == "somatic")
 	tumor = tumor[-regionsToFilerOutOn,] + 10**-20
 	bedFile = bedFile[-regionsToFilerOutOn,]
 }
@@ -373,40 +379,49 @@ print("Gender succesfully determined. Plot is written in your results directory.
 
 clusterExport(cl, c('EstimateModeSimple', 'bedFile', 'genderOfSamples', 'coverage', "lehmanHodges", 'Qn'))
 
+
+
+
 bandwidths <- parSapply(cl=cl, 1:nrow(coverage), function(i) {x=coverage[i,]; 
 if (bedFile[i,1] == "chrX" & length(which(genderOfSamples=="F")) >= 5) {x = x[which(genderOfSamples == "F")]};
 if (bedFile[i,1] == "chrY" & length(which(genderOfSamples=="M")) >= 5) {x = x[which(genderOfSamples == "M")]};
 density(x, bw="SJ")$bw})
 
 bandwidths[which(bandwidths > quantile(bandwidths, 0.975))] = quantile(bandwidths, 0.975)
+
 #medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
 mediansAndSds <- foreach(i=1:nrow(coverage), .combine="rbind") %dopar% {
   FindRobustMeanAndStandardDeviation(coverage[i,], bandwidths[i], genderOfSamples, bedFile[i,1])
 }
-medians = mediansAndSds[,1]
-whichMediansAreSmall <- which(medians < 0.5 | mediansAndSds[,2] < 10**-5)
-if (length(whichMediansAreSmall) > 0) {
-  coverage <- coverage[-whichMediansAreSmall,]
-  bedFile <- bedFile[-whichMediansAreSmall,]
-  medians <- medians[-whichMediansAreSmall]
-  mediansAndSds = mediansAndSds[-whichMediansAreSmall,]
+medians = as.numeric(mediansAndSds[,1])
+
+# In exome seq it is often the case that some hypervariable regions cause false positive calls.
+# We remove all probes that look suspicious to us
+# Moreover - probes with huge variability does not allow detection of CNVs and are useless
+threshold <- 0.001
+snMeasure = as.numeric(mediansAndSds[,1]) / as.numeric(mediansAndSds[,2])
+probesToRemove <- which(as.numeric(mediansAndSds[,2]) < threshold | snMeasure < 3)
+sdsOfProbes <- as.numeric(mediansAndSds[,2])
+if (length(probesToRemove > 0)) {
+  coverage <- coverage[-probesToRemove,]
+  bedFile <- bedFile[-probesToRemove,]
+  sdsOfProbes <- sdsOfProbes[-probesToRemove]
+  normal <- normal[-probesToRemove,]
+  mediansAndSds = mediansAndSds[-probesToRemove,]
+  if (framework == "somatic")
+    tumor = tumor[-probesToRemove,]
 }
+medians =as.numeric(mediansAndSds[,1])
+
+
 coverage.normalised = sweep(coverage, 1, medians, FUN="/")
 coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]
 
 
 clusterExport(cl, c('coverage.normalised', 'determineSDsOfGermlineProbe'))
-sdsOfProbes = mediansAndSds[,2] / mediansAndSds[,1]
+sdsOfProbes = sdsOfProbes / as.numeric(mediansAndSds[,1])
 
-# In exome seq it is often the case that some hypervariable regions cause false positive calls.
-# We remove all probes that look suspicious to us
-# Moreover - probes with huge variability does not allow detection of CNVs and are useless
-threshold <- min(quantile(sdsOfProbes, 0.99), 0.5)
-probesToRemove <- which(sdsOfProbes > threshold)
-coverage.normalised <- coverage.normalised[-probesToRemove,]
-bedFile <- bedFile[-probesToRemove,]
-sdsOfProbes <- sdsOfProbes[-probesToRemove]
-normal <- normal[-probesToRemove,]
+
 
 
 
