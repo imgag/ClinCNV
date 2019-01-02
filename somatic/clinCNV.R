@@ -254,7 +254,7 @@ ends_of_chroms <- lstOfChromBorders[[3]]
 
 if (frameworkDataTypes == "covdepthBAF") {
   setwd(opt$folderWithScript)
-  source("bafSegmentation.R",local=TRUE)
+  source("./somatic/bafSegmentation.R",local=TRUE)
   if (!dir.exists(file.path(opt$bafFolder, "/result"))) {
     dir.create(file.path(opt$bafFolder, "/result"))
   }
@@ -373,7 +373,7 @@ bordersOfChroms <- getBordersOfChromosomes(bedFile)
 
 ### PROCESSING OF GERMLINE VARIANTS
 setwd(opt$folderWithScript)
-source("helpersGermline.R")
+source("./germline/helpersGermline.R")
 
 print("Processing of germline variants started.")
 coverage <- sqrt(as.matrix(normal))
@@ -455,9 +455,9 @@ vect_of_norm_likeliks <- fast_dnorm_list()
 stopCluster(cl)
 setwd(opt$folderWithScript)
 if (!is.null(opt$triosFile)) {
-  source("germlineTrioSolver.R",local=TRUE)
+  source("./trios/germlineTrioSolver.R",local=TRUE)
 } else {
-  source("germlineSolver.R",local=TRUE)
+  source("./germline/germlineSolver.R",local=TRUE)
 }
 
 if (framework == "germline" | !is.null(opt$triosFile)) quit()
@@ -486,5 +486,5 @@ if (framework=="somatic")
 
 
 setwd(opt$folderWithScript)
-source("somaticSolver.R",local=TRUE)
+source("./somatic/somaticSolver.R",local=TRUE)
 stopCluster(cl)
