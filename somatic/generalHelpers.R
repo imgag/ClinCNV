@@ -459,7 +459,7 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
 
 cleanDatasetFromLowCoveredFiles <- function(normal) {
   medians <- apply(sqrt(normal), 1, median)
-  minAllowedCoverage = max(quantile(medians, 0.01), 0.05)
+  minAllowedCoverage = max(quantile(medians, 0.01))
   rowsToRemove <- which(medians < minAllowedCoverage)
   return(rowsToRemove)
 }

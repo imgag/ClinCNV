@@ -6,8 +6,21 @@ if (!(as.numeric(version$major) >= 3 & as.numeric(version$minor) > 2.0)) {
  print("Your R version is too old. We can not guarantee stable work.")
  print(version)
 }
+
 ### PART WITH PARSING OPTIONS
 library("optparse")
+library(robustbase)
+library(MASS)
+library("data.table")
+library(foreach)
+library(doParallel)
+library(mclust)
+library(msm)
+
+## DETERMINE THE PATH TO THE SCRIPT AUTOMATICALLY
+library("rstudioapi")
+current_working_dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
+
 
 option_list = list(
   make_option(c("-norm", "--normal"), type="character", default=NULL, 
@@ -37,7 +50,7 @@ option_list = list(
   make_option(c("-num", "--colNum"), type="double", default=4, 
               help="column where coverages start", metavar="character"),
   
-  make_option(c("-script", "--folderWithScript"), type="character", default=getwd(), 
+  make_option(c("-script", "--folderWithScript"), type="character", default=current_working_dir, 
               help="folder where you put script", metavar="character"),
   
   make_option(c("-r", "--reanalyseCohort"), type="logical", default=F, 
@@ -115,14 +128,7 @@ if (!is.null(opt$bafFolder)) {
 
 
 
-### PART WITH LIBRARIES
-library(robustbase)
-library(MASS)
-library("data.table")
-library(foreach)
-library(doParallel)
-library(mclust)
-library(msm)
+
 
 no_cores <- min(detectCores() - 1, 4)
 no_cores = 4
@@ -457,7 +463,11 @@ if (!is.null(opt$triosFile)) {
 if (framework == "germline" | !is.null(opt$triosFile)) quit()
 
 
-
+covariances <- list()
+for (i in 2:nrow(coverage.normalised)) {
+  if (!bedFile[i,1] %in% c("chrX","chrY"))
+    covariances[[as.character(bedFile[i,2] - bedFile[i - 1,3])]] <- covRob(cbind(coverage.normalised[i,], coverage.normalised[i - 1,]), corr=T)$cov[1,2]
+}
 
 
 
