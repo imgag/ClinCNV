@@ -1,4 +1,4 @@
-
+library(mclust)
 
 ### PROCESSING OF SOMATIC VARIANTS
 setwd(opt$folderWithScript)

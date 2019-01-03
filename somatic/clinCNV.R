@@ -14,7 +14,6 @@ library(MASS)
 library("data.table")
 library(foreach)
 library(doParallel)
-library(mclust)
 library(msm)
 
 ## DETERMINE THE PATH TO THE SCRIPT AUTOMATICALLY
@@ -417,7 +416,7 @@ if (length(probesToRemove > 0)) {
   if (framework == "somatic")
     tumor = tumor[-probesToRemove,]
 }
-medians =as.numeric(mediansAndSds[,1])
+medians = as.numeric(mediansAndSds[,1])
 
 
 coverage.normalised = sweep(coverage, 1, medians, FUN="/")
