@@ -23,6 +23,7 @@ script.name <- sub(file.arg.name, "", initial.options[grep(file.arg.name, initia
 script.basename <- dirname(script.name)
 print(paste("We run script located in folder" , script.name, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
+
 ## DETERMINE THE PATH TO THE SCRIPT AUTOMATICALLY
 current_working_dir <- script.basename
 
@@ -99,9 +100,6 @@ option_list = list(
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
-
-
-
 
 
 if (is.null(opt$normal) | is.null(opt$bed)) {
@@ -368,7 +366,7 @@ if (length(regionsToFilerOutOn)>0)
 if (frameworkOff == "offtarget") {
   regionsToFilerOutOff <- c()
   for (i in 1:nrow(normalOff)) {
-    if (min(median(normalOff[i,], tumorOff[i,])) < 0.3) {
+    if (min(median(normalOff[i,]), median(tumorOff[i,])) < 0.3) {
       regionsToFilerOutOff <- c(regionsToFilerOutOff, i)
     }
   }
