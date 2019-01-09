@@ -141,8 +141,8 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
           allowedChromosomesAutosomesOnly = which(!info[,1] %in% c("chrX", "chrY"))
         }
         vector_of_gcs_in_allowed_chroms = intersect(vector_of_gc, allowedChromosomesAutosomesOnly)
-        borderOfDistnace = 0.01
-        while (length(vector_of_gcs_in_allowed_chroms) < 10) {
+        borderOfDistnace = 0.00
+        while (length(vector_of_gcs_in_allowed_chroms) < 20) {
           borderOfDistnace = borderOfDistnace + 0.01
           tmpVectorOfGC = which(gcs %in% c(curr_gc + seq(from=-borderOfDistnace, to=borderOfDistnace, by=0.01)))
           vector_of_gcs_in_allowed_chroms = intersect(tmpVectorOfGC, allowedChromosomesAutosomesOnly)

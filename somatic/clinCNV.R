@@ -16,9 +16,15 @@ library(foreach)
 library(doParallel)
 library(msm)
 
+
+initial.options <- commandArgs(trailingOnly = FALSE)
+file.arg.name <- "--file="
+script.name <- sub(file.arg.name, "", initial.options[grep(file.arg.name, initial.options)])
+script.basename <- dirname(script.name)
+print(paste("We run script located in folder" , script.name, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
+
 ## DETERMINE THE PATH TO THE SCRIPT AUTOMATICALLY
-library("rstudioapi")
-current_working_dir <- dirname(rstudioapi::getActiveDocumentContext()$path)
+current_working_dir <- script.basename
 
 
 option_list = list(
@@ -95,7 +101,11 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
 
-
+if (is.null(opt$normal) | is.null(opt$bed)) {
+  print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
+  print_help(opt_parser)
+  quit()
+}
 
 setwd(opt$folderWithScript)
 source("generalHelpers.R")
@@ -211,16 +221,19 @@ if (frameworkOff == "offtarget") {
 
 
 rowsToRemove <- cleanDatasetFromLowCoveredFiles(normal)
-bedFile <- bedFile[-rowsToRemove,]
-normal <- normal[-rowsToRemove,]
-if (framework == "somatic")
-  tumor <- tumor[-rowsToRemove,]
-
+if (length(rowsToRemove) > 0) {
+  bedFile <- bedFile[-rowsToRemove,]
+  normal <- normal[-rowsToRemove,]
+  if (framework == "somatic")
+    tumor <- tumor[-rowsToRemove,]
+}
 if (frameworkOff == "offtarget") {
   rowsToRemove <- cleanDatasetFromLowCoveredFiles(normalOff)
-  normalOff = normalOff[-rowsToRemove,]
-  tumorOff = tumorOff[-rowsToRemove,]
-  bedFileOfftarget = bedFileOfftarget[-rowsToRemove,]
+  if (length(rowsToRemove) > 0) {
+    normalOff = normalOff[-rowsToRemove,]
+    tumorOff = tumorOff[-rowsToRemove,]
+    bedFileOfftarget = bedFileOfftarget[-rowsToRemove,]
+  }
 }
 
 ### GC CONTENT NORMALIZATION
@@ -253,7 +266,9 @@ ends_of_chroms <- lstOfChromBorders[[3]]
 
 if (frameworkDataTypes == "covdepthBAF") {
   setwd(opt$folderWithScript)
-  source("./somatic/bafSegmentation.R",local=TRUE)
+
+    source(file.path(opt$folderWithScript, "somatic", "bafSegmentation.R"), local=T)
+
   if (!dir.exists(file.path(opt$bafFolder, "/result"))) {
     dir.create(file.path(opt$bafFolder, "/result"))
   }
