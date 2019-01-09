@@ -23,6 +23,9 @@ script.name <- sub(file.arg.name, "", initial.options[grep(file.arg.name, initia
 script.basename <- dirname(script.name)
 print(paste("We run script located in folder" , script.name, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
+
+library(rstudioapi)    
+script.basename <- rstudioapi::getActiveDocumentContext()$path
 ## DETERMINE THE PATH TO THE SCRIPT AUTOMATICALLY
 current_working_dir <- script.basename
 
@@ -99,6 +102,7 @@ option_list = list(
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
+
 
 
 if (is.null(opt$normal) | is.null(opt$bed)) {
@@ -477,12 +481,6 @@ if (!is.null(opt$triosFile)) {
 if (framework == "germline" | !is.null(opt$triosFile)) quit()
 
 
-covariances <- list()
-for (i in 2:nrow(coverage.normalised)) {
-  if (!bedFile[i,1] %in% c("chrX","chrY"))
-    covariances[[as.character(bedFile[i,2] - bedFile[i - 1,3])]] <- covRob(cbind(coverage.normalised[i,], coverage.normalised[i - 1,]), corr=T)$cov[1,2]
-}
-
 
 
 
@@ -492,10 +490,6 @@ no_cores <- min(detectCores() - 1, 4)
 no_cores = 4
 cl<-makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
-
-
-if (framework=="somatic")
-  tumor <- tumor[-probesToRemove,]
 
 
 
