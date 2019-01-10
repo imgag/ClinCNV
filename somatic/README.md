@@ -253,6 +253,8 @@ VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" 
 
 `--tumorSample` - name of the tumor sample (if only one sample is expected to be calculated). Has to be presented in 1) file pairs.txt in pair with the sample specified by --normalSample option, 2) in a header of the file with tumor samples. Otherwise, the tool will fail with assert message.
 
+`--fdrGermline` - number of iteration of FDR control procedure performed (more is better for FDR control, but slower). If 0, no permutations and FDR control performed (default).
+
 ## Citation
 
 ClinCNV is not published for now so it is not possible to properly cite the paper. However, you can: 
