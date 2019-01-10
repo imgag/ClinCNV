@@ -1,4 +1,62 @@
 
+findSDsOfSamples <- formilngLogFoldChange <- function(pairs, normalCov, tumorCov, bedFileForCalc, bordersOfChroms) {
+  matrixOfPairs <- matrix(0, nrow=nrow(normalCov), ncol=0)
+  counter = 0
+  for (i in 1:ncol(normalCov)) {
+    sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
+    for (sampleName1 in sampleNames1) {
+      sampleName2 <- which(colnames(tumorCov) == pairs[sampleName1,1])
+      new_name <- (paste(colnames(tumorCov)[sampleName2], "-",  colnames(normalCov)[i], sep=""))
+      if (length(sampleName2) > 0) {
+        counter = counter + 1
+        matrixOfPairs <- cbind(matrixOfPairs, log2(tumorCov[,sampleName2]), log2(normalCov[,i]))
+        colnames(matrixOfLogFold)[ncol(matrixOfLogFold)] <- new_name
+      }
+    }
+  }
+  sdsTum = rep(0, (ncol(matrixOfPairs) / 2))
+  sdsNorm = rep(0, (ncol(matrixOfPairs) / 2))
+  covNormTum = rep(0, (ncol(matrixOfPairs) / 2))
+  resSDofPair = rep(0, (ncol(matrixOfPairs) / 2))
+  for (j in seq(from=1, to=ncol(matrixOfPairs), by=2 )) {
+    tumorS = matrixOfPairs[which(!bedFileForCalc[,1] %in% c("chrX", "chrY")),j]
+    normalS = matrixOfPairs[which(!bedFileForCalc[,1] %in% c("chrX", "chrY")),j + 1]
+    sdNorm = Qn(normalS)
+    sdTum = Qn(tumorS)
+    sdsS <- rep(0, length(bordersOfChroms) - 1)
+    sdsN <- rep(0, length(bordersOfChroms) - 1)
+    covNS <- rep(0, length(bordersOfChroms) - 1)
+    if (length(bordersOfChroms) == 1) {
+      sdsS = Qn(tumorS)
+      covNS = 0
+      sdsN = Qn(normalS)
+    } else {
+      for (i in 2:length(bordersOfChroms)) {
+        if (bordersOfChroms[i] < length(tumorS)) {
+        valuesBetweenBordersTum <- tumorS[bordersOfChroms[i-1]:bordersOfChroms[i]]
+        valuesBetweenBordersNorm <- normalS[bordersOfChroms[i-1]:bordersOfChroms[i]]
+        covMatrix = cov.rob(cbind(valuesBetweenBordersTum, valuesBetweenBordersNorm), cor=T)$cov
+        if (length(valuesBetweenBordersTum) > 1)
+          sdsS[i] = covMatrix[1,1]
+          sdsN[i] = covMatrix[2,2]
+          covNS[i] = covMatrix[1,2]
+        }
+      }
+    }
+    resSDarray = (sdsS + sdsN - 2 * covNS)[(sdsS > 0)]
+    indexOfMedian <- which.min(abs(resSDarray - median(resSDarray)))
+    sdTum = median(sdsS[sdsS > 0][indexOfMedian])
+    sdNorm = median(sdsN[sdsS > 0][indexOfMedian])
+    covNS = median(covNS[sdsS > 0][indexOfMedian])
+    resSD = sqrt(resSDarray[indexOfMedian])
+    sdsTum[(j + 1)/2] = sdTum
+    sdsNorm[(j + 1)/2] = sdNorm
+    covNormTum[(j + 1)/2] = covNS
+    resSDofPair[(j + 1)/2] = resSD
+  }
+  return(rbind(sdsTum, sdsNorm, covNormTum, resSDofPair))
+}
+
 formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
   matrixOfLogFold <- matrix(0, nrow=nrow(normalCov), ncol=0)
   listOfMatrOfLogFoldToTumor <- list()
@@ -206,4 +264,13 @@ qcControl <- function(sam_no, toyMatrixOfLogFold, toyLocalSds, toyMultipliersDue
   } else {
     return(-1)
   }
+}
+
+
+returnMultiplierDueToLog <- function(cnNorm, cnTum, sdNorm, sdTum, covNT) {
+  resSd = (cnNorm/2)**2 * sdNorm + (cnTum/2)**2 * sdTum - 2 * (cnTum/2) * (cnNorm/2) * covNT
+  if (cnTum < 0.2) {
+    resSd = 2 * resSd
+  }
+  return(resSd)
 }

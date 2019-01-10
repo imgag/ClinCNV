@@ -9,8 +9,9 @@ matrixOfLogFold <- listOfValue[[1]]
 dictFromColumnToTumor <- listOfValue[[2]]
 
 bordersOfChroms <- getBordersOfChromosomes(bedFile)
-sdsOfSomaticSamples <- sapply(1:ncol(matrixOfLogFold), function(i) {determineSDsOfSomaticSample(matrixOfLogFold[,i], bedFile)})
-
+#sdsOfSomaticSamples <- sapply(1:ncol(matrixOfLogFold), function(i) {determineSDsOfSomaticSample(matrixOfLogFold[,i], bedFile)})
+matrixWithSds <- findSDsOfSamples(pairs, normal, tumor, bedFile, bordersOfChroms)
+sdsOfSomaticSamples <- matrixWithSds[4,]
 
 sdsOfProbes <- sapply(1:nrow(matrixOfLogFold), function(i) {determineSDsOfSomaticProbe(matrixOfLogFold[i,], i)})
 
@@ -21,10 +22,11 @@ multiplicator <- listOfVarianceAndMultiplicator[[1]]
 if (frameworkOff == "offtarget") {
   listOfValue <- formilngLogFoldChange(pairs, normalOff, tumorOff)
   matrixOfLogFoldOff =  listOfValue[[1]]
-  dictFromColumnToTumor = listOfValue[[2]]
+  dictFromColumnToTumorOff = listOfValue[[2]]
   bordersOfChroms <- getBordersOfChromosomes(bedFileOfftarget)
-  sdsOfSomaticSamplesOff <- apply(matrixOfLogFoldOff, 2, function(x) {determineSDsOfSomaticSample(x, bedFileOfftarget)})
-  
+  matrixWithSdsOff <- findSDsOfSamples(pairs, normalOff, tumorOff, bedFileOfftarget, bordersOfChroms)
+  sdsOfSomaticSamplesOff <- matrixWithSdsOff[4,]
+
   sdsOfProbesOff <- sapply(1:nrow(matrixOfLogFoldOff), function(i) {determineSDsOfSomaticProbe(matrixOfLogFoldOff[i,], i)})
   
   listOfVarianceAndMultiplicatorOff <- esimtateVarianceFromSampleNoise(sdsOfSomaticSamplesOff, 100000)
@@ -148,40 +150,38 @@ colours <- c("darkgreen", colorsForLess, colorsForBigger, colorsForHigh)
 
 
 # CORRECTION OF CNS!!!
-sdsOfNormals <- apply(normal, 1, sd)
-medianBaselineSD <- median(sdsOfNormals)
+# sdsOfNormals <- apply(normal, 1, sd)
+# medianBaselineSD <- median(sdsOfNormals)
+# 
+# sdsPois <- c()
+# for (i in 1:1000) {
+#   samplePois <- rpois(lambda=i, n=10000)
+#   sdsPois <- c(sdsPois, sd(samplePois / i))
+# }
+# diffs <- abs(sdsPois - medianBaselineSD)
+# lambdaFromSimulation <- which.min(diffs)
+# 
+# normalCoverage <- rpois(1000000, lambda=lambdaFromSimulation)
+# tumorCoverage <- rpois(1000000, lambda=lambdaFromSimulation)
+# sd_to_normalise = sd(log2(tumorCoverage / normalCoverage))
+# multipliersDueToLog <- c(1)
+# for (state in 2:length(cn_states)) {
+#   tumorCoverage <- rpois(1000000, lambda=0.5 * lambdaFromSimulation * cn_states[state])
+#   sd_to_normalise_tumor = sd(log2(tumorCoverage / normalCoverage))
+#   multipliersDueToLog <- c(multipliersDueToLog, sd_to_normalise_tumor / sd_to_normalise)
+# }
+# multipliersDueToLog[which(is.nan(multipliersDueToLog))] <- max(multipliersDueToLog[which(!is.nan(multipliersDueToLog))])
+# 
+# ### Make SDs for states equal
+# for (state in unique(cn_states)) {
+#   whichStatesAre = which(cn_states == state)
+#   if (state != 2) {
+#     multipliersDueToLog[whichStatesAre] = median(multipliersDueToLog[whichStatesAre])
+#   } else {
+#     multipliersDueToLog[whichStatesAre] = 1
+#   }
+# }
 
-sdsPois <- c()
-for (i in 1:1000) {
-  samplePois <- rpois(lambda=i, n=10000)
-  sdsPois <- c(sdsPois, sd(samplePois / i))
-}
-diffs <- abs(sdsPois - medianBaselineSD)
-lambdaFromSimulation <- which.min(diffs)
-
-normalCoverage <- rpois(1000000, lambda=lambdaFromSimulation)
-tumorCoverage <- rpois(1000000, lambda=lambdaFromSimulation)
-sd_to_normalise = sd(log2(tumorCoverage / normalCoverage))
-multipliersDueToLog <- c(1)
-for (state in 2:length(cn_states)) {
-  tumorCoverage <- rpois(1000000, lambda=0.5 * lambdaFromSimulation * cn_states[state])
-  sd_to_normalise_tumor = sd(log2(tumorCoverage / normalCoverage))
-  multipliersDueToLog <- c(multipliersDueToLog, sd_to_normalise_tumor / sd_to_normalise)
-}
-multipliersDueToLog[which(is.nan(multipliersDueToLog))] <- max(multipliersDueToLog[which(!is.nan(multipliersDueToLog))])
-
-### Make SDs for states equal
-for (state in unique(cn_states)) {
-  whichStatesAre = which(cn_states == state)
-  if (state != 2) {
-    multipliersDueToLog[whichStatesAre] = median(multipliersDueToLog[whichStatesAre])
-  } else {
-    multipliersDueToLog[whichStatesAre] = 1
-  }
-}
-
-startCoordOfNonInterruptedSegment = 1
-shiftsOfCoverage <- c()
 
 
 
@@ -192,8 +192,10 @@ if (!dir.exists(folder_name)) {
 }
 
 allPotentialPurities <- unique(purities)
+penaltyForHigherCN = 10
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
+  
   
   if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
     if (!sample_name == paste(opt$tumorSample, opt$normalSample, sep="-")) {
@@ -210,8 +212,25 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   print(paste("We are working on sample name:", sample_name))
   print(Sys.time())
   
+  ### Multiplier due to different CN - calculation with covariance
+  multipliersDueToLog = c()
+  for (cn in cn_states) {
+  multipliersDueToLog = c(multipliersDueToLog, returnMultiplierDueToLog(2,cn,matrixWithSds[1,sam_no], matrixWithSds[2,sam_no], matrixWithSds[3,sam_no]))
+  }
+  multipliersDueToLog = sqrt(multipliersDueToLog) 
+  multipliersDueToLog = multipliersDueToLog / multipliersDueToLog[1]
   
-  
+  if (frameworkOff == "offtarget") {
+    if (sample_name %in% colnames(matrixOfLogFoldOff)) {
+      sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
+      multipliersDueToLogOff = c()
+      for (cn in cn_states) {
+        multipliersDueToLogOff = c(multipliersDueToLogOff, returnMultiplierDueToLog(2,cn,matrixWithSdsOff[1,sam_no_off], matrixWithSdsOff[2,sam_no_off], matrixWithSdsOff[3,sam_no_off]))
+      }
+      multipliersDueToLogOff = sqrt(multipliersDueToLogOff) 
+      multipliersDueToLogOff = multipliersDueToLogOff / multipliersDueToLogOff[1]
+    }
+  }
   
   
   matrixOfClonality = matrix(0, nrow=1, ncol=1)
@@ -235,6 +254,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       local_cn_states <- cn_states
       local_multipliersDueToLog <- multipliersDueToLog
       local_cnv_states <- statesUsed
+      if (sample_name %in% colnames(matrixOfLogFoldOff))
+        local_multipliersDueToLogOff <- multipliersDueToLogOff
       
       if (finalIteration ) {
         # if ((abs(max(matrixOfClonality) - min(matrixOfClonality)) > 1000)) {
@@ -266,6 +287,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         local_cn_states <- cn_states[-indices_to_remove_by_purity]
         local_multipliersDueToLog <- multipliersDueToLog[-indices_to_remove_by_purity]
         local_cnv_states = local_cnv_states[-indices_to_remove_by_purity]
+        if (sample_name %in% colnames(matrixOfLogFoldOff))
+          local_multipliersDueToLogOff <- local_multipliersDueToLogOff[-indices_to_remove_by_purity]
       }
       
       # PART FOR MATRIX OF CLONALITY (ONLY 2 CLONES)
@@ -378,10 +401,11 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       }
       
       
+      matrixOfLogFoldCorrectedSmall = matrixOfLogFold
+      matrixOfLogFoldCorrectedSmall[which(matrixOfLogFoldCorrectedSmall < log2(min(local_cn_states) / 2))] = log2(min(local_cn_states) / 2)
+      matrixOfLogFoldCorrectedSmall[which(matrixOfLogFoldCorrectedSmall > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
       
-      
-      
-      matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFold), matrixOfLogFold[,sam_no], localSds, log2(local_cn_states/2), local_multipliersDueToLog)
+      matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2), local_multipliersDueToLog)
       
       matrOfSNVlikeliks <- matrix(0, nrow=0, ncol=length(local_purities))
       
@@ -476,11 +500,14 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       sizesOfPointsFromLocalSds <- 0.5 / localSds 
       if (sampleInOfftarget) {
-        matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOff), matrixOfLogFoldOff[,sam_no_off], localSdsOff, log2(local_cn_states/2), local_multipliersDueToLog)
+        matrixOfLogFoldOffCorrectedExtraSmallValues <- matrixOfLogFoldOff
+        matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues < log2(min(local_cn_states) / 2))] = log2(min(local_cn_states) / 2)
+        matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
+        matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[,sam_no_off], localSdsOff, log2(local_cn_states/2), local_multipliersDueToLogOff)
         globalMatrOfLikeliks <- rbind(matrix_of_likeliks, matrix_of_likeliks_off)
         globalBed <- rbind(bedFile, bedFileOfftarget)
         sizesOfPointsFromLocalSdsOff <- 0.5 / localSdsOff
-        vecOfOrder = order(globalBed[,1], globalBed[,2])
+        vecOfOrder = order(globalBed[,1], as.numeric(globalBed[,2]))
         globalSizesOfPoints <- c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[vecOfOrder]
         globalMatrOfLikeliks <- globalMatrOfLikeliks[vecOfOrder,]
         globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])[vecOfOrder]
@@ -555,7 +582,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                 startOfCNV <- found_CNVs[q,2]
                 endOfCNV <- found_CNVs[q,3]
                 if (endOfCNV - startOfCNV > 3) { 
-                  likeliksFoundCNVsVsPurities[q, m] = min(apply(toyMatrixOfLikeliks[(startOfCNV + 1):(endOfCNV - 1),which(local_purities == localPurityCurrent)], 2, sum))
+                  penalty = penaltyForHigherCN * abs(2 - local_copy_numbers_used[which(local_purities == localPurityCurrent)])
+                  likeliksFoundCNVsVsPurities[q, m] = min(apply(toyMatrixOfLikeliks[(startOfCNV + 1):(endOfCNV - 1),which(local_purities == localPurityCurrent)], 2, sum) + penalty)
                 }
               }
             }
