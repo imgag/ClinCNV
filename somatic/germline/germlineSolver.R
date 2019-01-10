@@ -259,6 +259,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   writeLines(c(paste("##number of iterations:", iterations,  collapse = " "), 
                paste("##fraction of outliers:", round(median(vectorWithNumberOfOutliers), digits=3), collapse = " ")), fileConn)
   close(fileConn)
+  found_CNVs_total[,7] = format(as.numeric(found_CNVs_total[,7]), nsmall=3)
+  found_CNVs_total[,8] = format(as.numeric(found_CNVs_total[,8]), nsmall=3)
   write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
 }
 
