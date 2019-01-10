@@ -95,12 +95,21 @@ option_list = list(
   make_option(c("-triosFile", "--triosFile"), type="character", default=NULL, 
               help="file with information about trios, child-father-mother", metavar="character"),
   
+  make_option(c("-fdrG", "--fdrGermline"), type="character", default=0, 
+              help="number of iterations for FDR check (more - better, but slower, 0 = no FDR correction)", metavar="character"),
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
+
+### TESTING PART
+opt$bed = "/Users/gdemidov/practicum/bioinformatics_tuebingen/bed_file.bed"
+opt$normal = "/Users/gdemidov/practicum/bioinformatics_tuebingen/coverages_normal.cov"
+opt$out = "/Users/gdemidov/practicum/bioinformatics_tuebingen/results"
+opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/somatic"
 
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")

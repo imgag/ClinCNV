@@ -144,8 +144,8 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], 
                            vector_of_states[found_CNVs[s,4]], -1 * round(found_CNVs[s,1]), 
                            found_CNVs[s,3] - found_CNVs[s,2] + 1,
-                           (toyBedFile[found_CNVs[s,3],3] - toyBedFile[found_CNVs[s,2],2]) / 1000,
-                           round(alleleFrequency[s], digits=3),
+                           format((toyBedFile[found_CNVs[s,3],3] - toyBedFile[found_CNVs[s,2],2]) / 1000, nsmall=3),
+                           format(round(alleleFrequency[s], digits=3), nsmall=3),
                            annotationGenes), nrow=1)
       cnvsToOutput = rbind(cnvsToOutput, CNVtoOut)
       
@@ -209,14 +209,25 @@ Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
   set.seed(100)
   if (length(which(probes[,1] == "chrX")) > 100 & length(which(probes[,1] == "chrY")) > 10) {
     matrix_of_values <- cbind(apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrY"),], 2, EstimateModeSimple), apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrX"),], 2, EstimateModeSimple))
-    cl <- kmeans(matrix_of_values, centers=matrix(c(0,1,sqrt(1/2), sqrt(1/2)), nrow=2))
-    clusters <- cl$cluster
-    clusters[clusters == 1] <- "F"
-    clusters[clusters == 2] <- "M"
-    png(filename=paste0(opt$out, "genders.png"), width=800, height=800)
-    plot(matrix_of_values, col = cl$cluster, xlab="Y Chromsome", ylab="X Chromosome", pch=19, cex=2)
-    points(cl$centers, col = 1:2, pch = 8, cex = 10)
-    dev.off()
+    clKmeans <- NULL
+    clKmeans <- tryCatch({kmeans(matrix_of_values, centers=matrix(c(0,1,sqrt(1/2), sqrt(1/2)), nrow=2))}, 
+                   error = function(e) {
+                     NULL
+                   })
+    if (!is.null(clKmeans)) {
+      clusters <- clKmeans$cluster
+      clusters[clusters == 1] <- "F"
+      clusters[clusters == 2] <- "M"
+      png(filename=paste0(opt$out, "genders.png"), width=800, height=800)
+      plot(matrix_of_values, col = clKmeans$cluster, xlab="Y Chromsome", ylab="X Chromosome", pch=19, cex=2)
+      points(clKmeans$centers, col = 1:2, pch = 8, cex = 10)
+      dev.off()
+    } else {
+      clusters <- rep(2, nrow(matrix_of_values))
+      clusters[which(matrix_of_values[,2] < 0.25)] = 1
+      clusters[clusters == 1] <- "F"
+      clusters[clusters == 2] <- "M"
+    }
   } else {
     clusters = rep("M", ncol(normalized.coverage.corrected.gc))
   }
@@ -231,6 +242,8 @@ Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
 
 
 FindRobustMeanAndStandardDeviation <- function(x, bandwidth, genders, chrom, modeEstimated = NA) {
+  genders = genders[which(x > 0.1)]
+  x = x[which(x > 0.1)]
   if (length(x) < 50) {
     if (chrom != "") {
       if (chrom %in% c("X", "Y", "chrX", "chrY")) {
@@ -238,25 +251,28 @@ FindRobustMeanAndStandardDeviation <- function(x, bandwidth, genders, chrom, mod
           x = x[which(x > median(x))]
         } else {
           if (chrom == "chrX") {
-            x = x[which(genders == "F")]
-            if (length(x) <= 5) {
+            if (length(which(genders == "F")) <= 5) {
               x = x[which(genders == "M")]
               x = sqrt(2) * x
+            } else {
+              x = x[which(genders == "F")]
             }
             if (length(x) <= 5) {
               return(matrix(c(1, 0.5, "sd"), nrow=1))
             }
           }
           if (chrom == "chrY") {
-            x = sqrt(2) * x[which(genders == "M")]
-            if (length(x) <= 5) {
+            if (length(which(genders == "M")) <= 5) {
               return(matrix(c(sqrt(1/2), 0.5, "sd"), nrow=1))
+            } else {
+              x = x[which(genders == "M")]
             }
           }
         }
       }
     }
-   if (length(x) > 30 ){
+
+    if (length(x) > 30 ){
       mu = median(x)
     } else {
       mu = lehmanHodges(x)
@@ -268,14 +284,27 @@ FindRobustMeanAndStandardDeviation <- function(x, bandwidth, genders, chrom, mod
   }
 
   if (chrom == "chrX") {
-    x = x[which(genders == "F")]
+    if (length(which(genders == "F")) <= 5) {
+      x = x[which(genders == "M")]
+      x = sqrt(2) * x
+    } else {
+      x = x[which(genders == "F")]
+    }
   }
   if (chrom == "chrY") {
-    x = x[which(genders == "M")]
+    
+    if (length(which(genders == "M")) <= 5) {
+      return(matrix(c(sqrt(1/2), 0.5, "sd"), nrow=1))
+    } else {
+      x = x[which(genders == "M")]
+    }
   }
   
-  x = x[which(x > 0.1)]
+
   forMeanX = x
+  return(matrix(c(lehmanHodges(forMeanX), Qn(forMeanX), "Qn"), nrow=1))
+  
+  ### THEN IT MAY BE CHANGED
   if (length(forMeanX) < 10) {
     return(matrix(c(median(forMeanX), Qn(forMeanX), "Qn"), nrow=1))
   }

@@ -34,7 +34,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   threshold = opt$scoreG
   minimum_length_of_CNV = opt$lengthG
   price_per_tile = 1
-  initial_state <- 3
+  main_initial_state <- 3
   
   
   localSds = sdsOfProbes * esimtatedVarianceFromSampleNoise[sam_no] * multiplicator
@@ -60,8 +60,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   
   
   matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2))
-  matrix_of_likeliks_read_depth_only = matrix_of_likeliks
-  
+
   sizesOfPointsFromLocalSds <- 0.1 / localSds 
   
   
@@ -72,6 +71,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   vectorWithNumberOfOutliers <- c()
   vectorOfZScores <- (coverage.normalised[,sam_no] - 1) / localSds
   while (!numberOfCNVsIsSufficientlySmall & iterations < maxIteration) {
+    initial_state = main_initial_state
     found_CNVs_total <- matrix(0, nrow=0, ncol=9)
     colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "no_of_regions", "length_KB", "potential_AF", "genes")
 
@@ -196,6 +196,63 @@ for (sam_no in 1:ncol(coverage.normalised)) {
       }
     }
   }
+  
+  ### FDR
+  if (as.numeric(opt$fdrGermline) != 0) {
+    numberOfIterationsForFDR = as.numeric(opt$fdrGermline)
+    detectedFalseCNVs <- foreach(i=1:numberOfIterationsForFDR, .combine="rbind") %dopar% {
+      shuffledMatrixOfLikelis = matrix_of_likeliks[sample(which(!bedFile[,1] %in% c("crhX", "chrY"))),1:(main_initial_state + 2)]
+      detectedCnvs <- find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, main_initial_state, shuffledMatrixOfLikelis, main_initial_state)
+      detectedCnvs
+    }
+    detectedDeletions <-  detectedFalseCNVs[which(detectedFalseCNVs[,4] < main_initial_state),1:4,drop=F]
+    detectedDuplications <-  detectedFalseCNVs[which(detectedFalseCNVs[,4] > main_initial_state),1:4,drop=F]
+    
+    
+    if (nrow(detectedDeletions) > 0) {
+      thresholdsDel = sort(-1 * unique(detectedDeletions[,1]))
+      fdrThreshold = 0.05
+      currentThresholdDel = thresholdsDel[i]
+      for (i in 1:length(thresholdsDel)) {
+        currentThresholdDel = thresholdsDel[i]
+        FDR = length(which(-1 * detectedDeletions[,1] > currentThresholdDel)) / (length(which(!found_CNVs_total[,1] %in% c("crhX", "chrY") & as.numeric(found_CNVs_total[,4]) < 2 & as.numeric(found_CNVs_total[,5]) > currentThresholdDel)) )
+        if (FDR < fdrThreshold) {
+          break
+        }
+      }
+      currentThresholdDel = currentThresholdDel + 1
+    } else {
+      currentThresholdDel = threshold
+    }
+    
+    if (nrow(detectedDuplications) > 0) {
+      thresholdsDup = sort(-1 * unique(detectedDuplications[,1]))
+      fdrThreshold = 0.05
+      currentThresholdDup = thresholdsDup[i]
+      for (i in 1:length(thresholdsDup)) {
+        currentThresholdDup = thresholdsDup[i]
+        FDR = length(which(-1 * detectedDuplications[,1] > currentThresholdDel)) / (length(which(!found_CNVs_total[,1] %in% c("crhX", "chrY") & as.numeric(found_CNVs_total[,4]) > 2 & as.numeric(found_CNVs_total[,5]) > currentThresholdDup)) )
+        if (FDR < fdrThreshold) {
+          break
+        }
+      }
+      currentThresholdDup = currentThresholdDup + 1
+    } else {
+      currentThresholdDup = threshold
+    }
+    
+    columnOfFilter = matrix("NOT PASS", ncol=1, nrow=nrow(found_CNVs_total))
+    for (i in 1:nrow(found_CNVs_total)) {
+      if (as.numeric(found_CNVs_total[i,4]) < 2) {
+        if (as.numeric(found_CNVs_total[i,5]) > currentThresholdDel) columnOfFilter[i] = "PASS"
+      } else {
+        if (as.numeric(found_CNVs_total[i,5]) > currentThresholdDup) columnOfFilter[i] = "PASS"
+      }
+    }
+    found_CNVs_total = cbind(found_CNVs_total, columnOfFilter)
+    colnames(found_CNVs_total)[ncol(found_CNVs_total)] = "FDR_filter"
+  }
+  
   finalPValue = 1.0
   fileToOut <- paste0(folder_name, sample_name, paste0("/", sample_name, "_cnvs.tsv"))
   fileConn<-file(fileToOut)
