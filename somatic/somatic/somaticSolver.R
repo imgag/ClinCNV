@@ -354,7 +354,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             for (i in lengthOfRolling:length(allowedChromosomesAutosomesOnly)) {
               smoothedLogFold[i - lengthOfRolling + 1] = median(matrixOfLogFoldAllowedChrom[(i - lengthOfRolling + 1):i])
             }
-            clusteredResult <- densityMclust(smoothedLogFold)
+            clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))])
             print("Mclust finished")
             bigClusters <- which(clusteredResult$parameters$pro > 0.3)
             if (length(bigClusters) == 0) {
@@ -384,7 +384,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             for (i in lengthOfRolling:length(allowedChromosomesAutosomesOnly)) {
               smoothedLogFold[i - lengthOfRolling + 1] = median(globalLogFoldAllowedChroms[(i - lengthOfRolling + 1):i])
             }
-            clusteredResult <- densityMclust(smoothedLogFold)
+            summary(smoothedLogFold)
+            hist(smoothedLogFold)
+            clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))])
             print("Mclust finished")
             bigClusters <- which(clusteredResult$parameters$pro > 0.3)
             if (length(bigClusters) == 0) {

@@ -35,7 +35,11 @@ findSDsOfSamples <- formilngLogFoldChange <- function(pairs, normalCov, tumorCov
         if (bordersOfChroms[i] < length(tumorS)) {
         valuesBetweenBordersTum <- tumorS[bordersOfChroms[i-1]:bordersOfChroms[i]]
         valuesBetweenBordersNorm <- normalS[bordersOfChroms[i-1]:bordersOfChroms[i]]
+        if (IQR(valuesBetweenBordersTum) > 0 & IQR(valuesBetweenBordersNorm) > 0) {
         covMatrix = cov.rob(cbind(valuesBetweenBordersTum, valuesBetweenBordersNorm), cor=T)$cov
+        } else {
+          covMatrix = matrix(0, nrow=2, ncol=2)
+        }
         if (length(valuesBetweenBordersTum) > 1)
           sdsS[i] = covMatrix[1,1]
           sdsN[i] = covMatrix[2,2]
