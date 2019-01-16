@@ -1,7 +1,7 @@
 
 plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, toySizesOfPointsFromLocalSds, plottingOfPNGs) {
   vector_of_states = cn_states
-  cnvsToOutput <- matrix(0, nrow=0, ncol=10)
+  cnvsToOutput <- matrix(0, nrow=0, ncol=11)
   if (nrow(found_CNVs) > 0) {
     for (s in 1:nrow(found_CNVs)) {
       priority = 0
@@ -37,6 +37,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
                            priority,
                            -1 * found_CNVs[s,1], 
                            found_CNVs[s,3] - found_CNVs[s,2] + 1,
+                           format((toyBedFile[found_CNVs[s,3],3] - toyBedFile[found_CNVs[s,2],2]) / 1000, nsmall=3),
                            annotationGenes), nrow=1)
       cnvsToOutput = rbind(cnvsToOutput, CNVtoOut)
       

@@ -1,5 +1,4 @@
-no_cores <- min(detectCores() - 1, 4)
-no_cores = 4
+no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 cl<-makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
 

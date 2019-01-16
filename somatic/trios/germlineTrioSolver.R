@@ -132,8 +132,8 @@ for (trioRow in 1:nrow(trios)) {
   iterations = 0
   maxIteration = opt$maxNumIter
   while (!numberOfCNVsIsSufficientlySmall & iterations < maxIteration) {
-    found_CNVs_total <- matrix(0, nrow=0, ncol=10)
-    colnames(found_CNVs_total) <- c("#chr", "start", "end", "kid_CN_change", "mother_CN_change", "father_CN_change", "priority", "loglikelihood", "no_of_regions", "genes")
+    found_CNVs_total <- matrix(0, nrow=0, ncol=11)
+    colnames(found_CNVs_total) <- c("#chr", "start", "end", "kid_CN_change", "mother_CN_change", "father_CN_change", "priority", "loglikelihood", "no_of_regions", "length_in_KB", "genes")
     
     iterations = iterations + 1
     for (l in 1:length(left_borders)) {
@@ -141,7 +141,7 @@ for (trioRow in 1:nrow(trios)) {
       start = left_borders[[l]]
       end = right_borders[[l]]
       for (k in 1:2) {
-        if (nrow(found_CNVs_total) > opt$maxNumGermCNVs) {
+        if (nrow(found_CNVs_total) > opt$maxNumGermCNVs * 3) {
           break
         }
         local_vectors_of_cn_states = vectors_of_cn_states
@@ -238,7 +238,7 @@ for (trioRow in 1:nrow(trios)) {
         break
       }
     }
-    if (nrow(found_CNVs_total) < opt$maxNumGermCNVs) {
+    if (nrow(found_CNVs_total) < opt$maxNumGermCNVs * 3) {
       numberOfCNVsIsSufficientlySmall = T
       iterations = 4
       break

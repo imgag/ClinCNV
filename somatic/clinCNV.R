@@ -97,6 +97,9 @@ option_list = list(
   
   make_option(c("-fdrG", "--fdrGermline"), type="character", default=0, 
               help="number of iterations for FDR check (more - better, but slower, 0 = no FDR correction)", metavar="character"),
+
+  make_option(c("-numT", "--numberOfThreads"), type="character", default=1, 
+              help="number of threads used for some bottleneck parts, default=1", metavar="character"),  
   
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
@@ -143,8 +146,7 @@ if (!is.null(opt$bafFolder)) {
 
 
 
-no_cores <- min(detectCores() - 1, 4)
-no_cores = 4
+no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 cl<-makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
 
@@ -486,8 +488,7 @@ if (framework == "germline" | !is.null(opt$triosFile)) quit()
 
 
 
-no_cores <- min(detectCores() - 1, 4)
-no_cores = 4
+no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 cl<-makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
 
