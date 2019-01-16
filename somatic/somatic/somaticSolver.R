@@ -704,6 +704,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           clonalBestPurities = c(0, 1)
         }
         
+      } else {
+        print("No CNVs found in this sample for finding clonality.")
+        clonalBestPurities = c(0, 1)
       }
       finalIteration = T
     }
