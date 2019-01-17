@@ -7,11 +7,12 @@ matrix:
   include:
     - os: linux
       dist: xenial
+      addons:
+      apt:
+        packages:
+        - littler
     - os: osx
-
-before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get -qq update         ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install -y littler ; fi
+      osx_image: xcode10
 
 before_script:
   - Rscript --version
