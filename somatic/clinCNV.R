@@ -97,12 +97,16 @@ option_list = list(
   
   make_option(c("-fdrG", "--fdrGermline"), type="character", default=0, 
               help="number of iterations for FDR check (more - better, but slower, 0 = no FDR correction)", metavar="character"),
+
+  make_option(c("-numT", "--numberOfThreads"), type="character", default=1, 
+              help="number of threads used for some bottleneck parts, default=1", metavar="character"),  
   
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
+
 
 
 if (is.null(opt$normal) | is.null(opt$bed)) {
@@ -143,8 +147,7 @@ if (!is.null(opt$bafFolder)) {
 
 
 
-no_cores <- min(detectCores() - 1, 4)
-no_cores = 4
+no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 cl<-makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
 
@@ -224,7 +227,7 @@ if (frameworkOff == "offtarget") {
 }
 
 
-rowsToRemove <- cleanDatasetFromLowCoveredFiles(normal)
+rowsToRemove <- cleanDatasetFromLowCoveredFiles(normal, bedFile)
 if (length(rowsToRemove) > 0) {
   bedFile <- bedFile[-rowsToRemove,]
   normal <- normal[-rowsToRemove,]
@@ -350,11 +353,11 @@ if (frameworkOff == "offtarget") {
 regionsToFilerOutOn <- c()
 for (i in 1:nrow(normal)) {
 if (framework == "somatic"){
-  if (min(median(normal[i,]), median(tumor[i,])) < 0.3) {
+  if (min(quantile(normal[i,], 0.9), quantile(tumor[i,], 0.9)) < 0.5) {
     regionsToFilerOutOn <- c(regionsToFilerOutOn, i)
   }
 } else {
-  if ((median(normal[i,])) < 0.3) {
+  if ((quantile(normal[i,], 0.9)) < 0.5) {
     regionsToFilerOutOn <- c(regionsToFilerOutOn, i)
   }
  }
@@ -386,8 +389,8 @@ bordersOfChroms <- getBordersOfChromosomes(bedFile)
 
 
 
-
-
+print(length(which(bedFile[,1] == "chrX")))
+print(length(which(bedFile[,1] == "chrY")))
 
 ### PROCESSING OF GERMLINE VARIANTS
 setwd(opt$folderWithScript)
@@ -398,6 +401,7 @@ coverage <- sqrt(as.matrix(normal))
 
 print("Gender determination started")
 genderOfSamples <- Determine.gender(coverage, bedFile)
+print(genderOfSamples)
 print("Gender succesfully determined. Plot is written in your results directory.")
 
 
@@ -406,16 +410,11 @@ clusterExport(cl, c('EstimateModeSimple', 'bedFile', 'genderOfSamples', 'coverag
 
 
 
-bandwidths <- parSapply(cl=cl, 1:nrow(coverage), function(i) {x=coverage[i,]; 
-if (bedFile[i,1] == "chrX" & length(which(genderOfSamples=="F")) >= 5) {x = x[which(genderOfSamples == "F")]};
-if (bedFile[i,1] == "chrY" & length(which(genderOfSamples=="M")) >= 5) {x = x[which(genderOfSamples == "M")]};
-density(x, bw="SJ")$bw})
 
-bandwidths[which(bandwidths > quantile(bandwidths, 0.975))] = quantile(bandwidths, 0.975)
 
 #medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
 mediansAndSds <- foreach(i=1:nrow(coverage), .combine="rbind") %dopar% {
-  FindRobustMeanAndStandardDeviation(coverage[i,], bandwidths[i], genderOfSamples, bedFile[i,1])
+  FindRobustMeanAndStandardDeviation(coverage[i,], genderOfSamples, bedFile[i,1])
 }
 medians = as.numeric(mediansAndSds[,1])
 
@@ -424,7 +423,7 @@ medians = as.numeric(mediansAndSds[,1])
 # Moreover - probes with huge variability does not allow detection of CNVs and are useless
 threshold <- 0.001
 snMeasure = as.numeric(mediansAndSds[,1]) / as.numeric(mediansAndSds[,2])
-probesToRemove <- which(as.numeric(mediansAndSds[,2]) < threshold | snMeasure < 3)
+probesToRemove <- which((as.numeric(mediansAndSds[,2]) < threshold | snMeasure < 3) & !bedFile[,1] %in% c("chrX","chrY"))
 sdsOfProbes <- as.numeric(mediansAndSds[,2])
 if (length(probesToRemove > 0)) {
   coverage <- coverage[-probesToRemove,]
@@ -486,8 +485,7 @@ if (framework == "germline" | !is.null(opt$triosFile)) quit()
 
 
 
-no_cores <- min(detectCores() - 1, 4)
-no_cores = 4
+no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 cl<-makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
 

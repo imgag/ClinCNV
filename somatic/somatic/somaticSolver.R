@@ -192,7 +192,7 @@ if (!dir.exists(folder_name)) {
 }
 
 allPotentialPurities <- unique(purities)
-penaltyForHigherCN = 10
+penaltyForHigherCN = 20
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
   
@@ -354,7 +354,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             for (i in lengthOfRolling:length(allowedChromosomesAutosomesOnly)) {
               smoothedLogFold[i - lengthOfRolling + 1] = median(matrixOfLogFoldAllowedChrom[(i - lengthOfRolling + 1):i])
             }
-            clusteredResult <- densityMclust(smoothedLogFold)
+            clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))])
             print("Mclust finished")
             bigClusters <- which(clusteredResult$parameters$pro > 0.3)
             if (length(bigClusters) == 0) {
@@ -384,7 +384,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             for (i in lengthOfRolling:length(allowedChromosomesAutosomesOnly)) {
               smoothedLogFold[i - lengthOfRolling + 1] = median(globalLogFoldAllowedChroms[(i - lengthOfRolling + 1):i])
             }
-            clusteredResult <- densityMclust(smoothedLogFold)
+            clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))])
             print("Mclust finished")
             bigClusters <- which(clusteredResult$parameters$pro > 0.3)
             if (length(bigClusters) == 0) {
@@ -700,7 +700,13 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
         }
         clonalBestPurities = uniqueLocalPurities[resultBestCombination]
+        if (length(clonalBestPurities) == 0) {
+          clonalBestPurities = c(0, 1)
+        }
         
+      } else {
+        print("No CNVs found in this sample for finding clonality.")
+        clonalBestPurities = c(0, 1)
       }
       finalIteration = T
     }
