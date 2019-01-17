@@ -1,0 +1,4 @@
+language: general
+
+script:
+  - echo 'START TESTING NOW'
