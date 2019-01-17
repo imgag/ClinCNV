@@ -19,6 +19,6 @@ before_script:
   - R --version
 
 script:
-  - touch samples/normal.cov
   - cd somatic
-  - Rscript --normal ../samples/coverages_normal.cov --bed ../samples/bed_file.bed folderWithScript $PWD
+  - Rscript clinCNV.R --normal ../samples/coverages_normal.cov --bed ../samples/bed_file.bed folderWithScript $PWD
+  - ls ./result/
