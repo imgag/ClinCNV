@@ -403,6 +403,11 @@ print("Processing of germline variants started.")
 
 
 for (cluster in unique(clustering)) {
+  if (cluster == -1) {
+    print(paste("Samples from trio mode that are presented in trios.txt but do not have a full family in file", opt$normal , "will be excluded."))
+    print(colnames(normal)[which(clustering == -1)])
+    next
+  }
   samplesToAnalyse = which(clustering == cluster)
   coverage <- sqrt(as.matrix(normal[,samplesToAnalyse]))
   

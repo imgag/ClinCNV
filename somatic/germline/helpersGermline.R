@@ -423,11 +423,37 @@ returnClustering <- function(minNumOfElemsInCluster) {
   }
   numOfElementsInCluster = minNumOfElemsInCluster
   
+
+  
   sdsOfRegions <- apply(normal, 1, sd)
   potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.9) | bedFile[,1] %in% c("chrX","chrY") | sdsOfRegions == 0)
   
   coverageForClustering = sqrt(normal[-potentiallyPolymorphicRegions,])
-  n = 3
+  
+  if (!is.null(opt$triosFile)) {
+    samplesActuallyPlayingRole = c()
+    for (trioRow in 1:nrow(trios)) {
+      child_number <- which(colnames(coverageForClustering) == trios[trioRow, 1])
+      mother_number  <- which(colnames(coverageForClustering) == trios[trioRow, 2])
+      father_number  <- which(colnames(coverageForClustering) == trios[trioRow, 3])
+      
+      sample_name = paste(trios[trioRow,], collapse="-")
+      
+      if (length(child_number) == 0 | length(father_number) == 0 | length(mother_number) == 0) {
+        next()
+      } else {
+        samplesActuallyPlayingRole = c(samplesActuallyPlayingRole, c(child_number, mother_number, father_number))
+        coverageToReplace = apply(coverageForClustering[,c(child_number, mother_number, father_number)], 1, median)
+        coverageForClustering[,child_number] = coverageToReplace
+        coverageForClustering[,mother_number] = coverageToReplace
+        coverageForClustering[,father_number] = coverageToReplace
+      }
+    }
+    n = 3
+  } else {
+    n = 3
+  }
+
   coverageForClustering = (apply(coverageForClustering[sample(1:nrow(coverageForClustering)),], 2, function(x) tapply(x, ceiling(seq_along(x) / n), median)))
   
   corMatrix <- cor(coverageForClustering)
@@ -468,7 +494,9 @@ returnClustering <- function(minNumOfElemsInCluster) {
       }
     }
   }
-  
+  if (!is.null(opt$triosFile)) {
+    clustering[-samplesActuallyPlayingRole] = -1
+  }
   
   fit <- cmdscale(dist(t(sqrt(normal[-potentiallyPolymorphicRegions,]))),eig=TRUE, k=2) # k is the number of dim
 
