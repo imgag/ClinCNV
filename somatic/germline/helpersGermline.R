@@ -426,7 +426,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
 
   
   sdsOfRegions <- apply(normal, 1, sd)
-  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.9) | bedFile[,1] %in% c("chrX","chrY") | sdsOfRegions == 0)
+  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.75) | bedFile[,1] %in% c("chrX","chrY") | sdsOfRegions == 0)
   
   coverageForClustering = sqrt(normal[-potentiallyPolymorphicRegions,])
   
@@ -454,7 +454,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
     n = 3
   }
 
-  coverageForClustering = (apply(coverageForClustering[sample(1:nrow(coverageForClustering)),], 2, function(x) tapply(x, ceiling(seq_along(x) / n), median)))
+  coverageForClustering = (apply(coverageForClustering, 2, function(x) tapply(x, ceiling(seq_along(x) / n), median)))
   
   corMatrix <- cor(coverageForClustering)
   
