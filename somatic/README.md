@@ -4,11 +4,13 @@
 
 We expect you to install ClinCNV on Linux or MacOS platforms. We expect you to install `R` (as new version as possible, we used ClinCNV with `R 3.2.3`, but you may experience problems installing libraries using the old version) and the following libraries: 
 ```
+install.packages("optparse")
 install.packages("robustbase")
 install.packages("MASS")
 install.packages("data.table")
 install.packages("foreach")
 install.packages("doParallel")
+install.packages("msm")
 ```
 For now we do not provide our own tool for pre-processing of the data. We recommend you to use *ngs-bits* (https://github.com/imgag/ngs-bits), however, as soon as your data match the format expected by ClinCNV you may proceed with any tool of choice (eg, *samtools*).
 

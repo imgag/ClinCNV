@@ -12,5 +12,6 @@ Imports:
     MASS,
     data.table,
     foreach,
-    doParallel
+    doParallel,
+    msm
 LazyData: true
