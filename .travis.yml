@@ -12,6 +12,10 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; sudo apt-get -qq update         ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; sudo apt-get install -y littler ; fi
 
+before_script:
+  - Rscript --version
+  - R --version
+
 script:
   - cd somatic
   - Rscript --normal normal.cov --out ../samples/ --bed ../samples/bed_file.bed folderWithScript $PWD
