@@ -1,4 +1,5 @@
 # ClinCNV
+[![Build Status](https://travis-ci.org/imgag/ClinCNV.svg?branch=master)](https://travis-ci.org/imgag/ClinCNV)
 
 A tool for large-scale CNV and CNA detection.
 
