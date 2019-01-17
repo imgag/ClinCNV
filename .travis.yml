@@ -11,8 +11,8 @@ matrix:
       apt:
         packages:
         - littler
-    - os: osx
-      osx_image: xcode10
+    #- os: osx
+    #  osx_image: xcode10
 
 before_script:
   - Rscript --version
