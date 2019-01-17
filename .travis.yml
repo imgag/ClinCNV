@@ -4,10 +4,11 @@ r:
   - release
 
 matrix:
-  - os: linux
-  dist: xenial
-  - os: osx
-
+  include:
+    - os: linux
+      dist: xenial
+    - os: osx
+    
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; sudo apt-get -qq update         ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; sudo apt-get install -y littler ; fi
