@@ -1,0 +1,15 @@
+Package: ClinCNV
+Title: A tool for large-scale CNV and CNA detection.
+Version: 0.1
+Authors@R: person("German", "Demidov", email = "German.demidov@medizin.uni-tuebingen.de",
+                  role = c("aut", "cre"))
+Description: ClinCNV is supposed to detect CNVs in germline and somatic context (no mosaicism for now, but it can easily be implemented on request) in NGS data (targeted and whole-genome)
+Depends: R (>= 3.2.3)
+License: MIT
+Imports:
+    robustbase,
+    MASS,
+    data.table,
+    foreach,
+    doParallel
+LazyData: true

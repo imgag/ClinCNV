@@ -1,0 +1,18 @@
+language: r
+
+r:
+  - release
+
+matrix:
+  - os: linux
+  dist: xenial
+  - os: osx
+
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; sudo apt-get -qq update         ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; sudo apt-get install -y littler ; fi
+
+script:
+  - cd somatic
+  - Rscript --normal normal.cov --out ../samples/ --bed ../samples/bed_file.bed folderWithScript $PWD
+  - diff ../samples/normal.cov ../samples/coverages_normal.cov
