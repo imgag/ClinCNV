@@ -7,6 +7,7 @@ Description: ClinCNV is supposed to detect CNVs in germline and somatic context 
 Depends: R (>= 3.2.3)
 License: MIT
 Imports:
+    optparse,
     robustbase,
     MASS,
     data.table,
