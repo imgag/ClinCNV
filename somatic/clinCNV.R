@@ -430,24 +430,7 @@ for (cluster in unique(clustering)) {
   }
   medians = as.numeric(mediansAndSds[,1])
   
-  # In exome seq it is often the case that some hypervariable regions cause false positive calls.
-  # We remove all probes that look suspicious to us
-  # Moreover - probes with huge variability does not allow detection of CNVs and are useless
-  threshold <- 0.001
-  snMeasure = as.numeric(mediansAndSds[,1]) / as.numeric(mediansAndSds[,2])
-  probesToRemove <- which((as.numeric(mediansAndSds[,2]) < threshold | snMeasure < 3) & !bedFile[,1] %in% c("chrX","chrY"))
-  sdsOfProbes <- as.numeric(mediansAndSds[,2])
-  if (length(probesToRemove > 0)) {
-    coverage <- coverage[-probesToRemove,]
-    bedFile <- bedFile[-probesToRemove,]
-    sdsOfProbes <- sdsOfProbes[-probesToRemove]
-    normal <- normal[-probesToRemove,]
-    mediansAndSds = mediansAndSds[-probesToRemove,]
-    if (framework == "somatic")
-      tumor = tumor[-probesToRemove,]
-  }
-  medians = as.numeric(mediansAndSds[,1])
-  
+
   
   coverage.normalised = sweep(coverage, 1, medians, FUN="/")
   coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]

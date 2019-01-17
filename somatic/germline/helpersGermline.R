@@ -424,11 +424,11 @@ returnClustering <- function(minNumOfElemsInCluster) {
   numOfElementsInCluster = minNumOfElemsInCluster
   
 
+  coverageForClustering = sqrt(normal[which(!bedFile[,1] %in% c("chrX","chrY")),])
+  sdsOfRegions <- apply(coverageForClustering, 1, sd)
+  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.75) | sdsOfRegions == 0)
   
-  sdsOfRegions <- apply(normal, 1, sd)
-  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.75) | bedFile[,1] %in% c("chrX","chrY") | sdsOfRegions == 0)
-  
-  coverageForClustering = sqrt(normal[-potentiallyPolymorphicRegions,])
+  coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
   if (!is.null(opt$triosFile)) {
     samplesActuallyPlayingRole = c()
@@ -498,7 +498,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
     clustering[-samplesActuallyPlayingRole] = -1
   }
   
-  fit <- cmdscale(dist(t(sqrt(normal[-potentiallyPolymorphicRegions,]))),eig=TRUE, k=2) # k is the number of dim
+  fit <- cmdscale(dist(t(sqrt(normal[-union(potentiallyPolymorphicRegions, which(bedFile[,1] %in% c("chrX","chrY"))),]))),eig=TRUE, k=2) # k is the number of dim
 
   # plot solution 
   x <- fit$points[,1]
