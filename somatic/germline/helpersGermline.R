@@ -241,7 +241,7 @@ Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
 
 
 
-FindRobustMeanAndStandardDeviation <- function(x, bandwidth, genders, chrom, modeEstimated = NA) {
+FindRobustMeanAndStandardDeviation <- function(x, genders, chrom, modeEstimated = NA) {
   genders = genders[which(x > 0.1)]
   x = x[which(x > 0.1)]
   if (length(x) < 50) {
@@ -302,7 +302,7 @@ FindRobustMeanAndStandardDeviation <- function(x, bandwidth, genders, chrom, mod
   
 
   forMeanX = x
-  return(matrix(c(lehmanHodges(forMeanX), Qn(forMeanX), "Qn"), nrow=1))
+  return(matrix(c(median(forMeanX), Qn(forMeanX), "Qn"), nrow=1))
   
   ### THEN IT MAY BE CHANGED
   if (length(forMeanX) < 10) {

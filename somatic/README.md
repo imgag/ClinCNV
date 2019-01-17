@@ -231,6 +231,9 @@ VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" 
 
 `--fdrGermline` - number of iteration of FDR control procedure performed (more is better for FDR control, but slower). If 0, no permutations and FDR control performed (default).
 
+`--numberOfThreads` - maximum number of threads allowed to use by the tool.
+
+
 ## Citation
 
 ClinCNV is not published for now so it is not possible to properly cite the paper. However, you can: 
