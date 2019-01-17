@@ -457,10 +457,10 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
 
 
 
-cleanDatasetFromLowCoveredFiles <- function(normal) {
-  medians <- apply(sqrt(normal), 1, median)
-  minAllowedCoverage = max(quantile(medians, 0.01))
-  rowsToRemove <- which(medians < minAllowedCoverage)
+cleanDatasetFromLowCoveredFiles <- function(normal, bedFile) {
+  medians <- sapply(1:nrow(normal), function(i) {x=normal[i,]; if (bedFile[i,1] %in% c("chrX", "chrY")) return(quantile(x, 0.9)) else {return(quantile(x,0.5))}})
+  minAllowedCoverage = 0
+  rowsToRemove <- which(medians <= minAllowedCoverage)
   return(rowsToRemove)
 }
 

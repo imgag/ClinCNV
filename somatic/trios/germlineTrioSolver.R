@@ -11,6 +11,7 @@ if (frameworkTrios == "trios") {
   trios <- read.table(opt$triosFile, sep=",", stringsAsFactors = F)
   trios <- data.frame(trios)
   trios <- unique(trios)
+  colnames(trios) <- c("Kid","Mother","Father")
 }
 
 
@@ -132,8 +133,8 @@ for (trioRow in 1:nrow(trios)) {
   iterations = 0
   maxIteration = opt$maxNumIter
   while (!numberOfCNVsIsSufficientlySmall & iterations < maxIteration) {
-    found_CNVs_total <- matrix(0, nrow=0, ncol=11)
-    colnames(found_CNVs_total) <- c("#chr", "start", "end", "kid_CN_change", "mother_CN_change", "father_CN_change", "priority", "loglikelihood", "no_of_regions", "length_in_KB", "genes")
+    found_CNVs_total <- matrix(0, nrow=0, ncol=14)
+    colnames(found_CNVs_total) <- c("#chr", "start", "end", "kid_CN_change", "mother_CN_change", "father_CN_change", "priority", "loglikelihood", "no_of_regions", "length_in_KB", "loglik_kid", "loglik_mother", "loglik_father", "genes")
     
     iterations = iterations + 1
     for (l in 1:length(left_borders)) {
@@ -207,11 +208,20 @@ for (trioRow in 1:nrow(trios)) {
         if (nrow(found_CNVs) > 0) {
           # UNCOMMENT FOR PLOTTING!!!
           
+          matrixOfScoresSonMomFather <- matrix(0, ncol=3, nrow=0)
+          for (s in 1:nrow(found_CNVs)) {
+            statesOfCNVsInTrio = local_vectors_of_cn_states[found_CNVs[s,4],]
+            likeliksKid = sum(matrix_of_likeliks_child[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],statesOfCNVsInTrio[1] + 1]) - sum(matrix_of_likeliks_child[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],local_vectors_of_cn_states[1,1] + 1])
+            likeliksMadre = sum(matrix_of_likeliks_mother[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],statesOfCNVsInTrio[2] + 1]) - sum(matrix_of_likeliks_mother[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],local_vectors_of_cn_states[1,2] + 1])
+            likeliksPadre = sum(matrix_of_likeliks_father[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],statesOfCNVsInTrio[3] + 1]) - sum(matrix_of_likeliks_father[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],local_vectors_of_cn_states[1,3] + 1])
+            matrixOfScoresSonMomFather = rbind(matrixOfScoresSonMomFather, matrix(c(-1 * round(likeliksKid, 2), round(-1 * likeliksMadre, 2),  round(-1 * likeliksPadre, 2)), nrow=1))
+          }
+          
           cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, local_vectors_of_cn_states, 
-                                          toySizesOfPointsFromLocalSds, plottingOfPNGs)
+                                          toySizesOfPointsFromLocalSds, matrixOfScoresSonMomFather, plottingOfPNGs)
           if (found_CNVs[1,1] != -1000) {
             found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
-            if (nrow(found_CNVs_total) > opt$maxNumGermCNVs) {
+            if (nrow(found_CNVs_total) > 3 * opt$maxNumGermCNVs) {
               break
             }
           }
@@ -234,7 +244,7 @@ for (trioRow in 1:nrow(trios)) {
           }
         }
       }
-      if (nrow(found_CNVs_total) > opt$maxNumGermCNVs & iterations != maxIteration) {
+      if (nrow(found_CNVs_total) > 3 * opt$maxNumGermCNVs & iterations != maxIteration) {
         break
       }
     }
