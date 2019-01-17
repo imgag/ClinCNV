@@ -397,6 +397,18 @@ bordersOfChroms <- getBordersOfChromosomes(bedFile)
 setwd(opt$folderWithScript)
 source("./germline/helpersGermline.R")
 
+frameworkTrios = "single"
+if (!is.null(opt$triosFile)) {
+  frameworkTrios = "trios"
+}
+
+if (frameworkTrios == "trios") {
+  trios <- read.table(opt$triosFile, sep=",", stringsAsFactors = F)
+  trios <- data.frame(trios)
+  trios <- unique(trios)
+  colnames(trios) <- c("Kid","Mother","Father")
+}
+
 clustering <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
 
 print("Processing of germline variants started.")
@@ -429,7 +441,7 @@ for (cluster in unique(clustering)) {
     FindRobustMeanAndStandardDeviation(coverage[i,], genderOfSamples, bedFile[i,1])
   }
   medians = as.numeric(mediansAndSds[,1])
-  
+  sdsOfProbes = as.numeric(mediansAndSds[,2])
 
   
   coverage.normalised = sweep(coverage, 1, medians, FUN="/")
