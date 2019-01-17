@@ -101,11 +101,15 @@ option_list = list(
   make_option(c("-numT", "--numberOfThreads"), type="character", default=1, 
               help="number of threads used for some bottleneck parts, default=1", metavar="character"),  
   
+  make_option(c("-numObsInCluster", "--minimumNumOfElemsInCluster"), type="character", default=100, 
+              help="minimum number of elements in cluster (done for germline), default=100, clustering happens only if number of samples bigger than 3 by number of elements in cluster", metavar="character"),  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
+
 
 
 
@@ -389,94 +393,97 @@ bordersOfChroms <- getBordersOfChromosomes(bedFile)
 
 
 
-print(length(which(bedFile[,1] == "chrX")))
-print(length(which(bedFile[,1] == "chrY")))
-
 ### PROCESSING OF GERMLINE VARIANTS
 setwd(opt$folderWithScript)
 source("./germline/helpersGermline.R")
 
+clustering <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
+
 print("Processing of germline variants started.")
-coverage <- sqrt(as.matrix(normal))
-
-print("Gender determination started")
-genderOfSamples <- Determine.gender(coverage, bedFile)
-print(genderOfSamples)
-print("Gender succesfully determined. Plot is written in your results directory.")
 
 
-clusterExport(cl, c('EstimateModeSimple', 'bedFile', 'genderOfSamples', 'coverage', "lehmanHodges", 'Qn'))
-
-
-
-
-
-
-#medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
-mediansAndSds <- foreach(i=1:nrow(coverage), .combine="rbind") %dopar% {
-  FindRobustMeanAndStandardDeviation(coverage[i,], genderOfSamples, bedFile[i,1])
+for (cluster in unique(clustering)) {
+  samplesToAnalyse = which(clustering == cluster)
+  coverage <- sqrt(as.matrix(normal[,samplesToAnalyse]))
+  
+  print("Gender determination started")
+  genderOfSamples <- Determine.gender(coverage, bedFile, cluster)
+  print(genderOfSamples)
+  print("Gender succesfully determined. Plot is written in your results directory.")
+  
+  
+  clusterExport(cl, c('EstimateModeSimple', 'bedFile', 'genderOfSamples', 'coverage', "lehmanHodges", 'Qn'))
+  
+  
+  
+  
+  
+  
+  #medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
+  mediansAndSds <- foreach(i=1:nrow(coverage), .combine="rbind") %dopar% {
+    FindRobustMeanAndStandardDeviation(coverage[i,], genderOfSamples, bedFile[i,1])
+  }
+  medians = as.numeric(mediansAndSds[,1])
+  
+  # In exome seq it is often the case that some hypervariable regions cause false positive calls.
+  # We remove all probes that look suspicious to us
+  # Moreover - probes with huge variability does not allow detection of CNVs and are useless
+  threshold <- 0.001
+  snMeasure = as.numeric(mediansAndSds[,1]) / as.numeric(mediansAndSds[,2])
+  probesToRemove <- which((as.numeric(mediansAndSds[,2]) < threshold | snMeasure < 3) & !bedFile[,1] %in% c("chrX","chrY"))
+  sdsOfProbes <- as.numeric(mediansAndSds[,2])
+  if (length(probesToRemove > 0)) {
+    coverage <- coverage[-probesToRemove,]
+    bedFile <- bedFile[-probesToRemove,]
+    sdsOfProbes <- sdsOfProbes[-probesToRemove]
+    normal <- normal[-probesToRemove,]
+    mediansAndSds = mediansAndSds[-probesToRemove,]
+    if (framework == "somatic")
+      tumor = tumor[-probesToRemove,]
+  }
+  medians = as.numeric(mediansAndSds[,1])
+  
+  
+  coverage.normalised = sweep(coverage, 1, medians, FUN="/")
+  coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]
+  
+  
+  clusterExport(cl, c('coverage.normalised', 'determineSDsOfGermlineProbe'))
+  sdsOfProbes = sdsOfProbes / as.numeric(mediansAndSds[,1])
+  
+  
+  
+  
+  
+  
+  
+  autosomes <- which(!bedFile[,1] %in% c("chrX", "chrY", "X", "Y"))
+  sdsOfGermlineSamples <- apply(coverage.normalised[autosomes,], 2, determineSDsOfGermlineSample)
+  
+  
+  
+  
+  
+  #locationsShiftedLogFoldChanges <- sweep(matrixOfLogFold, 1, locations)
+  
+  listOfVarianceAndMultiplicator <- esimtateVarianceFromSampleNoise(sdsOfGermlineSamples, 100000)
+  esimtatedVarianceFromSampleNoise <- listOfVarianceAndMultiplicator[[2]]
+  multiplicator <- listOfVarianceAndMultiplicator[[1]]
+  
+  vect_of_t_likeliks <- fast_dt_list(ncol(coverage.normalised) - 1)
+  vect_of_norm_likeliks <- fast_dnorm_list()
+  stopCluster(cl)
+  setwd(opt$folderWithScript)
+  
+  
+  
+  
+  if (!is.null(opt$triosFile)) {
+    source("./trios/germlineTrioSolver.R",local=TRUE)
+  } else {
+    source("./germline/germlineSolver.R",local=TRUE)
+  }
 }
-medians = as.numeric(mediansAndSds[,1])
-
-# In exome seq it is often the case that some hypervariable regions cause false positive calls.
-# We remove all probes that look suspicious to us
-# Moreover - probes with huge variability does not allow detection of CNVs and are useless
-threshold <- 0.001
-snMeasure = as.numeric(mediansAndSds[,1]) / as.numeric(mediansAndSds[,2])
-probesToRemove <- which((as.numeric(mediansAndSds[,2]) < threshold | snMeasure < 3) & !bedFile[,1] %in% c("chrX","chrY"))
-sdsOfProbes <- as.numeric(mediansAndSds[,2])
-if (length(probesToRemove > 0)) {
-  coverage <- coverage[-probesToRemove,]
-  bedFile <- bedFile[-probesToRemove,]
-  sdsOfProbes <- sdsOfProbes[-probesToRemove]
-  normal <- normal[-probesToRemove,]
-  mediansAndSds = mediansAndSds[-probesToRemove,]
-  if (framework == "somatic")
-    tumor = tumor[-probesToRemove,]
-}
-medians = as.numeric(mediansAndSds[,1])
-
-
-coverage.normalised = sweep(coverage, 1, medians, FUN="/")
-coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]
-
-
-clusterExport(cl, c('coverage.normalised', 'determineSDsOfGermlineProbe'))
-sdsOfProbes = sdsOfProbes / as.numeric(mediansAndSds[,1])
-
-
-
-
-
-
-
-autosomes <- which(!bedFile[,1] %in% c("chrX", "chrY", "X", "Y"))
-sdsOfGermlineSamples <- apply(coverage.normalised[autosomes,], 2, determineSDsOfGermlineSample)
-
-
-
-
-
-#locationsShiftedLogFoldChanges <- sweep(matrixOfLogFold, 1, locations)
-
-listOfVarianceAndMultiplicator <- esimtateVarianceFromSampleNoise(sdsOfGermlineSamples, 100000)
-esimtatedVarianceFromSampleNoise <- listOfVarianceAndMultiplicator[[2]]
-multiplicator <- listOfVarianceAndMultiplicator[[1]]
-
-vect_of_t_likeliks <- fast_dt_list(ncol(coverage.normalised) - 1)
-vect_of_norm_likeliks <- fast_dnorm_list()
-stopCluster(cl)
-setwd(opt$folderWithScript)
-
-
-
-
-if (!is.null(opt$triosFile)) {
-  source("./trios/germlineTrioSolver.R",local=TRUE)
-} else {
-  source("./germline/germlineSolver.R",local=TRUE)
-}
-
 if (framework == "germline" | !is.null(opt$triosFile)) quit()
 
 

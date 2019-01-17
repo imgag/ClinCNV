@@ -205,7 +205,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
 
 
 
-Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
+Determine.gender <- function(normalized.coverage.corrected.gc, probes, clusterNo) {
   set.seed(100)
   if (length(which(probes[,1] == "chrX")) > 100 & length(which(probes[,1] == "chrY")) > 10) {
     matrix_of_values <- cbind(apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrY"),], 2, EstimateModeSimple), apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrX"),], 2, EstimateModeSimple))
@@ -218,7 +218,7 @@ Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
       clusters <- clKmeans$cluster
       clusters[clusters == 1] <- "F"
       clusters[clusters == 2] <- "M"
-      png(filename=paste0(opt$out, "genders.png"), width=800, height=800)
+      png(filename=paste0(opt$out, paste0("/", clusterNo, "genders.png")), width=800, height=800)
       plot(matrix_of_values, col = clKmeans$cluster, xlab="Y Chromsome", ylab="X Chromosome", pch=19, cex=2)
       points(clKmeans$centers, col = 1:2, pch = 8, cex = 10)
       dev.off()
@@ -407,3 +407,78 @@ FindRobustMeanAndStandardDeviation <- function(x, genders, chrom, modeEstimated 
   }
   result
 }
+
+
+
+
+
+
+
+
+returnClustering <- function(minNumOfElemsInCluster) {
+  set.seed(100)
+  clustering = rep(0, ncol(normal))
+  if (ncol(normal) < 3 * minNumOfElemsInCluster) {
+    return(clustering)
+  }
+  numOfElementsInCluster = minNumOfElemsInCluster
+  
+  sdsOfRegions <- apply(normal, 1, sd)
+  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.9) | bedFile[,1] %in% c("chrX","chrY") | sdsOfRegions == 0)
+  
+  coverageForClustering = sqrt(normal[-potentiallyPolymorphicRegions,])
+  n = 3
+  coverageForClustering = (apply(coverageForClustering[sample(1:nrow(coverageForClustering)),], 2, function(x) tapply(x, ceiling(seq_along(x) / n), median)))
+  
+  corMatrix <- cor(coverageForClustering)
+  
+  distMatrix <- sqrt(1 - corMatrix)
+  hc <- hclust(as.dist(distMatrix), method="ward.D")
+  
+  numOfClusters = 1
+  for (numOfClusters in 2:100) {
+    memb <- cutree(hc, k=numOfClusters)
+    numOfObservationsInClusters <- table(memb)
+    if (sum(numOfObservationsInClusters[numOfObservationsInClusters >= numOfElementsInCluster]) < 0.8 * sum(numOfObservationsInClusters)) {
+      break
+    }
+  }
+  
+  plot(hc)
+  rect.hclust(hc, k=numOfClusters - 1, border="red")
+  memb <- cutree(hc, k=numOfClusters - 1)
+  numOfObservationsInClusters <- table(memb)
+  clustering = memb
+  
+  significantClusters = which(numOfObservationsInClusters >= numOfElementsInCluster)
+  
+  for (i in 1:length(numOfObservationsInClusters)) {
+    if (numOfObservationsInClusters[i] < numOfElementsInCluster) {
+      for (elem in which(clustering == i)) {
+        minDist = 10**1000
+        closestCluster = significantClusters[1]
+        for (signCluster in significantClusters) {
+          distanceToSignCluster = mean(distMatrix[which(memb == signCluster),elem])
+          if (distanceToSignCluster < minDist) {
+            minDist = distanceToSignCluster
+            closestCluster = signCluster
+          }
+        }
+        clustering[elem] = closestCluster
+      }
+    }
+  }
+  
+  
+  fit <- cmdscale(dist(t(sqrt(normal[-potentiallyPolymorphicRegions,]))),eig=TRUE, k=2) # k is the number of dim
+
+  # plot solution 
+  x <- fit$points[,1]
+  y <- fit$points[,2]
+  plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
+       main="Metric MDS", type="n")
+  text(x, y, labels = row.names(distMatrix), cex=.7, col=clustering)
+  return(clustering)
+}
+
+
