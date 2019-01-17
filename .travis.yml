@@ -20,5 +20,6 @@ before_script:
 
 script:
   - cd somatic
-  - Rscript clinCNV.R --normal ../samples/coverages_normal.cov --bed ../samples/bed_file.bed --folderWithScript $PWD
-  - ls ./result/
+  - mkdir result
+  - Rscript clinCNV.R --normal ../samples/coverages_normal.cov --out result --bed ../samples/bed_file.bed --folderWithScript $PWD
+  - ls result
