@@ -2,17 +2,7 @@
 
 cn_states <- 0:6
 
-frameworkTrios = "single"
-if (!is.null(opt$triosFile)) {
-  frameworkTrios = "trios"
-}
 
-if (frameworkTrios == "trios") {
-  trios <- read.table(opt$triosFile, sep=",", stringsAsFactors = F)
-  trios <- data.frame(trios)
-  trios <- unique(trios)
-  colnames(trios) <- c("Kid","Mother","Father")
-}
 
 
 

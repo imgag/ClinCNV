@@ -470,8 +470,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
     }
   }
   
-  plot(hc)
-  rect.hclust(hc, k=numOfClusters - 1, border="red")
+
   memb <- cutree(hc, k=numOfClusters - 1)
   numOfObservationsInClusters <- table(memb)
   clustering = memb
@@ -503,9 +502,14 @@ returnClustering <- function(minNumOfElemsInCluster) {
   # plot solution 
   x <- fit$points[,1]
   y <- fit$points[,2]
+  setwd(opt$out)
+  png(filename="clusteringSolution.png", width=1024, height=1024)
   plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
        main="Metric MDS", type="n")
-  text(x, y, labels = row.names(distMatrix), cex=.7, col=clustering)
+  text(x, y, labels = row.names(distMatrix), cex=.7, col=clustering + 1)
+  dev.off()
+  setwd(opt$folderWithScript)
+  
   return(clustering)
 }
 

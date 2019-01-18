@@ -391,8 +391,7 @@ bordersOfChroms <- getBordersOfChromosomes(bedFile)
 
 
 
-
-
+stopCluster(cl)
 ### PROCESSING OF GERMLINE VARIANTS
 setwd(opt$folderWithScript)
 source("./germline/helpersGermline.R")
@@ -420,6 +419,13 @@ for (cluster in unique(clustering)) {
     print(colnames(normal)[which(clustering == -1)])
     next
   }
+  
+  # We create cluster for parallel computation each time we run germline analysis
+  no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
+  cl<-makeCluster(no_cores, type="FORK")
+  registerDoParallel(cl)
+  
+  
   samplesToAnalyse = which(clustering == cluster)
   coverage <- sqrt(as.matrix(normal[,samplesToAnalyse]))
   
