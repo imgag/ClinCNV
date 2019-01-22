@@ -16,9 +16,9 @@ fast_dt_list <- function(degreesOfFreedom) {
 
 return_likelik <- function(x) {
   x = as.vector(x)
-  x = round(abs(x * 1000)) + 1
-  x = replace(x, which(x >= length(vect_of_t_likeliks)), length(vect_of_t_likeliks) - 1)
-  return(vect_of_t_likeliks[x])
+  x = round(max(1, abs(x * 1000)))
+  x = replace(x, which(x >= length(vect_of_norm_likeliks)), length(vect_of_norm_likeliks) - 1)
+  return(vect_of_norm_likeliks[x])
 }
 
 
@@ -29,11 +29,11 @@ fast_dnorm_list <- function() {
 }
 
 
-return_norm_likelik <- function(x) {
+return_t_likelik <- function(x) {
   x = as.vector(x)
   x = round(abs(x * 1000)) + 1
-  x = replace(x, which(x >= length(vect_of_norm_likeliks)), length(vect_of_norm_likeliks) - 1)
-  return(vect_of_norm_likeliks[x])
+  x = replace(x, which(x >= length(vect_of_t_likeliks)), length(vect_of_t_likeliks) - 1)
+  return(vect_of_t_likeliks[x])
 }
 
 getCytobands <- function(fileName) {
@@ -424,7 +424,7 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
       print("WARNING: Number of rows in bed file is different from number of dots to output into IGV vis file!")
       return(0)
     }
-    copyNumberValues <- round(reverseFunctionUsedToTransform(dotsCoords), digits=2)
+    copyNumberValues <- round(reverseFunctionUsedToTransform(dotsCoords, toyBedFile[,1]), digits=2)
     likelihoods <- rep(0, length(dotsCoords))
     
     chromosome = toyBedFile[1,1]
@@ -554,4 +554,25 @@ cutX <- function(vec) {
     }
   }
   return(newVec)
+}
+
+
+
+robust_correlation <- function(robust_std, estimation_of_center_x, estimation_of_center_y, x, y) {
+  square_root_of_two <- sqrt(2) 
+  std_of_x <- robust_std(x)
+  std_of_y <- robust_std(y)
+  first_component = (x - estimation_of_center_x) / (square_root_of_two * std_of_x)
+  second_component = (y - estimation_of_center_y) / (square_root_of_two * std_of_y)
+  u = first_component + second_component
+  v = first_component - second_component
+  var_of_u = robust_std(u) ** 2
+  var_of_v = robust_std(v) ** 2
+  r = (var_of_u - var_of_v) / (var_of_u + var_of_v + 10**-10)
+  return(r)
+}
+
+correlationMatrixForPairedLikelik <- function(x, y) {
+  correlationBetweenValues <- robust_correlation(Qn, 0, 0, x, y)
+  return(matrix(c(1,correlationBetweenValues,correlationBetweenValues,1), nrow=2))
 }

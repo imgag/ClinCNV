@@ -19,7 +19,8 @@ folder_name <- paste0(opt$out, "/normal/")
 if (!dir.exists(folder_name)) {
   dir.create(folder_name)
 }
-
+covar = T
+lws = returnLowessForCorrelation(coverage.normalised, sdsOfGermlineSamples)
 
 for (sam_no in 1:ncol(coverage.normalised)) {
   sample_name <- colnames(coverage.normalised)[sam_no]
@@ -58,7 +59,13 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   
   
   
-  matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2))
+  if (covar) {
+    listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2), lws, bedFile)
+     matrix_of_likeliks <- listForLikeliks[[1]]
+     bedFileResulting = listForLikeliks[[2]]
+  } else {
+    matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2))
+  }
 
   sizesOfPointsFromLocalSds <- 0.1 / localSds 
   
@@ -95,16 +102,31 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         output_of_plots <-  paste0(folder_name, sample_name)
         which_to_allow <- "NA"
         if (k == 1) {
-          which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] <= as.numeric(start) )
+          which_to_allow = which(bedFile[,1] == chrom & as.numeric(bedFile[,2]) <= as.numeric(left_borders[[l]]) )
         } else {
-          which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] >= as.numeric(end) )
+          which_to_allow = which(bedFile[,1] == chrom & as.numeric(bedFile[,2]) >= as.numeric(right_borders[[l]]) )
         }
         if (length(which_to_allow) <= 1) {
           next
         }
         toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
         toyBedFile = bedFile[which_to_allow,]
+        if (covar) {
+          if (k == 1) {
+            which_to_allow_with_covariance = which(bedFileResulting[,1] == chrom & as.numeric(bedFileResulting[,2]) <= as.numeric(left_borders[[l]]) )
+          } else {
+            which_to_allow_with_covariance = which(bedFileResulting[,1] == chrom & as.numeric(bedFileResulting[,2]) >= as.numeric(right_borders[[l]]) )
+          }
+          toyBedFileAfterCovariance = bedFileResulting[which_to_allow_with_covariance, ]
+          toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow_with_covariance,]
+        }
         found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, initial_state))
+        
+        # Due to inroduction of covariances intermediate probes we need to remap our variants back to the original bedFile
+        if (covar & nrow(found_CNVs) > 0) {
+          found_CNVs <- remapVariants(found_CNVs, toyBedFileAfterCovariance, toyBedFile)
+        }
+        
         toyCoverageGermline = coverage.normalised[which_to_allow,sam_no]
         toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
         
@@ -139,7 +161,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         
         outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
         outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
-        reverseFunctionUsedToTransform = function(x) {return((2 * x ** 2))}
+        reverseFunctionUsedToTransform = function(x, chrom) {return((2 * x ** 2))}
         outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
                                             outputFileNameDots, sample_name, toyCoverageGermline, reverseFunctionUsedToTransform, cn_states)
         if(opt$debug) {
@@ -258,8 +280,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   writeLines(c(paste("##number of iterations:", iterations,  collapse = " "), 
                paste("##fraction of outliers:", round(median(vectorWithNumberOfOutliers), digits=3), collapse = " ")), fileConn)
   close(fileConn)
-  found_CNVs_total[,7] = format(as.numeric(found_CNVs_total[,7]), nsmall=3)
-  found_CNVs_total[,8] = format(as.numeric(found_CNVs_total[,8]), nsmall=3)
+  found_CNVs_total[,7] = (format(as.numeric(found_CNVs_total[,7]), nsmall=3))
+  found_CNVs_total[,8] = (format(as.numeric(found_CNVs_total[,8]), nsmall=3))
   write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
 }
 

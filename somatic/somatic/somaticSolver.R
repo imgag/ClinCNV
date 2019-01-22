@@ -108,6 +108,9 @@ for (pur in purity) {
   }
 }
 
+
+
+
 cn_states[which(cn_states < 0.0001)] = 0.0001
 matrixOfLogFold[which(matrixOfLogFold < log2(min(cn_states) / 2))] = log2(min(cn_states) / 2)
 matrixOfLogFold[which(matrixOfLogFold > log2(max(cn_states) / 2))] = log2(max(cn_states) / 2)
@@ -122,10 +125,10 @@ copy_numbers_used = copy_numbers_used[final_order]
 purities = purities[final_order]
 statesUsed = statesUsed[final_order]
 ### ADDING NORMAL STATE
-purities <- c(0, purities)
-copy_numbers_used <- c(2, copy_numbers_used)
-cn_states <- c(2, cn_states)
-statesUsed <- c("normal", statesUsed)
+purities <- c(0, 0, purities)
+copy_numbers_used <- c(2, 1, copy_numbers_used)
+cn_states <- c(2, 1, cn_states)
+statesUsed <- c("normal", "normal", statesUsed)
 
 
 
@@ -195,7 +198,9 @@ allPotentialPurities <- unique(purities)
 penaltyForHigherCN = 20
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
-  
+  germline_sample_no = which(colnames(normal) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])
+  if (germline_sample_no == "F") next
+  print(genderOfSamples[germline_sample_no])
   
   if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
     if (!sample_name == paste(opt$tumorSample, opt$normalSample, sep="-")) {
@@ -296,7 +301,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       zeroPurity <- which(uniqueLocalPurities == 0)
       uniqueLocalPurities = sort(uniqueLocalPurities[-zeroPurity])
       likeliksFoundCNVsVsPuritiesGlobal = matrix(nrow=0, ncol=length(uniqueLocalPurities))
-      
+
       
       pvalsForQC <- c()
       threshold = opt$scoreS
@@ -407,6 +412,12 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2), local_multipliersDueToLog)
       
+      if (genderOfSamples[germline_sample_no] == "M") {
+        matrix_of_likeliks[which(bedFile[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
+          1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[which(bedFile[,1] %in% c("chrX","chrY")),sam_no], 
+          localSds[which(bedFile[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
+      }
+      
       matrOfSNVlikeliks <- matrix(0, nrow=0, ncol=length(local_purities))
       
       
@@ -504,6 +515,14 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues < log2(min(local_cn_states) / 2))] = log2(min(local_cn_states) / 2)
         matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
         matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[,sam_no_off], localSdsOff, log2(local_cn_states/2), local_multipliersDueToLogOff)
+        if (genderOfSamples[germline_sample_no] == "M") {
+          matrix_of_likeliks_off[which(bedFileOfftarget[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
+            1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileOfftarget[,1] %in% c("chrX","chrY")),sam_no_off], 
+            localSdsOff[which(bedFileOfftarget[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
+        }
+        
+        
+        
         globalMatrOfLikeliks <- rbind(matrix_of_likeliks, matrix_of_likeliks_off)
         globalBed <- rbind(bedFile, bedFileOfftarget)
         sizesOfPointsFromLocalSdsOff <- 0.5 / localSdsOff
@@ -525,7 +544,25 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       for (l in 1:length(left_borders)) {
         
         
+        
+        
         chrom = names(left_borders)[l]
+        
+        
+        if (chrom == "chrY" & genderOfSamples[sam_no_germline] == "F") {
+          next
+        } else if (genderOfSamples[sam_no_germline] == "M") {
+          if (chrom %in% c("chrY","chrX")) {
+            initial_state = 2
+          } else {
+            initial_state = 1
+          }
+        } else {
+          initial_state = 1
+        }
+        
+        
+        
         start = left_borders[[l]]
         end = right_borders[[l]]
         for (k in 1:2) {
@@ -599,7 +636,11 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           if (finalIteration) {
             outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
             outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
-            reverseFunctionUsedToTransform = function(x) {return((2 ** (x + 1)))}
+            if (genderOfSamples[germline_sample_no] == "M") {
+              reverseFunctionUsedToTransform = function(x, chroms) {return((2 ** (x + ifelse(chrom %in% c("chrX", "chrY"), 0, 1))))}
+            } else {
+              reverseFunctionUsedToTransform = function(x, chroms) {return(2 ** (x + 1))}
+            }
             outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
                                                 outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, local_cn_states)
           }

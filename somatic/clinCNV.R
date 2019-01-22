@@ -113,6 +113,7 @@ opt = parse_args(opt_parser);
 
 
 
+
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)

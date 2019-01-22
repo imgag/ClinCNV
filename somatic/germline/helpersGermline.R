@@ -296,7 +296,7 @@ FindRobustMeanAndStandardDeviation <- function(x, genders, chrom, modeEstimated 
     if (length(which(genders == "M")) <= 5) {
       return(matrix(c(sqrt(1/2), 0.5, "sd"), nrow=1))
     } else {
-      x = x[which(genders == "M")]
+      x = x[which(genders == "M")] * sqrt(2)
     }
   }
   
@@ -514,3 +514,128 @@ returnClustering <- function(minNumOfElemsInCluster) {
 }
 
 
+likelihoodOfTwoVariables <- function(var1, var2, covariance, mean1, mean2, x1, x2, regularization=10) {
+  matrixOfCov = matrix(c(var1, covariance, covariance, var2), nrow=2)
+  det = var1 * var2 - covariance ** 2
+  if (det <= 0) {
+    return("NA")
+  }
+  inverseMatrixOfCov = 1 / det * matrix(c(var2, -covariance, -covariance, var1), nrow=2)
+  sd1 = sqrt(var1)
+  sd2 = sqrt(var2)
+  x1 = max(min(mean1 + regularization * sd1, x1), mean1 - regularization * sd1)
+  x2 = max(min(mean2 + regularization * sd2, x2), mean2 - regularization * sd2)
+  product = (cbind(x1 - mean1, x2 - mean2) %*% inverseMatrixOfCov) %*% rbind(x1 - mean1, x2 - mean2)
+  answer = -0.5 * (log(det) + (product) + 2 * log(2 * pi))
+  return(answer)
+}
+
+
+
+
+likelihoodOfTwoVariablesTDistr <- function(var1, var2, covariance, mean1, mean2, x1, x2, dergeesOfFreedom) {
+  regularization=10
+  sd1 = sqrt(var1)
+  sd2 = sqrt(var2)
+  x1 = max(min(regularization, (x1 - mean1) / sd1), -regularization)
+  x2 = max(min(regularization, (x2 - mean2) / sd2), -regularization)
+  covarianceCorrectedForCor = covariance #/ sqrt(var1 * var2)
+  matrixOfCor = (dergeesOfFreedom - 2) / (dergeesOfFreedom) * matrix(c(1, covarianceCorrectedForCor, covarianceCorrectedForCor, 1), nrow=2)
+  likelik = dmvt(c(x1, x2), c(0,0), matrixOfCor, df=dergeesOfFreedom)
+  
+  return(log(likelik))
+}
+
+likelihoodOfTwoVariablesTDistrNov <- function(var1, var2, covariance, mean1, mean2, x1, x2, dergeesOfFreedom) {
+  regularization=10
+  sd1 = sqrt(var1)
+  sd2 = sqrt(var2)
+  x1 = max(min(mean1 + regularization * sd1, x1), mean1 - regularization * sd1)
+  x2 = max(min(mean2 + regularization * sd2, x2), mean2 - regularization * sd2)
+  covarianceCorrectedForCor = covariance / sqrt(var1 * var2)
+  matrixOfCov = (dergeesOfFreedom - 2) / (dergeesOfFreedom) * matrix(c(var1, covarianceCorrectedForCor, covarianceCorrectedForCor, var2), nrow=2)
+  likelik = dmvt(c(x1, x2), c(mean1,mean2), matrixOfCov, df=dergeesOfFreedom)
+  
+  return(log(likelik))
+}
+
+
+returnLowessForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples) {
+  coverageNormalisedBySds = sweep(coverage.normalised - 1, 2, sdsOfGermlineSamples, FUN="/")
+  covariancesClose = rep(0, nrow(coverage.normalised))
+  distnacesClose = rep(-1, nrow(coverage.normalised))
+  for (i in 2:nrow(coverageNormalisedBySds)) {
+    if (bedFile[i,1] %in% c("chrX","chrY")) next
+    if (bedFile[i,1] == bedFile[i-1,1]) {
+      covariancesClose[i - 1] = correlationMatrixForPairedLikelik(coverageNormalisedBySds[(i-1),], coverageNormalisedBySds[i,])[1,2]
+      distnacesClose[i - 1] = bedFile[i,2] - bedFile[i-1,3] + 1
+    }
+  }
+  covariancesClose = covariancesClose[-which((distnacesClose < 0))]
+  distnacesClose = distnacesClose[-which((distnacesClose < 0))]
+  lws = loess(covariancesClose ~ log2(distnacesClose))
+  return(lws)
+}
+
+
+form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_states, lws, currentBedFile) {
+  distances = rep(-1, length(sds) - 1)
+  for (l in 2:nrow(currentBedFile)) {
+    distance = 10 ** 10
+    if (currentBedFile[l,1] == currentBedFile[l-1,1]) {
+      distance = as.numeric(currentBedFile[l,2]) - as.numeric(currentBedFile[l-1,3]) + 1
+    }
+    distances[l - 1] = distance
+  }
+  
+  vector_of_values <- resid[,k]
+  
+  vector_of_states <- cn_states
+  matrix_of_BFs <- matrix(0, nrow=(j - i + 1), ncol=length(vector_of_states))
+  start <- 1
+  end <- j - i + 1
+  
+  matrix_of_BFs = sapply(1:ncol(matrix_of_BFs), function(l) {
+    value = return_likelik((vector_of_values - vector_of_states[l]) / (sds) ) / (sds) + 10^-100
+
+    return(-2 * log(value))
+  })
+  
+  smallDistances <- which(distances < 257)
+  covariances <- predict(lws, log2(smallDistances))
+  coordsOfIntermediateValues <- sapply(1:length(smallDistances), function(i) {return(
+    c(currentBedFile[smallDistances[i],1], round((currentBedFile[smallDistances[i],3] + currentBedFile[smallDistances[i] + 1,2])/ 2),
+      round((currentBedFile[smallDistances[i],3] + currentBedFile[smallDistances[i] + 1,2])/ 2)))})
+  coordsOfIntermediateValues = matrix(coordsOfIntermediateValues, ncol=3, byrow=T)
+  colnames(coordsOfIntermediateValues) <- colnames(currentBedFile)[1:3]
+  likeliksOfIntermediateValues <- sapply(1:length(smallDistances), function(i) {return(
+    -2 * sapply(1:length(cn_states), function(j) {
+      likelihoodOfTwoVariables(sds[smallDistances[i]]**2, sds[smallDistances[i] + 1]**2,
+                                   covariances[i] * sds[smallDistances[i]] * sds[smallDistances[i] + 1] * ifelse(vector_of_states[j] < 0.1, 0, 1),
+                                   vector_of_states[j], vector_of_states[j],
+                                   vector_of_values[smallDistances[i]], vector_of_values[smallDistances[i] + 1]
+                                   ) } ) - (matrix_of_BFs[smallDistances[i],] + matrix_of_BFs[smallDistances[i] + 1,])
+  )})
+  likeliksOfIntermediateValues = matrix(likeliksOfIntermediateValues, ncol=length(cn_states), byrow=T)
+  
+  # TIME TO MERGE TO MATRICES OF LIKELIHOODS
+  commonBedFile = rbind(currentBedFile[,1:3], coordsOfIntermediateValues)
+  orderOfBedFile = order(commonBedFile[,1], as.numeric(commonBedFile[,2]))
+  matrix_of_BFs = rbind(matrix_of_BFs, likeliksOfIntermediateValues)[orderOfBedFile,]
+  commonBedFile = commonBedFile[orderOfBedFile,]
+  
+  return(list(matrix_of_BFs,commonBedFile))
+}
+
+
+remapVariants <- function(found_CNVs, toyBedFileAfterCovariance, toyBedFile) {
+  for (k in 1:nrow(found_CNVs)) {
+    start = as.numeric(toyBedFileAfterCovariance[found_CNVs[k,2],2])
+    end = as.numeric(toyBedFileAfterCovariance[found_CNVs[k,3],3])
+    newStart = min(which(as.numeric(toyBedFile[,2]) >= start))
+    newEnd = max(which(as.numeric(toyBedFile[,3]) <= end))
+    found_CNVs[k,2] = newStart
+    found_CNVs[k,3] = newEnd
+  }
+  return(found_CNVs)
+}
