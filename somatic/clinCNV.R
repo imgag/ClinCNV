@@ -262,7 +262,6 @@ if (framework == "somatic") {
 
 
 ## CHECK INPUT VALIDITY
-## CHECK INPUT VALIDITY
 if (!is.null(opt$normalSample)) {
   if (!opt$normalSample %in% colnames(normal)) {
     print(paste("Sorry! We have not found sample with name", opt$normalSample, "in our normal cohort! Please check that sample name matches. Header of cohort is:"))
@@ -305,7 +304,14 @@ if (frameworkDataTypes == "covdepthBAF") {
   listOfValues <- returnAllowedChromsBaf(pairsForBAF, normal, tumor, opt$bafFolder, bedFile, left_borders, right_borders, ends_of_chroms)
   allowedChromsBaf <- listOfValues[[1]]
   bAlleleFreqsAllSamples <- listOfValues[[2]]
+  if (length(allowedChromsBaf) == 0) {
+    print("Apparently none of your baf files match with sample pairs you've provided. We can not use any bafs from now on and rely only on coverage.")
+    frameworkDataTypes = "covdepth"
+    rm(allowedChromsBaf)
+    rm(bAlleleFreqsAllSamples)
+  }
 }
+
 setwd(opt$folderWithScript)
 
 
@@ -421,7 +427,9 @@ if (frameworkTrios == "trios") {
   colnames(trios) <- c("Kid","Mother","Father")
 }
 
+print("We start clustering of germline samples before calling")
 clustering <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
+print("Clustering finished")
 
 print("Processing of germline variants started.")
 
@@ -456,9 +464,11 @@ for (cluster in unique(clustering)) {
   
   
   #medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
+  print("We start calculation of scale/location of our cohort - it may take time")
   mediansAndSds <- foreach(i=1:nrow(coverage), .combine="rbind") %dopar% {
     FindRobustMeanAndStandardDeviation(coverage[i,], genderOfSamples, bedFile[i,1])
   }
+  print("We have finished with the calculation of params for our cohort")
   medians = as.numeric(mediansAndSds[,1])
   sdsOfProbes = as.numeric(mediansAndSds[,2])
 
