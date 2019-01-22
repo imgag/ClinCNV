@@ -262,9 +262,17 @@ if (framework == "somatic") {
 
 
 ## CHECK INPUT VALIDITY
+## CHECK INPUT VALIDITY
 if (!is.null(opt$normalSample)) {
+  if (!opt$normalSample %in% colnames(normal)) {
+    print(paste("Sorry! We have not found sample with name", opt$normalSample, "in our normal cohort! Please check that sample name matches. Header of cohort is:"))
+    print(colnames(normal))
+  }
   stopifnot(opt$normalSample %in% colnames(normal))
+  print(paste("We have found sample with name", opt$normalSample, "in our normal.cov file! We will try to analyse it.", 
+              "Remember - we still have to calculate all the parameters (the most time consuming step)..."))
 }
+
 if (!is.null(opt$tumorSample)) {
   stopifnot(!is.null(opt$normalSample))
   stopifnot(opt$tumorSample %in% colnames(tumor))
