@@ -573,7 +573,13 @@ returnLowessForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples
   }
   covariancesClose = covariancesClose[-which((distnacesClose < 0))]
   distnacesClose = distnacesClose[-which((distnacesClose < 0))]
+  if (length(unique(distnacesClose)) > 10) {
   lws = loess(covariancesClose ~ log2(distnacesClose))
+  } else if (length(unique(distnacesClose)) > 1) {
+    lws = rlm(covariancesClose ~ log2(distnacesClose))
+  } else {
+    lws = median(covariancesClose)
+  }
   return(lws)
 }
 
@@ -597,32 +603,40 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
   
   matrix_of_BFs = sapply(1:ncol(matrix_of_BFs), function(l) {
     value = return_likelik((vector_of_values - vector_of_states[l]) / (sds) ) / (sds) + 10^-100
-
+    
     return(-2 * log(value))
   })
   
   smallDistances <- which(distances < 257)
-  covariances <- predict(lws, log2(smallDistances))
-  coordsOfIntermediateValues <- sapply(1:length(smallDistances), function(i) {return(
-    c(currentBedFile[smallDistances[i],1], round((currentBedFile[smallDistances[i],3] + currentBedFile[smallDistances[i] + 1,2])/ 2),
-      round((currentBedFile[smallDistances[i],3] + currentBedFile[smallDistances[i] + 1,2])/ 2)))})
-  coordsOfIntermediateValues = matrix(coordsOfIntermediateValues, ncol=3, byrow=T)
-  colnames(coordsOfIntermediateValues) <- colnames(currentBedFile)[1:3]
-  likeliksOfIntermediateValues <- sapply(1:length(smallDistances), function(i) {return(
-    -2 * sapply(1:length(cn_states), function(j) {
-      likelihoodOfTwoVariables(sds[smallDistances[i]]**2, sds[smallDistances[i] + 1]**2,
-                                   covariances[i] * sds[smallDistances[i]] * sds[smallDistances[i] + 1] * ifelse(vector_of_states[j] < 0.1, 0, 1),
-                                   vector_of_states[j], vector_of_states[j],
-                                   vector_of_values[smallDistances[i]], vector_of_values[smallDistances[i] + 1]
-                                   ) } ) - (matrix_of_BFs[smallDistances[i],] + matrix_of_BFs[smallDistances[i] + 1,])
-  )})
-  likeliksOfIntermediateValues = matrix(likeliksOfIntermediateValues, ncol=length(cn_states), byrow=T)
-  
-  # TIME TO MERGE TO MATRICES OF LIKELIHOODS
-  commonBedFile = rbind(currentBedFile[,1:3], coordsOfIntermediateValues)
-  orderOfBedFile = order(commonBedFile[,1], as.numeric(commonBedFile[,2]))
-  matrix_of_BFs = rbind(matrix_of_BFs, likeliksOfIntermediateValues)[orderOfBedFile,]
-  commonBedFile = commonBedFile[orderOfBedFile,]
+  if (length(smallDistances) > 10) {
+    if (is.numeric(lws)) {
+      covariances = rep(lws, length(smallDistances))
+    } else {
+      covariances <- predict(lws, log2(smallDistances))
+    }
+    coordsOfIntermediateValues <- sapply(1:length(smallDistances), function(i) {return(
+      c(currentBedFile[smallDistances[i],1], round((currentBedFile[smallDistances[i],3] + currentBedFile[smallDistances[i] + 1,2])/ 2),
+        round((currentBedFile[smallDistances[i],3] + currentBedFile[smallDistances[i] + 1,2])/ 2)))})
+    coordsOfIntermediateValues = matrix(coordsOfIntermediateValues, ncol=3, byrow=T)
+    colnames(coordsOfIntermediateValues) <- colnames(currentBedFile)[1:3]
+    likeliksOfIntermediateValues <- sapply(1:length(smallDistances), function(i) {print(i);return(
+      -2 * sapply(1:length(cn_states), function(j) {
+        likelihoodOfTwoVariables(sds[smallDistances[i]]**2, sds[smallDistances[i] + 1]**2,
+                                 covariances[i] * sds[smallDistances[i]] * sds[smallDistances[i] + 1] * ifelse(vector_of_states[j] < 0.1, 0, 1),
+                                 vector_of_states[j], vector_of_states[j],
+                                 vector_of_values[smallDistances[i]], vector_of_values[smallDistances[i] + 1]
+        ) } ) - (matrix_of_BFs[smallDistances[i],] + matrix_of_BFs[smallDistances[i] + 1,])
+    )})
+    likeliksOfIntermediateValues = matrix(likeliksOfIntermediateValues, ncol=length(cn_states), byrow=T)
+    
+    # TIME TO MERGE TO MATRICES OF LIKELIHOODS
+    commonBedFile = rbind(currentBedFile[,1:3], coordsOfIntermediateValues)
+    orderOfBedFile = order(commonBedFile[,1], as.numeric(commonBedFile[,2]))
+    matrix_of_BFs = rbind(matrix_of_BFs, likeliksOfIntermediateValues)[orderOfBedFile,]
+    commonBedFile = commonBedFile[orderOfBedFile,]
+  } else {
+    commonBedFile = bedFile
+  }
   
   return(list(matrix_of_BFs,commonBedFile))
 }

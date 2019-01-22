@@ -6,6 +6,15 @@ startsWith <- function(x, prefix) {
   }
 }
 
+ReadFileFast <- function(fileName, header=T) {
+  if (header) {
+    colnames <- strsplit(readLines(fileName, n=1), "\t")[[1]]
+    setnames(localDf <- as.data.frame(fread(fileName, skip=1, header=F, stringsAsFactors = F, sep="\t")), colnames)
+  } else {
+    localDf <- as.data.frame(fread(fileName, header=F, stringsAsFactors = F, sep="\t"))
+  }
+  return(localDf)
+}
 
 fast_dt_list <- function(degreesOfFreedom) {
   values <- seq(from = 0.0, to = 10000.0, by=1)
@@ -16,7 +25,8 @@ fast_dt_list <- function(degreesOfFreedom) {
 
 return_likelik <- function(x) {
   x = as.vector(x)
-  x = round(max(1, abs(x * 1000)))
+  x = round(abs(x * 1000))
+  x[which(x < 1)] = 1
   x = replace(x, which(x >= length(vect_of_norm_likeliks)), length(vect_of_norm_likeliks) - 1)
   return(vect_of_norm_likeliks[x])
 }
@@ -562,6 +572,7 @@ robust_correlation <- function(robust_std, estimation_of_center_x, estimation_of
   square_root_of_two <- sqrt(2) 
   std_of_x <- robust_std(x)
   std_of_y <- robust_std(y)
+  if (std_of_x == 0 | std_of_y == 0) {return(0)}
   first_component = (x - estimation_of_center_x) / (square_root_of_two * std_of_x)
   second_component = (y - estimation_of_center_y) / (square_root_of_two * std_of_y)
   u = first_component + second_component

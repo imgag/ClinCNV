@@ -38,7 +38,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   
   
   localSds = sdsOfProbes * esimtatedVarianceFromSampleNoise[sam_no] * multiplicator
-  
+  localSds[which(localSds == 0)] = median(localSds)
   
   
   

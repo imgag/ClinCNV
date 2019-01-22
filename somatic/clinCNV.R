@@ -111,9 +111,6 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 
 
-
-
-
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -160,7 +157,8 @@ registerDoParallel(cl)
 
 ### READING DATA
 setwd(opt$folderWithScript)
-bedFile <- read.table(opt$bed, stringsAsFactors = F, sep="\t", comment.char="&", header=F)
+#bedFile <- read.table(opt$bed, stringsAsFactors = F, sep="\t", comment.char="&", header=F)
+bedFile <- ReadFileFast(opt$bed, header=F)
 if (!startsWith(bedFile[,1], "chr"))
   bedFile[,1] <- paste0("chr", bedFile[,1])
 colnames(bedFile) <- c("chr.X", "start", "end", "gc")
@@ -176,7 +174,8 @@ whichBedIsNA <- which(is.na(bedFile[,4]) | bedFile[,3] - bedFile[,2] < 80)
 if (length(whichBedIsNA) > 0)
   bedFile = bedFile[-whichBedIsNA,]
 
-normal <- read.table(opt$normal, header=T, stringsAsFactors = F, comment.char="&" )
+#normal <- read.table(opt$normal, header=T, stringsAsFactors = F, comment.char="&" )
+normal <- ReadFileFast(opt$normal, header=T)
 normal = normal
 colnames(normal) = cutX(colnames(normal))
 if (!startsWith(normal[,1], "chr"))
@@ -187,7 +186,8 @@ if (length(whichBedIsNA) > 0)
   normal = normal[-whichBedIsNA,]
 
 if (framework == "somatic") {
-  tumor <- read.table(opt$tumor, header=T, stringsAsFactors = F, comment.char="&" )
+  #tumor <- read.table(opt$tumor, header=T, stringsAsFactors = F, comment.char="&" )
+  tumor <- ReadFileFast(opt$tumor, header=T)
   tumor = tumor
   colnames(tumor) = cutX(colnames(tumor))
   if (!startsWith(tumor[,1], "chr"))
@@ -199,7 +199,8 @@ if (framework == "somatic") {
 }
 
 if (frameworkOff == "offtarget") {
-  bedFileOfftarget <- read.table(opt$bedOfftarget, stringsAsFactors = F, sep="\t")
+  #bedFileOfftarget <- read.table(opt$bedOfftarget, stringsAsFactors = F, sep="\t")
+  bedFileOfftarget <- ReadFileFast(opt$bedOfftarget, header=F)
   if (!startsWith(bedFileOfftarget[,1], "chr"))
     bedFileOfftarget[,1] <- paste0("chr", bedFileOfftarget[,1])
   colnames(bedFileOfftarget) <- c("chr.X", "start", "end", "gc")
@@ -212,7 +213,8 @@ if (frameworkOff == "offtarget") {
   bedFileOfftarget[,4] <- round(as.numeric(as.character(bedFileOfftarget[,4])) / i, digits = 2) * i
   
   
-  normalOff <- read.table(opt$normalOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
+  #normalOff <- read.table(opt$normalOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
+  normalOff <- ReadFileFast(opt$normalOfftarget, header=T)
   colnames(normalOff) = cutX(colnames(normalOff))
   if (!startsWith(normalOff[,1], "chr"))
     normalOff[,1] <- paste0("chr", normalOff[,1])
@@ -221,7 +223,8 @@ if (frameworkOff == "offtarget") {
   # remain only samples that are in Normal cohort 
   normalOff <- normalOff[,which(colnames(normalOff) %in% colnames(normal))]
   
-  tumorOff <- read.table(opt$tumorOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
+  #tumorOff <- read.table(opt$tumorOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
+  tumorOff <- ReadFileFast(opt$tumorOfftarget, header=T) 
   colnames(tumorOff) = cutX(colnames(tumorOff))
   if (!startsWith(tumorOff[,1], "chr"))
     tumorOff[,1] <- paste0("chr", tumorOff[,1])
@@ -230,6 +233,7 @@ if (frameworkOff == "offtarget") {
   # remain only samples that are in Tumor cohort 
   tumorOff <- tumorOff[,which(colnames(tumorOff) %in% colnames(tumor))]
 }
+
 
 
 rowsToRemove <- cleanDatasetFromLowCoveredFiles(normal, bedFile)
