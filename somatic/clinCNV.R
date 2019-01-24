@@ -1,5 +1,6 @@
 #!/usr/bin/env Rscript
 set.seed(100)
+options(warn=-1)
 
 ## CHECK R VERSION
 if (!(as.numeric(version$major) >= 3 & as.numeric(version$minor) > 2.0)) {
@@ -315,6 +316,12 @@ if (frameworkDataTypes == "covdepthBAF") {
   listOfValues <- returnAllowedChromsBaf(pairsForBAF, normal, tumor, opt$bafFolder, bedFile, left_borders, right_borders, ends_of_chroms)
   allowedChromsBaf <- listOfValues[[1]]
   bAlleleFreqsAllSamples <- listOfValues[[2]]
+  if (length(allowedChromsBaf) == 0) {
+    print("Apparently none of your baf files match with sample pairs you've provided. We can not use any bafs from now on and rely only on coverage.")
+    frameworkDataTypes = "covdepth"
+    rm(allowedChromsBaf)
+    rm(bAlleleFreqsAllSamples)
+  }
 }
 setwd(opt$folderWithScript)
 

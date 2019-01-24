@@ -533,33 +533,6 @@ likelihoodOfTwoVariables <- function(var1, var2, covariance, mean1, mean2, x1, x
 
 
 
-likelihoodOfTwoVariablesTDistr <- function(var1, var2, covariance, mean1, mean2, x1, x2, dergeesOfFreedom) {
-  regularization=10
-  sd1 = sqrt(var1)
-  sd2 = sqrt(var2)
-  x1 = max(min(regularization, (x1 - mean1) / sd1), -regularization)
-  x2 = max(min(regularization, (x2 - mean2) / sd2), -regularization)
-  covarianceCorrectedForCor = covariance #/ sqrt(var1 * var2)
-  matrixOfCor = (dergeesOfFreedom - 2) / (dergeesOfFreedom) * matrix(c(1, covarianceCorrectedForCor, covarianceCorrectedForCor, 1), nrow=2)
-  likelik = dmvt(c(x1, x2), c(0,0), matrixOfCor, df=dergeesOfFreedom)
-  
-  return(log(likelik))
-}
-
-likelihoodOfTwoVariablesTDistrNov <- function(var1, var2, covariance, mean1, mean2, x1, x2, dergeesOfFreedom) {
-  regularization=10
-  sd1 = sqrt(var1)
-  sd2 = sqrt(var2)
-  x1 = max(min(mean1 + regularization * sd1, x1), mean1 - regularization * sd1)
-  x2 = max(min(mean2 + regularization * sd2, x2), mean2 - regularization * sd2)
-  covarianceCorrectedForCor = covariance / sqrt(var1 * var2)
-  matrixOfCov = (dergeesOfFreedom - 2) / (dergeesOfFreedom) * matrix(c(var1, covarianceCorrectedForCor, covarianceCorrectedForCor, var2), nrow=2)
-  likelik = dmvt(c(x1, x2), c(mean1,mean2), matrixOfCov, df=dergeesOfFreedom)
-  
-  return(log(likelik))
-}
-
-
 returnLowessForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples) {
   coverageNormalisedBySds = sweep(coverage.normalised - 1, 2, sdsOfGermlineSamples, FUN="/")
   covariancesClose = rep(0, nrow(coverage.normalised))
