@@ -29,6 +29,8 @@ if (!dir.exists(folder_name)) {
 covar = T
 sdsOfGermlineSamplesForNormalisedData = apply(coverage.normalised[autosomes,], 2, determineSDsOfGermlineSample)
 covarianceTable = returnLowessForCorrelation(coverage.normalised, sdsOfGermlineSamplesForNormalisedData)
+print("Covariances for the data...")
+print(covarianceTable)
 if (frameworkOff == "offtargetGermline") {
   sdsOfGermlineSamplesForNormalisedDataOff = apply(coverage.normalised.off[autosomesOff,], 2, determineSDsOfGermlineSample)
 }
