@@ -205,7 +205,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
 
 
 
-Determine.gender <- function(normalized.coverage.corrected.gc, probes, clusterNo) {
+Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
   set.seed(100)
   if (length(which(probes[,1] == "chrX")) > 100 & length(which(probes[,1] == "chrY")) > 10) {
     matrix_of_values <- cbind(apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrY"),], 2, EstimateModeSimple), apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrX"),], 2, EstimateModeSimple))
@@ -218,7 +218,7 @@ Determine.gender <- function(normalized.coverage.corrected.gc, probes, clusterNo
       clusters <- clKmeans$cluster
       clusters[clusters == 1] <- "F"
       clusters[clusters == 2] <- "M"
-      png(filename=paste0(opt$out, paste0("/", clusterNo, "genders.png")), width=800, height=800)
+      png(filename=paste0(opt$out, paste0("/genders.png")), width=800, height=800)
       plot(matrix_of_values, col = clKmeans$cluster, xlab="Y Chromsome", ylab="X Chromosome", pch=19, cex=2)
       points(clKmeans$centers, col = 1:2, pch = 8, cex = 10)
       dev.off()
@@ -573,18 +573,28 @@ returnLowessForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples
   }
   covariancesClose = covariancesClose[-which((distnacesClose < 0))]
   distnacesClose = distnacesClose[-which((distnacesClose < 0))]
-  if (length(unique(distnacesClose)) > 10) {
-  lws = loess(covariancesClose ~ log2(distnacesClose))
-  } else if (length(unique(distnacesClose)) > 1) {
-    lws = rlm(covariancesClose ~ log2(distnacesClose))
-  } else {
-    lws = median(covariancesClose)
+  log2Distances = log2(distnacesClose)
+  
+  degressOfTwo = 1:20
+  vecOfCovariances = rep(0,length(degressOfTwo))
+  for (i in degressOfTwo) {
+    bordersAround = 0
+    leftBorder = i  - 1.00001
+    rightBorder = i 
+    while (length(which(log2Distances >= leftBorder & log2Distances < rightBorder) ) < 100) {
+      leftBorder = leftBorder - 0.1
+      rightBorder = rightBorder + 0.1
+    }
+    vecOfCovariances[i] = median(covariancesClose[which(log2Distances >= leftBorder & log2Distances < rightBorder) ])
   }
-  return(lws)
+  degressOfTwo = degressOfTwo - 1
+  
+  
+  return(rbind(degressOfTwo, vecOfCovariances))
 }
 
 
-form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_states, lws, currentBedFile) {
+form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_states, covarianceTable, currentBedFile) {
   distances = rep(-1, length(sds) - 1)
   for (l in 2:nrow(currentBedFile)) {
     distance = 10 ** 10
@@ -607,19 +617,18 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
     return(-2 * log(value))
   })
   
-  smallDistances <- which(distances < 257)
+  smallDistances <- which(distances < 1024)
   if (length(smallDistances) > 10) {
-    if (is.numeric(lws)) {
-      covariances = rep(lws, length(smallDistances))
-    } else {
-      covariances <- predict(lws, log2(smallDistances))
-    }
+    distancesToPredict = log2(distances[smallDistances] + 1)
+    covariances <- sapply(1:length(distancesToPredict), function(i) {covarianceTable[2,which.min(abs(distancesToPredict[i] - covarianceTable[1,]))]
+      })
+    
     coordsOfIntermediateValues <- sapply(1:length(smallDistances), function(i) {return(
       c(currentBedFile[smallDistances[i],1], round((currentBedFile[smallDistances[i],3] + currentBedFile[smallDistances[i] + 1,2])/ 2),
         round((currentBedFile[smallDistances[i],3] + currentBedFile[smallDistances[i] + 1,2])/ 2)))})
     coordsOfIntermediateValues = matrix(coordsOfIntermediateValues, ncol=3, byrow=T)
     colnames(coordsOfIntermediateValues) <- colnames(currentBedFile)[1:3]
-    likeliksOfIntermediateValues <- sapply(1:length(smallDistances), function(i) {print(i);return(
+    likeliksOfIntermediateValues <- sapply(1:length(smallDistances), function(i) {return(
       -2 * sapply(1:length(cn_states), function(j) {
         likelihoodOfTwoVariables(sds[smallDistances[i]]**2, sds[smallDistances[i] + 1]**2,
                                  covariances[i] * sds[smallDistances[i]] * sds[smallDistances[i] + 1] * ifelse(vector_of_states[j] < 0.1, 0, 1),
@@ -652,4 +661,53 @@ remapVariants <- function(found_CNVs, toyBedFileAfterCovariance, toyBedFile) {
     found_CNVs[k,3] = newEnd
   }
   return(found_CNVs)
+}
+
+calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, sdsOfGermlineSamples, autosomes) {
+  mediansAndSds = matrix(0, nrow=0, ncol=2)
+  whichSamplesUsed = 1:ncol(coverage)
+  # WE ASSUME THERE ARE ENOUGH SAMPLES OF BOTH GENDERS
+  for (chrom in unique(bedFile[,1])) {
+    print(chrom)
+    coveragesToDealWith = coverage[which(bedFile[,1] == chrom),]
+    if (chrom == "chrX") {
+      if (length(which(genderOfSamples == "F")) > length(which(genderOfSamples == "M"))) {
+        whichSamplesUsed = which(genderOfSamples == "F")
+      } else {
+        whichSamplesUsed = which(genderOfSamples == "M")
+      }
+    } else if (chrom == "chrY") {
+      if (length(which(genderOfSamples == "M")) <= 2) {
+        whichSamplesUsed = which(genderOfSamples == "F")
+        QNs = rep(1000, nrow(coveragesToDealWithStandardized))
+        medians = rep(1, nrow(coveragesToDealWithStandardized))
+        mediansAndSds = rbind(mediansAndSds, cbind(medians, QNs))
+        next
+      }
+      whichSamplesUsed = which(genderOfSamples == "M")
+    }
+    medians <- parApply(cl=cl,coveragesToDealWith, 1, median)
+    coveragesToDealWithStandardized = sweep(coveragesToDealWith[,whichSamplesUsed], 1, medians)
+    coveragesToDealWithStandardized <- sweep(coveragesToDealWithStandardized, 2, sdsOfGermlineSamples[whichSamplesUsed], FUN="/")
+    
+    QNs <- parApply(cl=cl, coveragesToDealWithStandardized, 1, Qn)
+    if (chrom == "chrX") {
+      medianOfSdsForAllProbes = median(mediansAndSds[autosomes,2])
+      medianOfSdsForX = median(QNs)
+      QNs = QNs / (medianOfSdsForX / medianOfSdsForAllProbes)
+    }
+    if (chrom == "chrY") {
+      medianOfSdsForAllProbes = median(mediansAndSds[autosomes,2])
+      medianOfSdsForX = median(QNs)
+      QNs = QNs / (medianOfSdsForX / medianOfSdsForAllProbes)
+    }
+    if (chrom == "chrX" & length(which(genderOfSamples == "F")) <= length(which(genderOfSamples == "M"))) {
+      medians = sqrt(2) * medians
+    }
+    if (chrom == "chrY" & length(which(genderOfSamples == "M")) > 2) {
+      medians = sqrt(2) * medians
+    }
+    mediansAndSds = rbind(mediansAndSds, cbind(medians, QNs))
+  }
+  return(mediansAndSds)
 }

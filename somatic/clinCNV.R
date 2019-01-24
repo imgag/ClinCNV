@@ -104,11 +104,15 @@ option_list = list(
   make_option(c("-numObsInCluster", "--minimumNumOfElemsInCluster"), type="character", default=100, 
               help="minimum number of elements in cluster (done for germline), default=100, clustering happens only if number of samples bigger than 3 by number of elements in cluster", metavar="character"),  
   
+  make_option(c("-vis", "--visulizationIGV"), type="character", default=T, 
+              help="if you dont need IGV tracks as output, specify as F (as printing out IGV tracks slows down the program)", metavar="character"),  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
+
 
 
 if (is.null(opt$normal) | is.null(opt$bed)) {
@@ -135,8 +139,12 @@ if (!is.null(opt$tumor)) {
 
 frameworkOff = "ontarget"
 if (!is.null(opt$tumorOfftarget) & !is.null(opt$normalOfftarget) & !is.null(opt$bedOfftarget)) {
-  print("Offtarget files are provided. We try to utilise off-target coverage also.")
+  print("Offtarget files are provided. We try to utilise off-target coverage also (somatic mode).")
   frameworkOff = "offtarget"
+}
+if (!is.null(opt$normalOfftarget) & !is.null(opt$bedOfftarget) & is.null(opt$tumorOfftarget)) {
+  print("Offtarget files are provided. We try to utilise off-target coverage also (germline mode).")
+  frameworkOff = "offtargetGermline"
 }
 
 frameworkDataTypes = "covdepth"
@@ -198,7 +206,7 @@ if (framework == "somatic") {
     tumor = tumor[-whichBedIsNA,]
 }
 
-if (frameworkOff == "offtarget") {
+if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   #bedFileOfftarget <- read.table(opt$bedOfftarget, stringsAsFactors = F, sep="\t")
   bedFileOfftarget <- ReadFileFast(opt$bedOfftarget, header=F)
   if (!startsWith(bedFileOfftarget[,1], "chr"))
@@ -224,14 +232,16 @@ if (frameworkOff == "offtarget") {
   normalOff <- normalOff[,which(colnames(normalOff) %in% colnames(normal))]
   
   #tumorOff <- read.table(opt$tumorOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
-  tumorOff <- ReadFileFast(opt$tumorOfftarget, header=T) 
-  colnames(tumorOff) = cutX(colnames(tumorOff))
-  if (!startsWith(tumorOff[,1], "chr"))
-    tumorOff[,1] <- paste0("chr", tumorOff[,1])
-  tumorOff <- tumorOff[order(tumorOff[,1], as.numeric(tumorOff[,2])),]
-  tumorOff <- as.matrix(tumorOff[,opt$colNum:ncol(tumorOff)])
-  # remain only samples that are in Tumor cohort 
-  tumorOff <- tumorOff[,which(colnames(tumorOff) %in% colnames(tumor))]
+  if (frameworkOff == "offtarget") {
+    tumorOff <- ReadFileFast(opt$tumorOfftarget, header=T) 
+    colnames(tumorOff) = cutX(colnames(tumorOff))
+    if (!startsWith(tumorOff[,1], "chr"))
+      tumorOff[,1] <- paste0("chr", tumorOff[,1])
+    tumorOff <- tumorOff[order(tumorOff[,1], as.numeric(tumorOff[,2])),]
+    tumorOff <- as.matrix(tumorOff[,opt$colNum:ncol(tumorOff)])
+    # remain only samples that are in Tumor cohort 
+    tumorOff <- tumorOff[,which(colnames(tumorOff) %in% colnames(tumor))]
+  }
 }
 
 
@@ -341,16 +351,19 @@ if (framework == "somatic") {
 # snTumorWithout = checkSignalToNoise(tumor)
 
 ### OFF TARGET GC NORMALIZATION
-if (frameworkOff == "offtarget") {
+if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   lst <- gc_and_sample_size_normalise(bedFileOfftarget, normalOff)
   normalOff <- lst[[1]]
-  if (frameworkDataTypes == "covdepthBAF") {
-    
-    lst <- gc_and_sample_size_normalise(bedFileOfftarget, tumorOff, allowedChroms=allowedChromsBaf)
-  } else {
-    lst <- gc_and_sample_size_normalise(bedFileOfftarget, tumorOff)
+  if (frameworkOff == "offtarget") {
+    if (frameworkDataTypes == "covdepthBAF") {
+      lst <- gc_and_sample_size_normalise(bedFileOfftarget, tumorOff, allowedChroms=allowedChromsBaf)
+    } else {
+      lst <- gc_and_sample_size_normalise(bedFileOfftarget, tumorOff)
+    }
   }
-  tumorOff <- lst[[1]]
+  if (frameworkOff == "offtarget") {
+    tumorOff <- lst[[1]]
+  }
   bedFileOfftarget <- lst[[2]]
 }
 
@@ -359,7 +372,7 @@ if (ncol(bedFile)  == 4) {
   bedFile <- cbind(bedFile, rep(0, nrow(bedFile)))
   colnames(bedFile) <- colnames(bedFile)
 }
-if (frameworkOff == "offtarget") {
+if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   if (ncol(bedFileOfftarget)  == 4) {
     bedFileOfftarget <- cbind(bedFileOfftarget, rep(0, nrow(bedFileOfftarget)))
     colnames(bedFileOfftarget) <- colnames(bedFile)
@@ -367,35 +380,32 @@ if (frameworkOff == "offtarget") {
 }
 
 # FILTER LOW COVERED REGIONS
-regionsToFilerOutOn <- c()
-for (i in 1:nrow(normal)) {
-if (framework == "somatic"){
-  if (min(quantile(normal[i,], 0.9), quantile(tumor[i,], 0.9)) < 0.5) {
-    regionsToFilerOutOn <- c(regionsToFilerOutOn, i)
-  }
+if (framework == "somatic") {
+  regionsToFilerOutOn = findRegionsToFilerOutDueSystematicallyLowCoverage(normal, tumor)
 } else {
-  if ((quantile(normal[i,], 0.9)) < 0.5) {
-    regionsToFilerOutOn <- c(regionsToFilerOutOn, i)
-  }
- }
+  regionsToFilerOutOn = findRegionsToFilerOutDueSystematicallyLowCoverage(normal)
 }
-if (length(regionsToFilerOutOn)>0)
-{
+
+if (length(regionsToFilerOutOn)>0) {
 	normal = normal[-regionsToFilerOutOn,] + 10**-20
 	if (framework == "somatic")
 	tumor = tumor[-regionsToFilerOutOn,] + 10**-20
 	bedFile = bedFile[-regionsToFilerOutOn,]
 }
-if (frameworkOff == "offtarget") {
-  regionsToFilerOutOff <- c()
-  for (i in 1:nrow(normalOff)) {
-    if (min(median(normalOff[i,]), median(tumorOff[i,])) < 0.3) {
-      regionsToFilerOutOff <- c(regionsToFilerOutOff, i)
-    }
+
+
+if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
+  if (frameworkOff == "offtarget") {
+    regionsToFilerOutOff = findRegionsToFilerOutDueSystematicallyLowCoverage(normal, tumor)
+  } else {
+    regionsToFilerOutOff = findRegionsToFilerOutDueSystematicallyLowCoverage(normal)
   }
-  normalOff = normalOff[-regionsToFilerOutOff,] + 10**-20
-  tumorOff = tumorOff[-regionsToFilerOutOff,] + 10**-20
-  bedFileOfftarget = bedFileOfftarget[-regionsToFilerOutOff,]
+  if (length(regionsToFilerOutOff) > 0){
+    normalOff = normalOff[-regionsToFilerOutOff,] + 10**-20
+    if (frameworkOff == "offtarget")
+      tumorOff = tumorOff[-regionsToFilerOutOff,] + 10**-20
+    bedFileOfftarget = bedFileOfftarget[-regionsToFilerOutOff,]
+  }
 }
 
 ### EXTRACTING INFORMATION FROM BED
@@ -425,6 +435,23 @@ clustering <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
 
 print("Processing of germline variants started.")
 
+orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
+bedFile = bedFile[orderOfBedFile,]
+normal = normal[orderOfBedFile,]
+coverageAllSamples <- sqrt(as.matrix(normal))
+
+if (frameworkOff == "offtargetGermline") {
+  orderOfBedFileOff <- order(bedFileOfftarget[,1], as.numeric(bedFileOfftarget[,2]))
+  bedFileOfftarget = bedFileOfftarget[orderOfBedFileOff,]
+  normalOff = normalOff[orderOfBedFileOff,]
+  coverageAllSamplesOff <- sqrt(as.matrix(normalOff))
+}
+
+print("Gender estimation started")
+genderOfSamplesCohort <- Determine.gender(sqrt(coverageAllSamples), bedFile)
+print(genderOfSamplesCohort)
+print("Gender succesfully determined. Plot is written in your results directory.")
+
 
 for (cluster in unique(clustering)) {
   if (cluster == -1) {
@@ -440,60 +467,54 @@ for (cluster in unique(clustering)) {
   
   
   samplesToAnalyse = which(clustering == cluster)
-  coverage <- sqrt(as.matrix(normal[,samplesToAnalyse]))
-  
-  print("Gender determination started")
-  genderOfSamples <- Determine.gender(coverage, bedFile, cluster)
-  print(genderOfSamples)
-  print("Gender succesfully determined. Plot is written in your results directory.")
-  
-  
-  clusterExport(cl, c('EstimateModeSimple', 'bedFile', 'genderOfSamples', 'coverage', "lehmanHodges", 'Qn'))
-  
-  
-  
-  
-  
-  
-  #medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
-  mediansAndSds <- foreach(i=1:nrow(coverage), .combine="rbind") %dopar% {
-    FindRobustMeanAndStandardDeviation(coverage[i,], genderOfSamples, bedFile[i,1])
+  coverage <- coverageAllSamples[,samplesToAnalyse]
+  genderOfSamples = genderOfSamplesCohort[samplesToAnalyse]
+  if (frameworkOff == "offtargetGermline") {
+    samplesToAnalyseOff = which(colnames(coverageAllSamplesOff) %in% colnames(coverage))
+    coverageOff <- coverageAllSamplesOff[,samplesToAnalyseOff]
+    genderOfSamplesOff <- sapply(1:ncol(coverageOff), function(i) {return(genderOfSamplesCohort[which(colnames(normal) == colnames(coverageOff)[i])])})
   }
-  medians = as.numeric(mediansAndSds[,1])
-  sdsOfProbes = as.numeric(mediansAndSds[,2])
 
   
-  coverage.normalised = sweep(coverage, 1, medians, FUN="/")
-  coverage.normalised <- coverage.normalised[, order((colnames(coverage.normalised)))]
   
-  
-  clusterExport(cl, c('coverage.normalised', 'determineSDsOfGermlineProbe'))
-  sdsOfProbes = sdsOfProbes / as.numeric(mediansAndSds[,1])
-  
-  
+  #clusterExport(cl, c('EstimateModeSimple', 'bedFile', 'genderOfSamples', "lehmanHodges", 'Qn'))
   
   
   
   
   
   autosomes <- which(!bedFile[,1] %in% c("chrX", "chrY", "X", "Y"))
-  sdsOfGermlineSamples <- apply(coverage.normalised[autosomes,], 2, determineSDsOfGermlineSample)
+  sdsOfGermlineSamples <- apply(coverage[autosomes,], 2, determineSDsOfGermlineSample)
+
+  #medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
+  mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, sdsOfGermlineSamples, autosomes)
+  medians = as.numeric(mediansAndSds[,1])
+  sdsOfProbes = trimValues(as.numeric(mediansAndSds[,2]), 0.01)
+  coverage.normalised = sweep(coverage, 1, medians, FUN="/")
   
+  if (frameworkOff == "offtargetGermline") {
+    autosomesOff <- which(!bedFileOfftarget[,1] %in% c("chrX", "chrY", "X", "Y"))
+    sdsOfGermlineSamplesOff <- apply(coverageOff[autosomesOff,], 2, determineSDsOfGermlineSample)
+    mediansAndSdsOff = calculateLocationAndScale(bedFileOfftarget, coverageOff, genderOfSamplesOff, sdsOfGermlineSamplesOff, autosomesOff)
+    mediansOff = as.numeric(mediansAndSdsOff[,1])
+    sdsOfProbesOff = trimValues(as.numeric(mediansAndSdsOff[,2]), 0.01)
+    coverage.normalised.off = sweep(coverageOff, 1, mediansOff, FUN="/")
+  }
+
   
-  
-  
-  
-  #locationsShiftedLogFoldChanges <- sweep(matrixOfLogFold, 1, locations)
-  
-  listOfVarianceAndMultiplicator <- esimtateVarianceFromSampleNoise(sdsOfGermlineSamples, 100000)
-  esimtatedVarianceFromSampleNoise <- listOfVarianceAndMultiplicator[[2]]
-  multiplicator <- listOfVarianceAndMultiplicator[[1]]
-  
-  vect_of_t_likeliks <- fast_dt_list(ncol(coverage.normalised) - 1)
-  vect_of_norm_likeliks <- fast_dnorm_list()
   stopCluster(cl)
-  setwd(opt$folderWithScript)
   
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+
   
   
   

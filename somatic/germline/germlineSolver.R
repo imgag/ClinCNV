@@ -5,6 +5,13 @@ registerDoParallel(cl)
 cn_states <- 0:8
 
 
+#locationsShiftedLogFoldChanges <- sweep(matrixOfLogFold, 1, locations)
+
+
+vect_of_t_likeliks <- fast_dt_list(ncol(coverage.normalised) - 1)
+vect_of_norm_likeliks <- fast_dnorm_list()
+setwd(opt$folderWithScript)
+
 
 
 
@@ -20,10 +27,21 @@ if (!dir.exists(folder_name)) {
   dir.create(folder_name)
 }
 covar = T
-lws = returnLowessForCorrelation(coverage.normalised, sdsOfGermlineSamples)
+sdsOfGermlineSamplesForNormalisedData = apply(coverage.normalised[autosomes,], 2, determineSDsOfGermlineSample)
+covarianceTable = returnLowessForCorrelation(coverage.normalised, sdsOfGermlineSamplesForNormalisedData)
+if (frameworkOff == "offtargetGermline") {
+  sdsOfGermlineSamplesForNormalisedDataOff = apply(coverage.normalised.off[autosomesOff,], 2, determineSDsOfGermlineSample)
+}
+
 
 for (sam_no in 1:ncol(coverage.normalised)) {
   sample_name <- colnames(coverage.normalised)[sam_no]
+  print(paste("Working with germline sample"), sample_name)
+  if (frameworkOff == "offtargetGermline" & sample_name %in% colnames(coverage.normalised.off)) {
+    sam_no_off = which(colnames(coverage.normalised.off) == sample_name)
+  } else {
+    sam_no_off = 0
+  }
   
   if (!is.null(opt$normalSample)) {
     if (!sample_name == opt$normalSample) {
@@ -37,17 +55,15 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   main_initial_state <- 3
   
   
-  localSds = sdsOfProbes * esimtatedVarianceFromSampleNoise[sam_no] * multiplicator
+  localSds = sdsOfProbes * sdsOfGermlineSamples[sam_no]
   localSds[which(localSds == 0)] = median(localSds)
   
+  if (sam_no_off) {
+    localSdsOff = sdsOfProbesOff * sdsOfGermlineSamplesOff[sam_no_off]
+    localSdsOff[which(localSdsOff == 0)] = median(localSdsOff)
+  }
   
   
-  if(opt$debug) {
-    print(sam_no)
-  }
-  if(opt$debug) {
-    print(sample_name)
-  }
   if (!dir.exists(paste0(folder_name, sample_name))) {
     dir.create(paste0(folder_name, sample_name))
   }
@@ -57,14 +73,37 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   dict_to_output = c()
   
   
-  
+  matrix_of_likeliks_for_FDR <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2))
   
   if (covar) {
-    listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2), lws, bedFile)
+    listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2), covarianceTable, bedFile)
      matrix_of_likeliks <- listForLikeliks[[1]]
-     bedFileResulting = listForLikeliks[[2]]
+     bedFileWithArtificialProbes = listForLikeliks[[2]]
   } else {
-    matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2))
+    matrix_of_likeliks <- matrix_of_likeliks_for_FDR
+  }
+  
+  if (sam_no_off) {
+    matrix_of_likeliks_off = form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised.off), sam_no_off, localSdsOff, coverage.normalised.off, sqrt(cn_states / 2))
+    globalBed = rbind(bedFile, bedFileOfftarget)
+    orderOfBed = order(globalBed[,1], as.numeric(globalBed[,2]))
+    globalBed = globalBed[orderOfBed,]
+    if (!covar) {
+      globalMatrixOfLikeliks = rbind(matrix_of_likeliks, matrix_of_likeliks_off)
+      globalMatrixOfLikeliks = globalMatrixOfLikeliks[orderOfBed,]
+    } else {
+      globalBedArtificialProbes = rbind(bedFileWithArtificialProbes, bedFileOfftarget[,1:3])
+      globalMatrixOfLikeliks = rbind(matrix_of_likeliks, matrix_of_likeliks_off)
+      orderOfBedArtificial = order(globalBedArtificialProbes[,1], as.numeric(globalBedArtificialProbes[,2]))
+      globalBedArtificialProbes = globalBedArtificialProbes[orderOfBedArtificial,]
+      globalMatrixOfLikeliks = globalMatrixOfLikeliks[orderOfBedArtificial,]
+    }
+  } else {
+    globalBed = bedFile
+    globalMatrixOfLikeliks = matrix_of_likeliks
+    if (covar) {
+      globalBedArtificialProbes = bedFileWithArtificialProbes
+    }
   }
 
   sizesOfPointsFromLocalSds <- 0.1 / localSds 
@@ -101,24 +140,28 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         }
         output_of_plots <-  paste0(folder_name, sample_name)
         which_to_allow <- "NA"
+        which_to_allow_ontarget <- "NA"
         if (k == 1) {
-          which_to_allow = which(bedFile[,1] == chrom & as.numeric(bedFile[,2]) <= as.numeric(left_borders[[l]]) )
+          which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) <= as.numeric(left_borders[[l]]) )
+          which_to_allow_ontarget = which(bedFile[,1] == chrom & as.numeric(bedFile[,2]) <= as.numeric(left_borders[[l]]) )
+          if (covar) {
+            which_to_allow_with_covariance = which(globalBedArtificialProbes[,1] == chrom & as.numeric(globalBedArtificialProbes[,2]) <= as.numeric(left_borders[[l]]) )
+          }
         } else {
-          which_to_allow = which(bedFile[,1] == chrom & as.numeric(bedFile[,2]) >= as.numeric(right_borders[[l]]) )
+          which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) >= as.numeric(right_borders[[l]]) )
+          which_to_allow_ontarget = which(bedFile[,1] == chrom & as.numeric(bedFile[,2]) >= as.numeric(right_borders[[l]]) )
+          if (covar) {
+            which_to_allow_with_covariance = which(globalBedArtificialProbes[,1] == chrom & as.numeric(globalBedArtificialProbes[,2]) >= as.numeric(right_borders[[l]]) )
+          }
         }
         if (length(which_to_allow) <= 1) {
           next
         }
-        toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
-        toyBedFile = bedFile[which_to_allow,]
+        toyMatrixOfLikeliks = globalMatrixOfLikeliks[which_to_allow,]
+        toyBedFile = globalBed[which_to_allow,]
         if (covar) {
-          if (k == 1) {
-            which_to_allow_with_covariance = which(bedFileResulting[,1] == chrom & as.numeric(bedFileResulting[,2]) <= as.numeric(left_borders[[l]]) )
-          } else {
-            which_to_allow_with_covariance = which(bedFileResulting[,1] == chrom & as.numeric(bedFileResulting[,2]) >= as.numeric(right_borders[[l]]) )
-          }
-          toyBedFileAfterCovariance = bedFileResulting[which_to_allow_with_covariance, ]
-          toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow_with_covariance,]
+          toyBedFileAfterCovariance = globalBedArtificialProbes[which_to_allow_with_covariance, ]
+          toyMatrixOfLikeliks = globalMatrixOfLikeliks[which_to_allow_with_covariance,]
         }
         found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, initial_state))
         
@@ -126,23 +169,31 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         if (covar & nrow(found_CNVs) > 0) {
           found_CNVs <- remapVariants(found_CNVs, toyBedFileAfterCovariance, toyBedFile)
         }
+        found_CNVs = found_CNVs[which(found_CNVs[,3] - found_CNVs[,2] > minimum_length_of_CNV),,drop=F]
         
-        toyCoverageGermline = coverage.normalised[which_to_allow,sam_no]
+        toyCoverageGermline = coverage.normalised[which_to_allow_ontarget,sam_no]
         toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
         
-        toyCoverageGermlineCohort = coverage.normalised[which_to_allow,]
+        toyCoverageGermlineCohort = coverage.normalised[which_to_allow_ontarget,]
+
         
         if (nrow(found_CNVs) > 0) {
           alleleFrequency = rep(1 / ncol(coverage.normalised), nrow(found_CNVs))
           for (i in 1:nrow(found_CNVs)) {
-            
+            whichOnTarget = which(as.numeric(bedFile[which_to_allow_ontarget,2]) >= as.numeric(toyBedFile[found_CNVs[i,2],2]) &
+                                      as.numeric(bedFile[which_to_allow_ontarget,3]) <= as.numeric(toyBedFile[found_CNVs[i,3],3])
+                                      )
             cnState = cn_states[found_CNVs[i,4]]
-            mediansOfCoveragesInsideTheCohort <- apply(toyCoverageGermlineCohort[found_CNVs[i,2]:found_CNVs[i,3],], 2, median)
+            if (length(whichOnTarget) > 0) {
+            mediansOfCoveragesInsideTheCohort <- apply(toyCoverageGermlineCohort[whichOnTarget,,drop=F], 2, median)
             if (cnState < 2) {
               alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort < (1 - (1 - sqrt(1/2)) / 2))) / ncol(coverage.normalised)
             }
             if (cnState > 2) {
               alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort > (1 + (sqrt(3/2) - 1) / 2))) / ncol(coverage.normalised)
+            }
+            } else {
+              alleleFrequency[i] = -1.0
             }
           }
         }
@@ -155,17 +206,22 @@ for (sam_no in 1:ncol(coverage.normalised)) {
            }
         
         ### IGV PLOTTING
-        if(opt$debug) {
-          print("START OF IGV PLOTTING")
-        }
-        
-        outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
-        outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
-        reverseFunctionUsedToTransform = function(x, chrom) {return((2 * x ** 2))}
-        outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
-                                            outputFileNameDots, sample_name, toyCoverageGermline, reverseFunctionUsedToTransform, cn_states)
-        if(opt$debug) {
-          print("END OF IGV PLOTTING")
+        if (opt$visulizationIGV) {
+          if(opt$debug) {
+            print("START OF IGV PLOTTING")
+          }
+          if (sam_no_off) {
+            toyCoverageGermline = c(coverage.normalised[,sam_no], coverage.normalised.off[,sam_no_off])[orderOfBed][which_to_allow]
+          }
+          
+          outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
+          outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
+          reverseFunctionUsedToTransform = function(x, chrom) {return((2 * x ** 2))}
+          outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
+                                              outputFileNameDots, sample_name, toyCoverageGermline, reverseFunctionUsedToTransform, cn_states)
+          if(opt$debug) {
+            print("END OF IGV PLOTTING")
+          }
         }
         ### END OF IGV PLOTTING
         
@@ -222,7 +278,11 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   if (as.numeric(opt$fdrGermline) != 0) {
     numberOfIterationsForFDR = as.numeric(opt$fdrGermline)
     detectedFalseCNVs <- foreach(i=1:numberOfIterationsForFDR, .combine="rbind") %dopar% {
-      shuffledMatrixOfLikelis = matrix_of_likeliks[sample(which(!bedFile[,1] %in% c("crhX", "chrY"))),1:(main_initial_state + 2)]
+      if (covar) {
+        shuffledMatrixOfLikelis = matrix_of_likeliks_for_FDR[sample(which(!bedFile[,1] %in% c("chrX", "chrY"))),1:(main_initial_state + 2)]
+      } else {
+        shuffledMatrixOfLikelis = matrix_of_likeliks_for_FDR[sample(which(!bedFile[,1] %in% c("chrX", "chrY"))),1:(main_initial_state + 2)]
+      }
       detectedCnvs <- find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, main_initial_state, shuffledMatrixOfLikelis, main_initial_state)
       detectedCnvs
     }
@@ -236,7 +296,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
       currentThresholdDel = thresholdsDel[i]
       for (i in 1:length(thresholdsDel)) {
         currentThresholdDel = thresholdsDel[i]
-        FDR = length(which(-1 * detectedDeletions[,1] > currentThresholdDel)) / (length(which(!found_CNVs_total[,1] %in% c("crhX", "chrY") & as.numeric(found_CNVs_total[,4]) < 2 & as.numeric(found_CNVs_total[,5]) > currentThresholdDel)) )
+        FDR = length(which(-1 * detectedDeletions[,1] > currentThresholdDel)) / (length(which(!found_CNVs_total[,1] %in% c("chrX", "chrY") & as.numeric(found_CNVs_total[,4]) < 2 & as.numeric(found_CNVs_total[,5]) > currentThresholdDel)) )
         if (FDR < fdrThreshold) {
           break
         }
@@ -252,7 +312,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
       currentThresholdDup = thresholdsDup[i]
       for (i in 1:length(thresholdsDup)) {
         currentThresholdDup = thresholdsDup[i]
-        FDR = length(which(-1 * detectedDuplications[,1] > currentThresholdDel)) / (length(which(!found_CNVs_total[,1] %in% c("crhX", "chrY") & as.numeric(found_CNVs_total[,4]) > 2 & as.numeric(found_CNVs_total[,5]) > currentThresholdDup)) )
+        FDR = length(which(-1 * detectedDuplications[,1] > currentThresholdDel)) / (length(which(!found_CNVs_total[,1] %in% c("chrX", "chrY") & as.numeric(found_CNVs_total[,4]) > 2 & as.numeric(found_CNVs_total[,5]) > currentThresholdDup)) )
         if (FDR < fdrThreshold) {
           break
         }
@@ -285,3 +345,4 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
 }
 
+stopCluster(cl)

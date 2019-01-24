@@ -587,3 +587,22 @@ correlationMatrixForPairedLikelik <- function(x, y) {
   correlationBetweenValues <- robust_correlation(Qn, 0, 0, x, y)
   return(matrix(c(1,correlationBetweenValues,correlationBetweenValues,1), nrow=2))
 }
+
+
+findRegionsToFilerOutDueSystematicallyLowCoverage <- function(normal, tumor=NULL) {
+  quantilesOfRowsNorm <- apply(normal, 1, function(x) {quantile(x, 0.9)})
+  if (!is.null(tumor)) {
+    quantilesOfRowsTum <- apply(tumor, 1, function(x) {quantile(x, 0.9)})
+    minimums <- apply(rbind(quantilesOfRowsNorm, quantilesOfRowsTum), 2, min)
+    return(which(minimums < 0.3))
+  } else {
+    return(which(quantilesOfRowsNorm < 0.3))
+  }
+}
+
+
+trimValues <- function(values, perc) {
+  values[which(values < quantile(values, perc))] = quantile(values, perc)
+  values[which(values > quantile(values, perc))] = quantile(values, perc)
+  return(values)
+}
