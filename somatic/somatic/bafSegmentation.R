@@ -230,8 +230,6 @@ returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF, b
     sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
     for (sampleName1 in sampleNames1) {
       sampleName2 <- which(colnames(tumorCov) == pairs[sampleName1,1])
-      print(i)
-      print(sampleName2)
       bAlleleFreqs <- returnBAlleleFreqs(colnames(normalCov)[i], colnames(tumorCov)[sampleName2], inputFolderBAF, bedFileForFiltering)
       if (!is.null(bAlleleFreqs[[1]])) {
         allowedChromsBaf[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]] = determineAllowedChroms(bAlleleFreqs[[1]], bAlleleFreqs[[2]],
@@ -400,14 +398,11 @@ returnPurityPloidy <- function(pairs, normalCov, tumorCov, inputFolderBAF, bedFi
   purityPloidy <- list()
   for (i in 1:ncol(normalCov)) {
     sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
-    print(sampleNames1)
     for (sampleName1 in sampleNames1) {
       sampleName2 <- which(colnames(tumorCov) == pairs[sampleName1,1])
-      print(sampleName2)
       bAlleleFreqs <- returnBAlleleFreqs(colnames(normalCov)[i], colnames(tumorCov)[sampleName2], inputFolderBAF, bedFile)
       if (!is.null(bAlleleFreqs[[1]])) {
         
-        print(paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-"))
         allowedChromsBafForThatSamples <- allowedChromsBaf[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]]
         matrixOfCoverages <- extractCoveragesHavingListOfSNVs(bAlleleFreqs[[1]], normalCov[,i], tumorCov[,sampleName2], bedFile)
         if (length(bAlleleFreqs) >= 2 & !is.null(bAlleleFreqs[[1]])) {

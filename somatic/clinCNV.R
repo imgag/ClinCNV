@@ -22,7 +22,6 @@ initial.options <- commandArgs(trailingOnly = FALSE)
 file.arg.name <- "--file="
 script.name <- sub(file.arg.name, "", initial.options[grep(file.arg.name, initial.options)])
 script.basename <- dirname(script.name)
-print(paste("We run script located in folder" , script.name, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
 
 ## DETERMINE THE PATH TO THE SCRIPT AUTOMATICALLY
@@ -113,6 +112,7 @@ option_list = list(
 
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
+print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
 
 
@@ -348,15 +348,7 @@ if (framework == "somatic") {
   bedFile <- lst[[2]]
 }
 
-# checkSignalToNoise <- function(matr) {
-#   mediansWithoutNorm <- apply(matr, 2, median)
-#   sdsWithoutNorm <- apply(matr, 2, Sn)
-#   return(mediansWithoutNorm / sdsWithoutNorm)
-# }
-# snNormWith = checkSignalToNoise(normal)
-# snTumorWith = checkSignalToNoise(tumor)
-# snNormWithout = checkSignalToNoise(normal)
-# snTumorWithout = checkSignalToNoise(tumor)
+
 
 ### OFF TARGET GC NORMALIZATION
 if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
@@ -396,8 +388,9 @@ if (framework == "somatic") {
 
 if (length(regionsToFilerOutOn)>0) {
 	normal = normal[-regionsToFilerOutOn,] + 10**-20
-	if (framework == "somatic")
-	tumor = tumor[-regionsToFilerOutOn,] + 10**-20
+	if (framework == "somatic") {
+	  tumor = tumor[-regionsToFilerOutOn,] + 10**-20
+	}
 	bedFile = bedFile[-regionsToFilerOutOn,]
 }
 
@@ -426,6 +419,7 @@ stopCluster(cl)
 ### PROCESSING OF GERMLINE VARIANTS
 setwd(opt$folderWithScript)
 source("./germline/helpersGermline.R")
+
 
 frameworkTrios = "single"
 if (!is.null(opt$triosFile)) {
@@ -497,7 +491,7 @@ for (cluster in unique(clustering)) {
   #medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
   mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, sdsOfGermlineSamples, autosomes)
   medians = as.numeric(mediansAndSds[,1])
-  sdsOfProbes = trimValues(as.numeric(mediansAndSds[,2]), 0.01)
+  sdsOfProbes = trimValues(as.numeric(mediansAndSds[,2]), 0.025)
   coverage.normalised = sweep(coverage, 1, medians, FUN="/")
   
   if (frameworkOff == "offtargetGermline") {
@@ -505,7 +499,7 @@ for (cluster in unique(clustering)) {
     sdsOfGermlineSamplesOff <- apply(coverageOff[autosomesOff,], 2, determineSDsOfGermlineSample)
     mediansAndSdsOff = calculateLocationAndScale(bedFileOfftarget, coverageOff, genderOfSamplesOff, sdsOfGermlineSamplesOff, autosomesOff)
     mediansOff = as.numeric(mediansAndSdsOff[,1])
-    sdsOfProbesOff = trimValues(as.numeric(mediansAndSdsOff[,2]), 0.01)
+    sdsOfProbesOff = trimValues(as.numeric(mediansAndSdsOff[,2]), 0.025)
     coverage.normalised.off = sweep(coverageOff, 1, mediansOff, FUN="/")
   }
 

@@ -645,7 +645,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, sdsOfG
     print(chrom)
     coveragesToDealWith = coverage[which(bedFile[,1] == chrom),]
     if (chrom == "chrX") {
-      if (length(which(genderOfSamples == "F")) > length(which(genderOfSamples == "M"))) {
+      if (length(which(genderOfSamples == "F")) > 0.5 * length(which(genderOfSamples == "M"))) {
         whichSamplesUsed = which(genderOfSamples == "F")
       } else {
         whichSamplesUsed = which(genderOfSamples == "M")
@@ -675,7 +675,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, sdsOfG
       medianOfSdsForX = median(QNs)
       QNs = QNs / (medianOfSdsForX / medianOfSdsForAllProbes)
     }
-    if (chrom == "chrX" & length(which(genderOfSamples == "F")) <= length(which(genderOfSamples == "M"))) {
+    if (chrom == "chrX" & length(which(genderOfSamples == "F")) <= 0.5 * length(which(genderOfSamples == "M"))) {
       medians = sqrt(2) * medians
     }
     if (chrom == "chrY" & length(which(genderOfSamples == "M")) > 2) {

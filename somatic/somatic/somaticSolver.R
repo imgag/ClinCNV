@@ -411,16 +411,14 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       matrixOfLogFoldCorrectedSmall[which(matrixOfLogFoldCorrectedSmall > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
       
       matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2), local_multipliersDueToLog)
-      
+
       if (genderOfSamples[germline_sample_no] == "M") {
+        if (length(which(bedFile[,1] %in% c("chrX","chrY"))) > 0)
         matrix_of_likeliks[which(bedFile[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
           1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[which(bedFile[,1] %in% c("chrX","chrY")),sam_no], 
           localSds[which(bedFile[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
       }
-      
-      matrOfSNVlikeliks <- matrix(0, nrow=0, ncol=length(local_purities))
-      
-      
+
       
       ### ADD LIKELIHOODS
       if (frameworkDataTypes == "covdepthBAF") {
