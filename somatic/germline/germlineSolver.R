@@ -39,9 +39,11 @@ if (frameworkOff == "offtargetGermline") {
 for (sam_no in 1:ncol(coverage.normalised)) {
   sample_name <- colnames(coverage.normalised)[sam_no]
   print(paste("Working with germline sample", sample_name))
-  if (frameworkOff == "offtargetGermline" & sample_name %in% colnames(coverage.normalised.off)) {
+  if (frameworkOff == "offtargetGermline") { 
+    if (sample_name %in% colnames(coverage.normalised.off)) {
     sam_no_off = which(colnames(coverage.normalised.off) == sample_name)
-  } else {
+    }
+  }else {
     sam_no_off = 0
   }
   

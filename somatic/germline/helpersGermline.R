@@ -554,11 +554,17 @@ returnLowessForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples
     bordersAround = 0
     leftBorder = i  - 1.00001
     rightBorder = i 
-    while (length(which(log2Distances >= leftBorder & log2Distances < rightBorder) ) < 100) {
+    numberOfIncreases = 0
+    while (length(which(log2Distances >= leftBorder & log2Distances < rightBorder) ) < 100 & numberOfIncreases < 10) {
       leftBorder = leftBorder - 0.1
       rightBorder = rightBorder + 0.1
+      numberOfIncreases = numberOfIncreases + 1
     }
-    vecOfCovariances[i] = median(covariancesClose[which(log2Distances >= leftBorder & log2Distances < rightBorder) ])
+    if (length(which(log2Distances >= leftBorder & log2Distances < rightBorder) ) < 100) {
+      vecOfCovariances[i] = 0
+    } else {
+      vecOfCovariances[i] = median(covariancesClose[which(log2Distances >= leftBorder & log2Distances < rightBorder) ])
+    }
   }
   degressOfTwo = degressOfTwo - 1
   
@@ -568,14 +574,7 @@ returnLowessForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples
 
 
 form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_states, covarianceTable, currentBedFile) {
-  distances = rep(-1, length(sds) - 1)
-  for (l in 2:nrow(currentBedFile)) {
-    distance = 10 ** 10
-    if (currentBedFile[l,1] == currentBedFile[l-1,1]) {
-      distance = as.numeric(currentBedFile[l,2]) - as.numeric(currentBedFile[l-1,3]) + 1
-    }
-    distances[l - 1] = distance
-  }
+  distances = currentBedFile[2:nrow(currentBedFile),2] - currentBedFile[1:(nrow(currentBedFile) - 1),3] + 1
   
   vector_of_values <- resid[,k]
   
@@ -590,7 +589,9 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
     return(-2 * log(value))
   })
   
-  smallDistances <- which(distances < 1024)
+  whichCovariancesAreTooSmall = which(covarianceTable[2,] > 0.05)
+  distancesThatAreSignificant = which.min(abs(distancesToPredict[i] - covarianceTable[1,]))
+  smallDistances <- which(!distancesThatAreSignificant %in% whichCovariancesAreTooSmall)
   if (length(smallDistances) > 10) {
     distancesToPredict = log2(distances[smallDistances] + 1)
     covariances <- sapply(1:length(distancesToPredict), function(i) {covarianceTable[2,which.min(abs(distancesToPredict[i] - covarianceTable[1,]))]
