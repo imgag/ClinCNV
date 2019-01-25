@@ -549,9 +549,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         chrom = names(left_borders)[l]
         
         
-        if (chrom == "chrY" & genderOfSamples[sam_no_germline] == "F") {
+        if (chrom == "chrY" & genderOfSamples[germline_sample_no] == "F") {
           next
-        } else if (genderOfSamples[sam_no_germline] == "M") {
+        } else if (genderOfSamples[germline_sample_no] == "M") {
           if (chrom %in% c("chrY","chrX")) {
             initial_state = 2
           } else {

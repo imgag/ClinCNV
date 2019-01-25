@@ -185,7 +185,7 @@ if (length(whichBedIsNA) > 0)
 
 #normal <- read.table(opt$normal, header=T, stringsAsFactors = F, comment.char="&" )
 normal <- ReadFileFast(opt$normal, header=T)
-normal = normal
+normal = normal[,1:10]
 colnames(normal) = cutX(colnames(normal))
 if (!startsWith(normal[,1], "chr"))
   normal[,1] <- paste0("chr", normal[,1])
