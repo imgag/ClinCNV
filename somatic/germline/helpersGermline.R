@@ -574,7 +574,7 @@ returnLowessForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples
 
 
 form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_states, covarianceTable, currentBedFile) {
-  distances = currentBedFile[2:nrow(currentBedFile),2] - currentBedFile[1:(nrow(currentBedFile) - 1),3] + 1
+  distancesToPredict = currentBedFile[2:nrow(currentBedFile),2] - currentBedFile[1:(nrow(currentBedFile) - 1),3] + 1
   
   vector_of_values <- resid[,k]
   
