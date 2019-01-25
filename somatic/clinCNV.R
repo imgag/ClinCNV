@@ -254,11 +254,12 @@ if (length(rowsToRemove) > 0) {
   if (framework == "somatic")
     tumor <- tumor[-rowsToRemove,]
 }
-if (frameworkOff == "offtarget") {
-  rowsToRemove <- cleanDatasetFromLowCoveredFiles(normalOff)
+if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
+  rowsToRemove <- cleanDatasetFromLowCoveredFiles(normalOff, bedFile)
   if (length(rowsToRemove) > 0) {
     normalOff = normalOff[-rowsToRemove,]
-    tumorOff = tumorOff[-rowsToRemove,]
+    if (frameworkOff == "offtarget")
+      tumorOff = tumorOff[-rowsToRemove,]
     bedFileOfftarget = bedFileOfftarget[-rowsToRemove,]
   }
 }
