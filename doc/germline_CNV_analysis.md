@@ -71,8 +71,9 @@ Second line - number of outliers in autosomes. It is designed in a way that 5% o
 
 ### Columns in the table
 
+`#chr	start	end`
 
-
+are self explainable - it is the coordinates of the detected variant
 
 [IGV_track]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks.png "IGV tracks for germline sample"
 [IGV_track_chr]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks_chrom_level.png "IGV tracks for germline sample (chromosome level)"
