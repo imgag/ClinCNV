@@ -1,16 +1,18 @@
 # How to run `ClinCNV` for germline analysis
 
-Germline pipeline of `ClinCNV` may utilize on-target reads coverage (reads that were aligned to the pre-specified and enriched locations in the genome or, in case of whole genome sequencing (WGS), reads that were mapped somewhere in the genome typically with 2 mismatches max) and off-target reads (reads that come from regions outside of your pre-specified intervals - even for the perfectly prepared enrichment there is typically a large number of such reads). Off-targed reads coverage is usually summarised in windows of large size, such as 50KB or even bigger, since the coverage there is extremely low and sufficient number of reads is required for usage of number of mapped reads as a marker of underying copy-number.
+Germline CNVs detection pipeline of `ClinCNV` may utilize on-target reads coverage (reads that were aligned to the pre-specified and enriched locations in the genome or, in case of whole genome sequencing (WGS), reads that were mapped somewhere in the genome typically with 2 mismatches max) and off-target reads coverage (reads that come from regions outside of your pre-specified intervals - even for the perfectly prepared enrichment there is typically a large number of such reads) as direct evidence of genomic copy number. Off-targed reads coverage is usually summarised in windows of large size, such as 50KBps or even bigger, since the coverage there is extremely low and sufficient number of reads is required for usage of number of mapped reads as a marker of underying copy-number.
+
+We suggest the following step by step guide into CNVs detection in different use cases (data after enrichment and WGS, idealy with the smallest amount of PCR cycles as possible):
 
 ## Tagret sequencing
 
-1. Simple analysis, having only on-target coverage:
+1. Simple analysis, having only on-target coverage from the cohort of samples (generation of such files described in the documentation):
 `Rscript clinCNV.R --normal normal.cov --bed bedFile.bed`
 
 2. Specifying output folder **(here and until the end of the numbered list instruction you should add the line to the line you got on the previous step)**:
 `--out /your/folder`
 
-3. Adding offtarget coverages (does not increase _Sensitivity_ a lot since germline CNVs are rarely as long as off-target window, but improves _Specificity_ efficiently removing CNVs formed by probes standing far away from each other):
+3. Adding offtarget coverages (does not increase _Sensitivity_ a lot since germline CNVs are rarely as long as off-target window, but improves _Specificity_ efficiently removing CNVs formed by probes standing far away from each other, off-target coverage has to be extracted for *sufficiently large number of samples*, but not necessarily for all the samples from `normal.cov` file):
 `--normalOfftarget normalOff.cov --bedOfftarget bedFileOff.bed`
 
 4. Playing with _Sensitivity_ and _Specificity_ balance (increase of the threshold `--scoreG` leads to higher _Specificity_ and lower _Sensitivity_ and vice versa, default value is 40):
