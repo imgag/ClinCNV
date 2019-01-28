@@ -21,9 +21,9 @@ Depending on your goal, you may want to extract:
 
 * B-allele frequency files (for **somatic** framework)
 
-* text files with comma separated sample IDs where each line contains IDs of mother, father, kid __(order is important)__ for **trio** framework
+* text files with comma separated sample IDs where each line contains IDs of mother, father, kid _(order is important)_ for **trio** framework
 
-* text files with comma separated sample IDs where each line contains IDs of tumor and normal samples __(order is important)__for **somatic** framework
+* text files with comma separated sample IDs where each line contains IDs of tumor and normal samples _(order is important)_ for **somatic** framework
 
 
 ## ClinCNV's input files you can get if you use whole genome sequencing (below "WGS")
@@ -50,7 +50,21 @@ For WGS you need to prepare file with chromosomes' starts and ends based on refe
 
 ## Text files with sample IDs
 
-Due to variability of data storage formats we can not suggest you a single recipy on how to get files with sample IDs. 
+Due to variability of data storage formats we can not suggest you a single recipy on how to get files with sample IDs. But in the end the files you should get need to look like:
+
+**Trios:**
+
+Mother_ID1,Fater_ID1,Kid_ID1
+Mother_ID2,Fater_ID2,Kid_ID2
+etc
+
+**Normal-Tumor pairs:**
+
+Tumor_ID1,Normal_ID1
+Tumor_ID1,Normal_ID2
+etc
+
+"Mother_ID1" is just an example, it can be anything (better without special characters such as `#`). If you have sequenced multiple tumor probes and only one normal per one sample, specify it as it is. Main condition is: *those IDs has to be presented in the file with coverages with exactly same names.*
 
 
 
