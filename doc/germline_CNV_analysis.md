@@ -63,11 +63,13 @@ Or deeper at a single event level:
 
 ## "sampleName_cnvs.tsv" files
 
-Usually you will get tab delimited files with 2 header lines (starting with hashtag), column names description and the results itself.
+Usually you will get tab delimited files with 2 header lines (starting with hashtag), results' table column names and the results table itself.
 
-First line - number of iterations. If the number of detected CNVs exceeded values specified with the flag `--maxNumGermCNVs`, your sample is re-analysed with stricter thresholds. The number here denotes number of re-runs.
+First line in resulting `.tsv` file shows the number of iterations. If the number of detected CNVs exceeds values specified with the flag `--maxNumGermCNVs`, your sample is re-analysed with stricter thresholds. The number here denotes number of re-runs.
 
 Second line - number of outliers in autosomes. It is designed in a way that 5% of dots have to be "outliers" (their Z-score exceed the corresponding quantiles of standard normal) in a diploid sample. If you see a bigger number (such as 0.1 or bigger), that means that either your sample is largely affected by CNVs (or eg there is one aneuploidy) or the tool determined variances (or locations) wrongly. Unfortunately, you can do almost nothing in this case except dropping me an email. Value much below 5% may indicate same problems with parameters' estimation, but now variances were overestimated. It may lead to low sensitivity of the tool.
+
+![Table with results (simulated data)][table_of_results]
 
 ### Columns in the table
 
@@ -92,3 +94,4 @@ Second line - number of outliers in autosomes. It is designed in a way that 5% o
 [IGV_track]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks.png "IGV tracks for germline sample"
 [IGV_track_chr]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks_chrom_level.png "IGV tracks for germline sample (chromosome level)"
 [IGV_track_cnv]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks_cnv_level.png "IGV tracks for germline sample (one CNV level)"
+[table_of_results]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_results_table.png "Table with results (simulated data)"
