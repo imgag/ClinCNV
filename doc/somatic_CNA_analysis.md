@@ -57,7 +57,7 @@ In this particular example we can see that part of chr1 left arm is affected by 
 
 ![Barplot of deviated BAFs on chromosome arm level][BAF_barplot_even_more]
 
-In this sample almost all the chromosomes were likely to be damaged by CNAs. We take the least damaged chromosomes for the internal normalization, however you may expect higher level of noise in such samples due to small amount of "seemingly normal" material for normalization.
+In this sample almost all the chromosomes were likely to be damaged by CNAs. We take the least damaged chromosomes for the internal normalization (some of chromosome arms are indicated with orange color which means that they have >5% of BAFs significantly deviated, but we still had to take them into normalization procedure since the amount of "normal" material was too low), however you may expect higher level of noise in such samples due to small amount of "seemingly normal" material for normalization.
 
 
 [BAF_barplot]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_barplot1.png "Barplot of deviated BAFs on chromosome arm level"
