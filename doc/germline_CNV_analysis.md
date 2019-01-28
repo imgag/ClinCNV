@@ -12,6 +12,8 @@ We suggest the following step by step guide into CNVs detection in different use
 2. Specifying output folder **(here and until the end of the numbered list instruction you should add the line to the line you got on the previous step)**:
 `--out /your/folder`
 
+Folder `normal` will be created in your output folders, results will be put into subfolders, one sample per subfolder.
+
 3. Adding offtarget coverages (does not increase _Sensitivity_ a lot since germline CNVs are rarely as long as off-target window, but improves _Specificity_ efficiently removing CNVs formed by probes standing far away from each other, off-target coverage has to be extracted for *sufficiently large number of samples*, but not necessarily for all the samples from `normal.cov` file):
 `--normalOfftarget normalOff.cov --bedOfftarget bedFileOff.bed`
 

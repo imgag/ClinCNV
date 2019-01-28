@@ -2,7 +2,64 @@
 
 Saying _somatic_ we assume that for each tumor sample sequenced you also sequence a normal sample. We use the same approach even when several tumor samples were taken from one patient and only one normal was sequenced. We don't detect such events as _mosaicism_ even if it is theoretically possible - because we don't have the data to test and we don't have a request for implementing such mode in `ClinCNV`, but if you have both - drop us an email.
 
-As for _germline_ samples `ClinCNV` may utilize on-target and off-target coverage, but also _B-allele frequencies_. In brief, a CNV event in somatic sample may lead to changes in allele balance of point mutations (SNVs). The typical strategy on how to use signals from SNVs is 1) calculate read depths of SNVs for reference allele and alternative allele in both normal and tumor samples, 2) sub-select SNVs that are likely to be heterozgyous in normal tissue (which allele balance is close to 0.5), 3) measure the deviation of allele balance from normal to tumor. For example, if a sample has normally diploid region and it has a SNV with _C_ as reference and _T_ as alternative, we may expect 50% of reads, aligned to that position, to have _C_ in their sequence and 50% should have _T_ - thus we have something close to 0.5 as a B-allele frequency at this position. But if the region was duplicated (e.g. region containing _T_ was copied once more), we expect ~33% of reads containing _C_ and ~66% containing _T_. Signal from B-allele frequencies helps a lot in somatic diagnositcs, it can distinguish between complex copy-number alterations and normal ones, only B-allele frequency change may indicate Loss of Heterozygosity events and it significantly improves the accuracy. So we highly recommend you to obtain BAF data from your samples, even if the procedure is quite complicated, but you always should remember that sometimes this data may be "sensitive" in sense of privacy and you need to obtain a consent of your patients before using it (and _especially_ publishing it anywhere).
+Same as for _germline_ samples `ClinCNV` may utilize on-target and off-target coverage, but also _B-allele frequencies_. In brief, a CNV event in somatic sample may lead to changes in allele balance of point mutations (SNVs). The typical strategy on how to use signals from SNVs is 1) calculate read depths of SNVs for reference allele and alternative allele in both normal and tumor samples, 2) sub-select SNVs that are likely to be heterozgyous in normal tissue (which allele balance is close to 0.5), 3) measure the deviation of allele balance from normal to tumor. For example, if a sample has normally diploid region and it has a SNV with _C_ as reference and _T_ as alternative, we may expect 50% of reads, aligned to that position, to have _C_ in their sequence and 50% should have _T_ - thus we have something close to 0.5 as a B-allele frequency at this position. But if the region was duplicated (e.g. region containing _T_ was copied once more), we expect ~33% of reads containing _C_ and ~66% containing _T_. Signal from B-allele frequencies helps a lot in somatic diagnositcs, it can distinguish between complex copy-number alterations and normal ones, only B-allele frequency change may indicate Loss of Heterozygosity events and it significantly improves the accuracy. So we highly recommend you to obtain BAF data from your samples, even if the procedure is quite complicated, but you always should remember that sometimes this data may be "sensitive" in sense of privacy and you need to obtain a consent of your patients before using it (and _especially_ publishing it anywhere).
+
+## Targeted sequencing
+
+1. Simple analysis, having only on-target coverage from the cohort of tumor and paired normal samples with the information about pairing described in `pairs.txt` file (generation of such files described in the documentation):
+`Rscript clinCNV.R --normal normal.cov --bed bedFile.bed --tumor tumor.cov --pairs pairs.txt`
+
+2. Specifying output folder **(here and until the end of the numbered list instruction you should add the line to the line you got on the previous step)**:
+`--out /your/folder`
+
+The folder `somatic` will be created and results for each samples pair will be put in the corresponding subfolder.
+
+3. Adding off-target coverage (especially important for panel sequencing and overall playing bigger role in the analysis since sizes of CNAs are typically large)
+
+`--normalOfftarget normalOff.cov --tumorOfftarget tumorOff.cov --bedOfftarget bedFileOff.bed`
+
+4. Playing with _Sensitivity_ and _Specificity_ balance (increase of the threshold `--scoreS` leads to higher _Specificity_ and lower _Sensitivity_ and vice versa, default value is 100, however due to size of CNAs and high level of noise due to usage of FFPE samples it is recommended to keep this value high):
+`--scoreS 150`
+
+5. Increasing or decreasing minimum length of detected variant (default = 5 data points or bigger):
+`--lengthS 10`
+
+6. Including B-allele frequencies. Files with BAFs need to be located into same folder `/example/BAFs`:
+`--bafFolder /example/BAFs`
+
+Due to described above problems not all the samples may have BAF file, but you need to be sure that **at least one pair of tumor/normal samples has its BAF track** in the corresponding folder.
+
+7. peeding up the tool by using several cores (only some parts of the pipeline are parallelised):
+`--numberOfThreads 4`
+
+## WGS
+
+The same, but step 3 has to be skipped. 
 
 
 
+
+
+# How to interpret results
+
+You will have two output folders 1) CNV calling results with IGV tracks and clonality plot, 2) IGV tracks and summary of BAF deviations on chromosome's arms level. We start to explain the second the part.
+
+## BAF
+You can find there barplots showing number of chromosome arms with significant deviations in BAFs between tumor and normal samples. They show proportion of SNVs with significantly (<0.05 p-value) different BAFs within the tumor-normal pair, thus, 1.0 indicates that 100% of SNVs have deviations in BAFs (thus can indicate presence of aneuploidy with high tumor content in the particular sample and chromosome arm), 0.0 indicated that 0% of SNVs have deviations. By random, we expect approximately 5% of SNVs having deviations, even if no CNAs happen in particular region.
+
+![Barplot of deviated BAFs on chromosome arm level][BAF_barplot]
+
+In this particular sample we can see some chromosome arms marked with red bars, which means they are not used for normalisation, but we can see that 1) those chromosome arms have 0 SNVs, 2) they are from chromosome which short p arms are "empty". We can conclude that it is highly likely that this sample does not have long CNAs that affect SNVs or such CNVs are presented only in clones with low clonality so the deviation is not seen. The advantage of such samples is that it is most likely efficiently normalised since all the chromosome arms are used for normalisation.
+
+![Barplot of deviated BAFs on chromosome arm level][BAF_barplot_more]
+
+In this particular example we can see that part of chr1 left arm is affected by CNVs (or there could be a aneuploidy with small tumor content) and even larger part of chr1 right arm affected by CNVs (or it could be aneuploidy with higher tumor content). Other chromosome arms may be analysed in a similar manner (chr13 right, chr14 right, chr16 right, chr17 left and right, chr18 right, chr19 left, etc.).
+
+![Barplot of deviated BAFs on chromosome arm level][BAF_barplot_even_more]
+
+In this sample almost all the chromosomes were likely to be damaged by CNAs. We take the least damaged chromosomes for the internal normalization, however you may expect higher level of noise in such samples due to small amount of "seemingly normal" material for normalization.
+
+
+[BAF_barplot]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_barplot1.png "Barplot of deviated BAFs on chromosome arm level"
+[BAF_barplot_more]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_barplot2.png "Barplot of deviated BAFs on chromosome arm level"
+[BAF_barplot_even_more]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_barplot3.png "Barplot of deviated BAFs on chromosome arm level"
