@@ -491,7 +491,7 @@ for (cluster in unique(clustering)) {
   #medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
   mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, sdsOfGermlineSamples, autosomes)
   medians = as.numeric(mediansAndSds[,1])
-  sdsOfProbes = trimValues(as.numeric(mediansAndSds[,2]), 0.025)
+  sdsOfProbes = trimValues(as.numeric(mediansAndSds[,2]), 0.01)
   coverage.normalised = sweep(coverage, 1, medians, FUN="/")
   
   if (frameworkOff == "offtargetGermline") {
@@ -499,7 +499,7 @@ for (cluster in unique(clustering)) {
     sdsOfGermlineSamplesOff <- apply(coverageOff[autosomesOff,], 2, determineSDsOfGermlineSample)
     mediansAndSdsOff = calculateLocationAndScale(bedFileOfftarget, coverageOff, genderOfSamplesOff, sdsOfGermlineSamplesOff, autosomesOff)
     mediansOff = as.numeric(mediansAndSdsOff[,1])
-    sdsOfProbesOff = trimValues(as.numeric(mediansAndSdsOff[,2]), 0.025)
+    sdsOfProbesOff = trimValues(as.numeric(mediansAndSdsOff[,2]), 0.01)
     coverage.normalised.off = sweep(coverageOff, 1, mediansOff, FUN="/")
   }
 
