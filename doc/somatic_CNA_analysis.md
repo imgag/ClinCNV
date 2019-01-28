@@ -81,6 +81,7 @@ For the "normal" genomic regions you may expect this plot to look like below. Th
 
 ![IGV track of BAFs][BAF_track_plus_pvals_norm]
 
+An investigator has to be especially careful with balanced copy number changes (thus, both alleles were duplicated or even triplicated) - they show no deviation in BAF patterns and only coverage may help you to solve this case. However **`ClinCNV` can not detect whole genome du- and triplications if no normal regions left in the genome**.
 
 
 [BAF_barplot]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_barplot1.png "Barplot of deviated BAFs on chromosome arm level"
