@@ -45,6 +45,8 @@ The same, but step 3 has to be skipped.
 You will have two output folders 1) CNV calling results with IGV tracks and clonality plot, 2) IGV tracks and summary of BAF deviations on chromosome's arms level. We start to explain the second the part.
 
 ## BAF
+
+### Barplots of deviated positions per chromosome arm
 You can find there barplots showing number of chromosome arms with significant deviations in BAFs between tumor and normal samples. They show proportion of SNVs with significantly (<0.05 p-value) different BAFs within the tumor-normal pair, thus, 1.0 indicates that 100% of SNVs have deviations in BAFs (thus can indicate presence of aneuploidy with high tumor content in the particular sample and chromosome arm), 0.0 indicated that 0% of SNVs have deviations. By random, we expect approximately 5% of SNVs having deviations, even if no CNAs happen in particular region.
 
 ![Barplot of deviated BAFs on chromosome arm level][BAF_barplot]
@@ -59,7 +61,33 @@ In this particular example we can see that part of chr1 left arm is affected by 
 
 In this sample almost all the chromosomes were likely to be damaged by CNAs. We take the least damaged chromosomes for the internal normalization (some of chromosome arms are indicated with orange color which means that they have >5% of BAFs significantly deviated, but we still had to take them into normalization procedure since the amount of "normal" material was too low), however you may expect higher level of noise in such samples due to small amount of "seemingly normal" material for normalization.
 
+### IGV tracks
+
+You can find 3 IGV BAF tracks per pair tumor/normal in the BAF folder.
+
+First two tracks (named according to tumor and normal samples) contain just germline heterozygous positions and how did they change in tumor:
+![IGV track of BAFs][BAF_track]
+
+At the chromosome level it may look like depicted - you can see that dark red dots are signficantly deviated from germline ones in the right arm and somehow different in the left arm of the chromosome which may be caused by 1) clonality of the event happened with the left arm is lower than clonality of the event on the right, 2) event on the left is duplication with 3 alleles except 2 in normal while the event on the left is a heterozygous deletion or LOH event, 3) the event on the left may be a duplication of high copy number with the low clonality while the event on the right can be a duplication of extra high copy number with almost 100% purity of the tumor sample. Only looking at coverage plots (and running `ClinCNV` of course) may help you to understand what actually happened.
+
+![IGV track of BAFs][BAF_track_chr]
+
+
+The third track shows p-values less than 0.05. Red segment means "BAF for particular SNVs in this segment are significantly different between normal and tumor samples", blue segment shows "the difference is not significant at 0.05 level". As you can see, only bunch of SNVs may show us a CN change - there are a lot of CNAs not significant at 0.05 level while in general we can clearly see a shift. This plot is especially useful for sanity checks of `ClinCNV` results together with coverage plots. If red segments (or "saw" of small red pikes) match with the detected CNAs, then you can trust the results.
+
+![IGV track of BAFs][BAF_track_plus_pvals]
+
+
+
+
+
+
 
 [BAF_barplot]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_barplot1.png "Barplot of deviated BAFs on chromosome arm level"
 [BAF_barplot_more]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_barplot2.png "Barplot of deviated BAFs on chromosome arm level"
 [BAF_barplot_even_more]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_barplot3.png "Barplot of deviated BAFs on chromosome arm level"
+[BAF_barplot_even_more]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_barplot3.png "Barplot of deviated BAFs on chromosome arm level"
+[BAF_track]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_BAFs_tumor_normal.png "IGV track of BAFs"
+[BAF_track_chr]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_BAF_chr_level.png "IGV track of BAFs"
+[BAF_track_plus_pvals]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_BAF_pvalue.png "IGV track of BAFs"
+
