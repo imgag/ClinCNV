@@ -50,7 +50,7 @@ There (if you did not specify flag `--visulizationIGV` as `F`) you can find 2 IG
 
 ![IGV tracks for one sample (exome seq)][IGV_track]
 
-[IGV_track]: https://github.com/imgag/ClinCNV/tree/master/doc/images/germline_tracks.png "IGV tracks for germline sample"
+[IGV_track]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks.png "IGV tracks for germline sample"
 
 ## "sampleName_cnvs.tsv" files
 
