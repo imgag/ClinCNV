@@ -46,12 +46,34 @@ There (if you did not specify flag `--visulizationIGV` as `F`) you can find 2 IG
 
 **Coverage values** are GC-normalised and median-normalised (that means that "average" coverage for cohort is around copy-number 2). But coverage is not square root normalised - so sometimes even if it seems that the dot is closer to alternative copy-number it may not be true since variances are different for different copy numbers at this plot.
 
-**CNV-segments** here are mainly used for algorithmic diagnostic purposes - if the segments are too fragmented, then you've chosen quality threshold as too small and you need to increase it and re-do the analysis. CNVs are described much more informatively in files "sampleName_cnvs.tsv"
+**CNV-segments** here are mainly used for algorithmic diagnostic purposes - if the segments are too fragmented or if you clearly see some CNVs in non-polymorphic regions that were not detected by ClinCNV, then you've chosen quality threshold as too small/big, respectively, and you need to increase it and re-do the analysis. CNVs are described much more informatively in files "sampleName_cnvs.tsv"
 
 ![IGV tracks for one sample (exome seq)][IGV_track]
 
-[IGV_track]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks.png "IGV tracks for germline sample"
+
+
+You can scroll into your data at chromosome level:
+
+
+![IGV tracks for one sample (exome seq)][IGV_track_chr]
+
+Or deeper at a single event level:
+
+![IGV tracks for one sample (exome seq)][IGV_track_cnv]
 
 ## "sampleName_cnvs.tsv" files
 
 Usually you will get tab delimited files with 2 header lines (starting with hashtag), column names description and the results itself.
+
+First line - number of iterations. If the number of detected CNVs exceeded values specified with the flag `--maxNumGermCNVs`, your sample is re-analysed with stricter thresholds. The number here denotes number of re-runs.
+
+Second line - number of outliers in autosomes. It is designed in a way that 5% of dots have to be "outliers" (their Z-score exceed the corresponding quantiles of standard normal) in a diploid sample. If you see a bigger number (such as 0.1 or bigger), that means that either your sample is largely affected by CNVs (or eg there is one aneuploidy) or the tool determined variances (or locations) wrongly. Unfortunately, you can do almost nothing in this case except dropping me an email. Value much below 5% may indicate same problems with parameters' estimation, but now variances were overestimated. It may lead to low sensitivity of the tool.
+
+### Columns in the table
+
+
+
+
+[IGV_track]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks.png "IGV tracks for germline sample"
+[IGV_track_chr]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks_chrom_level.png "IGV tracks for germline sample (chromosome level)"
+[IGV_track_cnv]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks_chrom_level.png "IGV tracks for germline sample (one CNV level)"
