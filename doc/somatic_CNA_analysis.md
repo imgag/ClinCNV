@@ -77,9 +77,9 @@ The third track shows p-values less than 0.05. Red segment means "BAF for partic
 
 ![IGV track of BAFs][BAF_track_plus_pvals]
 
+For the "normal" genomic regions you may expect this plot to look like below. There is some evidence of a CNA on the right arm of the chromosome, however it is inconclusive without checking the coverage plot.
 
-
-
+![IGV track of BAFs][BAF_track_plus_pvals_norm]
 
 
 
@@ -90,4 +90,5 @@ The third track shows p-values less than 0.05. Red segment means "BAF for partic
 [BAF_track]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_BAFs_tumor_normal.png "IGV track of BAFs"
 [BAF_track_chr]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_BAF_chr_level.png "IGV track of BAFs"
 [BAF_track_plus_pvals]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_BAF_pvalue.png "IGV track of BAFs"
+[BAF_track_plus_pvals_norm]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_BAF_pvalue_normal.png "IGV track of BAFs"
 
