@@ -71,9 +71,23 @@ Second line - number of outliers in autosomes. It is designed in a way that 5% o
 
 ### Columns in the table
 
-`#chr	start	end`
+`#chr	start	end` - are self explainable - they contain coordinates of detected variants.
 
-are self explainable - it is the coordinates of the detected variant
+`CN_change` denotes a copy number of detected variant. 
+
+`loglikelihood` actually says "how more probable is the detected copy number of the particular region comparing to the baseline (diploid or 1 copy for sex chromosomes in males)?". You can find more detailed description on [wikipedia](https://en.wikipedia.org/wiki/Bayes_factor#Interpretation) (use the second table). According to the table, loglikelihood > 10 means that the strength of evidence in favor of alternative copy number is "Very strong", however, we would recommend you to keep the values even higher (40 or at least 20) - genomic coverage is affected by numerous events such as short indels, batch effects, sequencing depth, technical artifacts, etc., and the genome is quite long so seeing large loglikelihood changes is not so rare there.
+
+`no_of_regions` shows how many datapoints are included into the variant. Longer variants usually are more credible (but not always, e.g., long variants with small `loglikelihood` value are likely to be false positives).
+
+`length_KB` is just difference between `end` and `start` of the variant.
+
+`potential_AF` shows, how often coverage in particular regions is unusually lower/higher (in case when the variant is deletion/duplication respectively).
+
+`genes` is filled with information only if you used annotated `.bed` file. We recommend to annotate only on-target `.bed` files from the panel since you are mainly interested in ploidy of genes you've included into your panel.
+
+`FDR_filter` appears only if you specified flag `--fdrGermline` with the number different from 0 (default). It basically says if your variants are lower or higher than 5% False Discovery Rate threshold. We'd recommend you to use only PASSED variants.
+
+
 
 [IGV_track]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks.png "IGV tracks for germline sample"
 [IGV_track_chr]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks_chrom_level.png "IGV tracks for germline sample (chromosome level)"
