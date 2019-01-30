@@ -553,7 +553,9 @@ returnTreeForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples) 
   trainingDataset = trainingDataset[-which(distnacesClose < 0),]
   if (nrow(trainingDataset) > 100) {
   fit <- ctree(covariancesClose ~ log2((distnacesClose)) + (sumOfLengths), data=trainingDataset)
+  png(filename="treeOnCorrelationOfCoverage.png", width=1024, height=1024)
   plot(fit)
+  dev.off()
   } else {
     return("NA")
   }
