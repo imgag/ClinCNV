@@ -612,7 +612,7 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
     
     # TIME TO MERGE TO MATRICES OF LIKELIHOODS
     commonBedFile = rbind(currentBedFile[,1:3], coordsOfIntermediateValues)
-    orderOfBedFile = order(commonBedFile[,1], as.numeric(commonBedFile[,2]))
+    orderOfBedFile = order(commonBedFile[,1], as.numeric(commonBedFile[,2]), as.numeric(commonBedFile[,3]))
     matrix_of_BFs = rbind(matrix_of_BFs, likeliksOfIntermediateValues)[orderOfBedFile,]
     commonBedFile = commonBedFile[orderOfBedFile,]
   } else {
