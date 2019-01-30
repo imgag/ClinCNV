@@ -10,9 +10,7 @@ We suggest the following step by step guide into CNVs detection in different use
 `Rscript clinCNV.R --normal normal.cov --bed bedFile.bed`
 
 2. Specifying output folder **(here and until the end of the numbered list instruction you should add the line to the line you got on the previous step)**:
-`--out /your/folder`
-
-Folder `normal` will be created in your output folders, results will be put into subfolders, one sample per subfolder.
+`--out /your/folder`. Folder `normal` will be created in your output folders, results will be put into subfolders, one sample per subfolder.
 
 3. Adding offtarget coverages (does not increase _Sensitivity_ a lot since germline CNVs are rarely as long as off-target window, but improves _Specificity_ efficiently removing CNVs formed by probes standing far away from each other, off-target coverage has to be extracted for *sufficiently large number of samples*, but not necessarily for all the samples from `normal.cov` file):
 `--normalOfftarget normalOff.cov --bedOfftarget bedFileOff.bed`
@@ -41,7 +39,7 @@ In the end you will have a command line like:
 
 ## WGS
 
-For high-coverage (>10X) WGS you should skip step 3 and pay special attention to step 6 (may be put the maximum number of expected CNVs equal to 100.000 if you run your dataset for the first time and don't know what to expect). Probably it is also better to keep step 7 (number of iterations for FDR control) at low level since permutations of WGS data may take a while and even several permutations may be a good estimator of your data' level of noise.
+For high-coverage (>10X) WGS you should skip step 3 and pay special attention to step 6 (may be put the maximum number of expected CNVs equal to 100.000 if you run your dataset for the first time and don't know what to expect). Probably it is also better to keep step 7 (number of iterations for FDR control) at low level (1-5) since permutations of WGS data may take a while and even several permutations may be a good estimator of your data' level of noise.
 
 For low-coverage WGS (<10X) we would recommend to use window size at least 5KB and minimal size of CNV as 3.
 
@@ -53,7 +51,7 @@ There (if you did not specify flag `--visulizationIGV` as `F`) you can find 2 [I
 
 **Coverage values** are GC-normalised and median-normalised (that means that "average" coverage for cohort is centered around copy-number 2 in autosomes). But coverage is not square root normalised as it is inside `ClinCNV`'s algorithm - so sometimes even if it seems that the dot is closer to alternative copy-number it may not be true since variances are different for different copy numbers.
 
-**CNV-segments** here are mainly used for algorithmic diagnostic purposes - if the segments are too fragmented or if you clearly see some CNVs in non-polymorphic regions that were not detected by ClinCNV, then you've chosen quality threshold as too small/big, respectively, and you need to increase it and re-do the analysis. CNVs are described much more informatively in files "sampleName_cnvs.tsv"
+**CNV-segments** here are mainly used for algorithmic diagnostic purposes - if the segments are too fragmented or if you clearly see some CNVs in non-polymorphic (variance is usually overestimated for regions that are affected by CNVs frequently) regions that were not detected by ClinCNV, then you've chosen quality threshold as too small/big, respectively, and you need to increase it and re-do the analysis. CNVs are described much more informatively in files "sampleName_cnvs.tsv"
 
 ![IGV tracks for one sample (exome seq)][IGV_track]
 
@@ -70,11 +68,11 @@ Or deeper at a single event level:
 
 ## "sampleName_cnvs.tsv" files
 
-Usually you will get tab delimited files with 2 header lines (starting with hashtag), results' table column names and the results table itself.
+You will get tab delimited files with 2 header lines (starting with hashtag), results' table column names and the results table itself.
 
 _First line_ in resulting `.tsv` file shows the number of iterations. If the number of detected CNVs exceeds values specified with the flag `--maxNumGermCNVs`, your sample is re-analysed with stricter thresholds. The number here denotes number of re-runs.
 
-_Second line_ - number of outliers in autosomes. It is designed in a way that 5% of dots have to be "outliers" (their Z-score exceed the corresponding quantiles of normal distributions) in a diploid sample. If you see a bigger number (such as 0.1 or bigger), that means that either your sample is largely affected by CNVs (e.g. there is one aneuploidy) or the tool determined variances (or locations) wrongly or your sample is too noisy comparing to the cohort (thus, outlier and has to be excluded from the analysis). Unfortunately, you can do almost nothing in this case except dropping me an email. Value much below 5% may indicate same problems with parameters' estimation, but now variances were overestimated. It may lead to low sensitivity of the tool.
+_Second line_ - number of outliers in autosomes. It is designed in a way that 5% of dots have to be "outliers" (their Z-score exceed the corresponding quantiles of normal distributions) in a diploid sample. If you see a bigger number (such as 0.1 or bigger), that means that either your sample is largely affected by CNVs (e.g. there is aneuploidy or mutliple small CNVs) or the tool determined variances (or locations) wrongly or your sample is too noisy comparing to the cohort (thus, _the sample itself_ is an outlier and has to be excluded from the analysis). Value much below 5% may indicate same problems with parameters' estimation, but now variances were overestimated. It may lead to low sensitivity of the tool.
 
 ![Table with results (simulated data)][table_of_results]
 
@@ -84,7 +82,7 @@ _Second line_ - number of outliers in autosomes. It is designed in a way that 5%
 
 `CN_change` denotes a copy number of detected variant. 
 
-`loglikelihood` actually says "how more probable is the detected copy number of the particular region comparing to the baseline (diploid or 1 copy for sex chromosomes in males)?". You can find more detailed description on [wikipedia](https://en.wikipedia.org/wiki/Bayes_factor#Interpretation) (use the second table). According to the table, loglikelihood > 10 means that the strength of evidence in favor of alternative copy number is "Very strong", however, we would recommend you to keep the values even higher (40 or at least 20) - genomic coverage is affected by numerous events such as short indels, batch effects, sequencing depth, technical artifacts, etc., and the genome is quite long so seeing large loglikelihood changes is not so rare there.
+`loglikelihood` actually says "how more probable is the detected copy number of the particular region comparing to the baseline (diploid or 1 copy for sex chromosomes in males)?". You can find more detailed description on [wikipedia](https://en.wikipedia.org/wiki/Bayes_factor#Interpretation) (use the second table). According to the table, loglikelihood > 10 means that the strength of evidence in favor of alternative copy number is "Very strong", however, we would recommend you to keep the values even higher (40 or at least 20) - genomic coverage is affected by numerous events such as short indels causing alignment problems, batch effects, sequencing depth, technical artifacts, etc., and the genome is quite long so seeing large loglikelihood changes is not so rare there.
 
 `no_of_regions` shows how many datapoints are included into the variant. Longer variants usually are more credible (but not always, e.g., long variants with small `loglikelihood` value are likely to be false positives).
 
@@ -92,7 +90,7 @@ _Second line_ - number of outliers in autosomes. It is designed in a way that 5%
 
 `potential_AF` shows, how often coverage in particular regions is unusually lower/higher (in case when the variant is deletion/duplication respectively).
 
-`genes` is filled with information only if you used annotated `.bed` file. We recommend to annotate only on-target `.bed` files from the panel since you are mainly interested in ploidy of genes you've included into your panel.
+`genes` is filled with information only if you used annotated `.bed` file. We recommend to annotate only on-target `.bed` files from the panel since you are mainly interested in ploidy of genes you've included into your panel. If you don't annotate your `.bed` file - you will see just zeros in this column.
 
 `FDR_filter` appears only if you specified flag `--fdrGermline` with the number different from 0 (default). It basically says if your variants are lower or higher than 5% False Discovery Rate threshold. We'd recommend you to use only PASSED variants.
 
