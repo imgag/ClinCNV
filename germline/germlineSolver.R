@@ -179,14 +179,14 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         
         # Due to inroduction of covariances intermediate probes we need to remap our variants back to the original bedFile
         if (covar & nrow(found_CNVs) > 0) {
-          print("")
-          for (y in 1:nrow(found_CNVs)) {
-            print(toyBedFileAfterCovariance[found_CNVs[y,2]:found_CNVs[y,3],])
-          }
+          #print("")
+          #for (y in 1:nrow(found_CNVs)) {
+          #  print(toyBedFileAfterCovariance[found_CNVs[y,2]:found_CNVs[y,3],])
+          #}
           found_CNVs <- remapVariants(found_CNVs, toyBedFileAfterCovariance, toyBedFile)
-          for (y in 1:nrow(found_CNVs)) {
-            print(toyBedFile[found_CNVs[y,2]:found_CNVs[y,3],])
-          }
+          #for (y in 1:nrow(found_CNVs)) {
+          #  print(toyBedFile[found_CNVs[y,2]:found_CNVs[y,3],])
+          #}
         }
         found_CNVs = found_CNVs[which(found_CNVs[,3] - found_CNVs[,2] > minimum_length_of_CNV),,drop=F]
         
