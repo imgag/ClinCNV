@@ -32,14 +32,14 @@ covar = T
 
 print(paste("We start to estimate covariances between neighboring regions in germline data - may take some time", Sys.time()))
 sdsOfGermlineSamplesForNormalisedData = apply(coverage.normalised[autosomes,], 2, determineSDsOfGermlineSample)
+if (frameworkOff == "offtargetGermline") {
+  sdsOfGermlineSamplesForNormalisedDataOff = apply(coverage.normalised.off[autosomesOff,], 2, determineSDsOfGermlineSample)
+}
 setwd(opt$out)
 covarianceTree = returnTreeForCorrelation(coverage.normalised, sdsOfGermlineSamplesForNormalisedData)
 setwd(opt$folderWithScript)
 print(paste("Tree of covariances (using 2 predictors - sum of regions' lengths and log2 of distance between regions) plotted in", opt$out, Sys.time()))
 
-if (frameworkOff == "offtargetGermline") {
-  sdsOfGermlineSamplesForNormalisedDataOff = apply(coverage.normalised.off[autosomesOff,], 2, determineSDsOfGermlineSample)
-}
 
 print(paste("Calling started", Sys.time()))
 for (sam_no in 1:ncol(coverage.normalised)) {
@@ -179,7 +179,14 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         
         # Due to inroduction of covariances intermediate probes we need to remap our variants back to the original bedFile
         if (covar & nrow(found_CNVs) > 0) {
+          print("")
+          for (y in 1:nrow(found_CNVs)) {
+            print(toyBedFileAfterCovariance[found_CNVs[y,2]:found_CNVs[y,3],])
+          }
           found_CNVs <- remapVariants(found_CNVs, toyBedFileAfterCovariance, toyBedFile)
+          for (y in 1:nrow(found_CNVs)) {
+            print(toyBedFile[found_CNVs[y,2]:found_CNVs[y,3],])
+          }
         }
         found_CNVs = found_CNVs[which(found_CNVs[,3] - found_CNVs[,2] > minimum_length_of_CNV),,drop=F]
         

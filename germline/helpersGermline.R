@@ -550,7 +550,7 @@ returnTreeForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples) 
   
   trainingDataset <- as.data.frame(cbind(covariancesClose, distnacesClose, sumOfLengths))
   if (length(which(distnacesClose < 0)) > 0)
-  trainingDataset = trainingDataset[-which(distnacesClose < 0),]
+  trainingDataset = trainingDataset[-which(distnacesClose < 0 | distnacesClose > 9500),]
   if (nrow(trainingDataset) > 100) {
   fit <- ctree(covariancesClose ~ log2((distnacesClose)) + (sumOfLengths), data=trainingDataset)
   png(filename="treeOnCorrelationOfCoverage.png", width=2048, height=2048)
@@ -589,7 +589,7 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
   })
   
   covariancesForWholeDataset <- Predict(covarianceTree, datasetToPredice)
-  smallDistances = which(covariancesForWholeDataset > 0.05)
+  smallDistances = which(covariancesForWholeDataset > 0.05 & distancesToPredict < 9500)
   if (length(smallDistances) > 10) {
     distancesToPredict = distancesToPredict[smallDistances]
     covariances <- covariancesForWholeDataset[smallDistances]
