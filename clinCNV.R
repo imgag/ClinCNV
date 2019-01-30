@@ -116,18 +116,6 @@ opt = parse_args(opt_parser);
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
 
-opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v4.annotated.bed"
-opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/tumor_ontarget_v4.cov"
-opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ontarget_v4.cov"
-opt$colNum = 4
-opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairsNew.txt"
-opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
-opt$reanalyseCohort = F
-opt$bedOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/annotated_offtarget_v4.bed"
-opt$tumorOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/tumor_offtarget_v4.cov"
-opt$normalOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/offtarget_v4.cov"
-opt$bafFolder = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/baf"
-opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/"
 
 
 if (is.null(opt$normal) | is.null(opt$bed)) {
