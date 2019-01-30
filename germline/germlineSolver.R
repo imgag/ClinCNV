@@ -1,3 +1,5 @@
+library(party)
+
 no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 cl<-makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
@@ -27,14 +29,19 @@ if (!dir.exists(folder_name)) {
   dir.create(folder_name)
 }
 covar = T
+
+print(paste("We start to estimate covariances between neighboring regions in germline data - may take some time", Sys.time()))
 sdsOfGermlineSamplesForNormalisedData = apply(coverage.normalised[autosomes,], 2, determineSDsOfGermlineSample)
+setwd(opt$out)
 covarianceTree = returnTreeForCorrelation(coverage.normalised, sdsOfGermlineSamplesForNormalisedData)
-print("Covariances for the data...")
+setwd(opt$folderWithScript)
+print(paste("Tree of covariances (using 2 predictors - sum of regions' lengths and log2 of distance between regions) plotted in", opt$out, Sys.time()))
+
 if (frameworkOff == "offtargetGermline") {
   sdsOfGermlineSamplesForNormalisedDataOff = apply(coverage.normalised.off[autosomesOff,], 2, determineSDsOfGermlineSample)
 }
 
-
+print(paste("Calling started", Sys.time()))
 for (sam_no in 1:ncol(coverage.normalised)) {
   sample_name <- colnames(coverage.normalised)[sam_no]
   if (frameworkOff == "offtargetGermline") { 
@@ -52,7 +59,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
       next
     }
   }
-  print(paste("Working with germline sample", sample_name))
+  print(paste("Working with germline sample", sample_name, Sys.time()))
   
   threshold = opt$scoreG
   minimum_length_of_CNV = opt$lengthG

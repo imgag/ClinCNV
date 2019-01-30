@@ -503,7 +503,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
   x <- fit$points[,1]
   y <- fit$points[,2]
   setwd(opt$out)
-  png(filename="clusteringSolution.png", width=1024, height=1024)
+  png(filename="clusteringSolution.png", width=2048, height=2048)
   plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
        main="Metric MDS", type="n")
   text(x, y, labels = row.names(distMatrix), cex=.7, col=clustering + 1)
@@ -553,7 +553,7 @@ returnTreeForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples) 
   trainingDataset = trainingDataset[-which(distnacesClose < 0),]
   if (nrow(trainingDataset) > 100) {
   fit <- ctree(covariancesClose ~ log2((distnacesClose)) + (sumOfLengths), data=trainingDataset)
-  png(filename="treeOnCorrelationOfCoverage.png", width=1024, height=1024)
+  png(filename="treeOnCorrelationOfCoverage.png", width=2048, height=2048)
   plot(fit)
   dev.off()
   } else {

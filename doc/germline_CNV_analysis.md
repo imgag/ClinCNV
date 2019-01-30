@@ -1,6 +1,6 @@
 # How to run `ClinCNV` for germline analysis
 
-Germline CNVs detection pipeline of `ClinCNV` may utilize on-target reads coverage (reads that were aligned to the pre-specified and enriched locations in the genome or, in case of whole genome sequencing (WGS), reads that were mapped somewhere in the genome typically with 2 mismatches max) and off-target reads coverage (reads that come from regions outside of your pre-specified intervals - even for the perfectly prepared enrichment there is typically a large number of such reads) as direct evidence of genomic copy number. Off-targed reads coverage is usually summarised in windows of large size, such as 50KBps or even bigger, since the coverage there is extremely low and sufficient number of reads is required for usage of number of mapped reads as a marker of underying copy-number.
+Germline CNVs detection pipeline of `ClinCNV` may utilize on-target reads coverage (reads that were aligned to the pre-specified and enriched locations in the genome or, in case of whole genome sequencing (WGS), reads that were mapped somewhere in the genome) and off-target reads coverage (even for the perfectly prepared enrichment there is typically a large number of reads that come from regions outside of your pre-specified intervals) as evidence of genomic ploidy. Off-targed reads coverage is usually summarised in windows of large size, such as 50KBps or even bigger, since the coverage outside of enriched areas is extremely low and sufficient number of reads is required for usage of number of mapped reads as a marker of underying copy-number.
 
 We suggest the following step by step guide into CNVs detection in different use cases (data after enrichment and WGS, idealy with the smallest amount of PCR cycles as possible):
 
@@ -41,16 +41,17 @@ In the end you will have a command line like:
 
 ## WGS
 
-For WGS you should skip step 3 and pay special attention to step 6 (may be put the maximum number of expected CNVs equal to 100.000 if you run your dataset for the first time and don't know what to expect). Probably it is also better to keep step 7 (number of iterations for FDR control) at low level since permutations of WGS data may take a while and even several permutations may be a good estimator of your data' level of noise.
+For high-coverage (>10X) WGS you should skip step 3 and pay special attention to step 6 (may be put the maximum number of expected CNVs equal to 100.000 if you run your dataset for the first time and don't know what to expect). Probably it is also better to keep step 7 (number of iterations for FDR control) at low level since permutations of WGS data may take a while and even several permutations may be a good estimator of your data' level of noise.
 
+For low-coverage WGS (<10X) we would recommend to use window size at least 5KB and minimal size of CNV as 3.
 
 # How to interpret results
 
-Your output files will be saved in `/your/folder/normal` directory - `ClinCNV` will make a separate folder per sample. 
+Your output files will be saved in `/your/folder/normal` directory - `ClinCNV` will make a separate folder per sample and put resulting files there. 
 
-There (if you did not specify flag `--visulizationIGV` as `F`) you can find 2 IGV tracks - one for real coverage values, second for CNVs track. Both tracks heights denote the underlying copy number (height = 0 denote homozygous deletion, height = 1 denote heterozygous deletion, height = 2 = diploid, height = 3 heterozyous duplication, etc.). Height is cut at level 6 since othervise differences would be much less illustrative (so, even if you have values with copy-number >6, they will be depicted just by points at height 6). You can just drag and drop these tracks into your IGV browser.
+There (if you did not specify flag `--visulizationIGV` as `F`) you can find 2 [IGV tracks](http://software.broadinstitute.org/software/igv/SEG) - one for real coverage values, second for CNVs track. Both tracks heights denote the underlying copy number (height = 0 denote homozygous deletion, height = 1 denote heterozygous deletion, height = 2 = diploid, height = 3 heterozyous duplication, etc.). Height is cut at level 6 since othervise differences would be much less illustrative (so, even if you have values with copy-number >6, they will be depicted just by points at height 6). You can just drag and drop these tracks into your [IGV browser](http://software.broadinstitute.org/software/igv/home).
 
-**Coverage values** are GC-normalised and median-normalised (that means that "average" coverage for cohort is around copy-number 2). But coverage is not square root normalised as it is inside `ClinCNV`'s algorithm - so sometimes even if it seems that the dot is closer to alternative copy-number it may not be true since variances are different for different copy numbers at this plot.
+**Coverage values** are GC-normalised and median-normalised (that means that "average" coverage for cohort is centered around copy-number 2 in autosomes). But coverage is not square root normalised as it is inside `ClinCNV`'s algorithm - so sometimes even if it seems that the dot is closer to alternative copy-number it may not be true since variances are different for different copy numbers.
 
 **CNV-segments** here are mainly used for algorithmic diagnostic purposes - if the segments are too fragmented or if you clearly see some CNVs in non-polymorphic regions that were not detected by ClinCNV, then you've chosen quality threshold as too small/big, respectively, and you need to increase it and re-do the analysis. CNVs are described much more informatively in files "sampleName_cnvs.tsv"
 
@@ -73,7 +74,7 @@ Usually you will get tab delimited files with 2 header lines (starting with hash
 
 _First line_ in resulting `.tsv` file shows the number of iterations. If the number of detected CNVs exceeds values specified with the flag `--maxNumGermCNVs`, your sample is re-analysed with stricter thresholds. The number here denotes number of re-runs.
 
-_Second line_ - number of outliers in autosomes. It is designed in a way that 5% of dots have to be "outliers" (their Z-score exceed the corresponding quantiles of standard normal) in a diploid sample. If you see a bigger number (such as 0.1 or bigger), that means that either your sample is largely affected by CNVs (or eg there is one aneuploidy) or the tool determined variances (or locations) wrongly. Unfortunately, you can do almost nothing in this case except dropping me an email. Value much below 5% may indicate same problems with parameters' estimation, but now variances were overestimated. It may lead to low sensitivity of the tool.
+_Second line_ - number of outliers in autosomes. It is designed in a way that 5% of dots have to be "outliers" (their Z-score exceed the corresponding quantiles of normal distributions) in a diploid sample. If you see a bigger number (such as 0.1 or bigger), that means that either your sample is largely affected by CNVs (e.g. there is one aneuploidy) or the tool determined variances (or locations) wrongly or your sample is too noisy comparing to the cohort (thus, outlier and has to be excluded from the analysis). Unfortunately, you can do almost nothing in this case except dropping me an email. Value much below 5% may indicate same problems with parameters' estimation, but now variances were overestimated. It may lead to low sensitivity of the tool.
 
 ![Table with results (simulated data)][table_of_results]
 

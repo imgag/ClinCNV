@@ -57,8 +57,11 @@ Then you need to merge your ".cov" files into one table. To do this, you can use
 
 `Rscript mergeFilesFromFolder.R -i $input_folder -o $output_folder`
 
+
+
 ## B-allele frequency for Somatic framework
 
+B-allele frequency extraction works in 2 steps - first, you extract high quality positions from your `.vcf` file from the normal sample, then you calculate coverage of this position in your tumor sample using BAF file obtained at previous step.
 
 
 

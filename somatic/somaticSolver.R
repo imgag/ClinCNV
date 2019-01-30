@@ -4,6 +4,8 @@ library(mclust)
 setwd(opt$folderWithScript)
 source("./somatic/helpersSomatic.R",local=TRUE)
 
+print(paste("Work on data preparation for somatic samples started (log-fold change matrices plus parameters estimation)", Sys.time()))
+
 listOfValue <- formilngLogFoldChange(pairs, normal, tumor)
 matrixOfLogFold <- listOfValue[[1]]
 dictFromColumnToTumor <- listOfValue[[2]]
@@ -196,11 +198,12 @@ if (!dir.exists(folder_name)) {
 
 allPotentialPurities <- unique(purities)
 penaltyForHigherCN = 20
+print(paste("Work on actual calling started.", Sys.time()))
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
   germline_sample_no = which(colnames(normal) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])
   if (germline_sample_no == "F") next
-  print(genderOfSamples[germline_sample_no])
+  print(genderOfSamplesCohort[germline_sample_no])
   
   if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
     if (!sample_name == paste(opt$tumorSample, opt$normalSample, sep="-")) {
@@ -412,7 +415,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2), local_multipliersDueToLog)
 
-      if (genderOfSamples[germline_sample_no] == "M") {
+      if (genderOfSamplesCohort[germline_sample_no] == "M") {
         if (length(which(bedFile[,1] %in% c("chrX","chrY"))) > 0)
         matrix_of_likeliks[which(bedFile[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
           1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[which(bedFile[,1] %in% c("chrX","chrY")),sam_no], 
@@ -451,10 +454,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           if (length(closestBedRegions) == 0) closestBedRegions = rep(0, nrow(bAlleleFreqsTumor))
           for (i in 1:nrow(bAlleleFreqsTumor)) {
             # To avoid computationally expensive steps on the start of estimation
-            if (i %% 100 == 0) {
-              print(i / nrow(bAlleleFreqsTumor))
-              print(Sys.time())
-            }
+
             if (vectorsWithRegionCoordsFilled) {
               closestBedRegion = closestBedRegions[i]
             } else {
@@ -513,7 +513,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues < log2(min(local_cn_states) / 2))] = log2(min(local_cn_states) / 2)
         matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
         matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[,sam_no_off], localSdsOff, log2(local_cn_states/2), local_multipliersDueToLogOff)
-        if (genderOfSamples[germline_sample_no] == "M") {
+        if (genderOfSamplesCohort[germline_sample_no] == "M") {
           matrix_of_likeliks_off[which(bedFileOfftarget[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
             1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileOfftarget[,1] %in% c("chrX","chrY")),sam_no_off], 
             localSdsOff[which(bedFileOfftarget[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
@@ -547,9 +547,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         chrom = names(left_borders)[l]
         
         
-        if (chrom == "chrY" & genderOfSamples[germline_sample_no] == "F") {
+        if (chrom == "chrY" & genderOfSamplesCohort[germline_sample_no] == "F") {
           next
-        } else if (genderOfSamples[germline_sample_no] == "M") {
+        } else if (genderOfSamplesCohort[germline_sample_no] == "M") {
           if (chrom %in% c("chrY","chrX")) {
             initial_state = 2
           } else {
@@ -626,24 +626,25 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
           
           
-          
-          ### IGV PLOTTING
-          if(opt$debug) {
-            print("START OF IGV PLOTTING")
-          }
-          if (finalIteration) {
-            outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
-            outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
-            if (genderOfSamples[germline_sample_no] == "M") {
-              reverseFunctionUsedToTransform = function(x, chroms) {return((2 ** (x + ifelse(chrom %in% c("chrX", "chrY"), 0, 1))))}
-            } else {
-              reverseFunctionUsedToTransform = function(x, chroms) {return(2 ** (x + 1))}
+          if (opt$visulizationIGV) {
+            ### IGV PLOTTING
+            if(opt$debug) {
+              print(paste("Start of IGV plotting", Sys.time()))
             }
-            outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
-                                                outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, local_cn_states)
-          }
-          if(opt$debug) {
-            print("END OF IGV PLOTTING")
+            if (finalIteration) {
+              outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
+              outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
+              if (genderOfSamplesCohort[germline_sample_no] == "M") {
+                reverseFunctionUsedToTransform = function(x, chroms) {return((2 ** (x + ifelse(chrom %in% c("chrX", "chrY"), 0, 1))))}
+              } else {
+                reverseFunctionUsedToTransform = function(x, chroms) {return(2 ** (x + 1))}
+              }
+              outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
+                                                  outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, local_cn_states)
+            }
+            if(opt$debug) {
+              print(paste("End of IGV plotting", Sys.time()))
+            }
           }
           ### END OF IGV PLOTTING
           
@@ -744,7 +745,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         }
         
       } else {
-        print("No CNVs found in this sample for finding clonality.")
+        print("No high quality CNVs found in this sample for finding clonality.")
         clonalBestPurities = c(0, 1)
       }
       finalIteration = T

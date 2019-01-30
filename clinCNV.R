@@ -16,7 +16,7 @@ library("data.table")
 library(foreach)
 library(doParallel)
 library(msm)
-library(party)
+
 
 
 initial.options <- commandArgs(trailingOnly = FALSE)
@@ -116,6 +116,19 @@ opt = parse_args(opt_parser);
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
 
+opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v4.annotated.bed"
+opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/tumor_ontarget_v4.cov"
+opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ontarget_v4.cov"
+opt$colNum = 4
+opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/pairsNew.txt"
+opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
+opt$reanalyseCohort = F
+opt$bedOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/annotated_offtarget_v4.bed"
+opt$tumorOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/tumor_offtarget_v4.cov"
+opt$normalOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/offtarget_v4.cov"
+opt$bafFolder = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/baf"
+opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/"
+
 
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
@@ -166,6 +179,7 @@ registerDoParallel(cl)
 
 
 ### READING DATA
+print(paste("We are started with reading the coverage files and bed files",Sys.time()))
 setwd(opt$folderWithScript)
 #bedFile <- read.table(opt$bed, stringsAsFactors = F, sep="\t", comment.char="&", header=F)
 bedFile <- ReadFileFast(opt$bed, header=F)
@@ -246,7 +260,7 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   }
 }
 
-
+print(paste("Started basic quality filtering.",Sys.time()))
 
 rowsToRemove <- cleanDatasetFromLowCoveredFiles(normal, bedFile)
 if (length(rowsToRemove) > 0) {
@@ -275,7 +289,6 @@ if (framework == "somatic") {
 
 
 ## CHECK INPUT VALIDITY
-## CHECK INPUT VALIDITY
 if (!is.null(opt$normalSample)) {
   if (!opt$normalSample %in% colnames(normal)) {
     print(paste("Sorry! We have not found sample with name", opt$normalSample, "in our normal cohort! Please check that sample name matches. Header of cohort is:"))
@@ -301,7 +314,9 @@ right_borders <- lstOfChromBorders[[2]]
 ends_of_chroms <- lstOfChromBorders[[3]]
 
 
+
 if (frameworkDataTypes == "covdepthBAF") {
+  print(paste("We are reading BAF files. It may take time - especially if you have a lot of SNV positions.", Sys.time()))
   setwd(opt$folderWithScript)
 
     source(file.path(opt$folderWithScript, "somatic", "bafSegmentation.R"), local=T)
@@ -330,6 +345,7 @@ setwd(opt$folderWithScript)
 
 
 ### ON TARGET GC NORMALIZATION
+print(paste("Normalization with GC and length starts.", Sys.time()))
 if (max(bedFile[,3] - bedFile[,2]) / min(bedFile[,3] - bedFile[,2]) > 16)
   normal <- lengthBasedNormalization(normal, bedFile)
 lst <- gc_and_sample_size_normalise(bedFile, normal)
@@ -418,9 +434,10 @@ bordersOfChroms <- getBordersOfChromosomes(bedFile)
 
 stopCluster(cl)
 ### PROCESSING OF GERMLINE VARIANTS
+
+
 setwd(opt$folderWithScript)
 source("./germline/helpersGermline.R")
-
 
 frameworkTrios = "single"
 if (!is.null(opt$triosFile)) {
@@ -434,9 +451,10 @@ if (frameworkTrios == "trios") {
   colnames(trios) <- c("Kid","Mother","Father")
 }
 
+print(paste("We start to cluster your data (you will find a plot if clustering is possible in your output directory)", opt$out, Sys.time()))
 clustering <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
 
-print("Processing of germline variants started.")
+print(paste("Processing of germline variants started (we need to do it as an additional step for Saomtic calling since we need to know at least genders).", Sys.time()))
 
 orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
 bedFile = bedFile[orderOfBedFile,]
@@ -450,90 +468,91 @@ if (frameworkOff == "offtargetGermline") {
   coverageAllSamplesOff <- sqrt(as.matrix(normalOff))
 }
 
-print("Gender estimation started")
+print(paste("Gender estimation started", Sys.time()))
 genderOfSamplesCohort <- Determine.gender(sqrt(coverageAllSamples), bedFile)
 print(genderOfSamplesCohort)
-print("Gender succesfully determined. Plot is written in your results directory.")
-
-
-for (cluster in unique(clustering)) {
-  if (cluster == -1) {
-    print(paste("Samples from trio mode that are presented in trios.txt but do not have a full family in file", opt$normal , "will be excluded."))
-    print(colnames(normal)[which(clustering == -1)])
-    next
+print(paste("Gender succesfully determined. Plot is written in your results directory:", opt$out, Sys.time()))
+  
+if (framework == "germline") {
+  for (cluster in unique(clustering)) {
+    if (cluster == -1) {
+      print(paste("Samples from trio mode that are presented in trios.txt but do not have a full family in file", opt$normal , "will be excluded."))
+      print(colnames(normal)[which(clustering == -1)])
+      next
+    }
+    
+    # We create cluster for parallel computation each time we run germline analysis
+    no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
+    cl<-makeCluster(no_cores, type="FORK")
+    registerDoParallel(cl)
+    
+    
+    samplesToAnalyse = which(clustering == cluster)
+    coverage <- coverageAllSamples[,samplesToAnalyse]
+    genderOfSamples = genderOfSamplesCohort[samplesToAnalyse]
+    if (frameworkOff == "offtargetGermline") {
+      samplesToAnalyseOff = which(colnames(coverageAllSamplesOff) %in% colnames(coverage))
+      coverageOff <- coverageAllSamplesOff[,samplesToAnalyseOff]
+      genderOfSamplesOff <- sapply(1:ncol(coverageOff), function(i) {return(genderOfSamplesCohort[which(colnames(normal) == colnames(coverageOff)[i])])})
+    }
+    
+    
+    
+    #clusterExport(cl, c('EstimateModeSimple', 'bedFile', 'genderOfSamples', "lehmanHodges", 'Qn'))
+    
+    
+    
+    
+    
+    autosomes <- which(!bedFile[,1] %in% c("chrX", "chrY", "X", "Y"))
+    sdsOfGermlineSamples <- apply(coverage[autosomes,], 2, determineSDsOfGermlineSample)
+    
+    #medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
+    print(paste("We start estimation of parameters of germline cohort. It may take some time. Cluster of samples being analysed:", cluster, Sys.time()))
+    mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, sdsOfGermlineSamples, autosomes)
+    medians = as.numeric(mediansAndSds[,1])
+    sdsOfProbes = trimValues(as.numeric(mediansAndSds[,2]), 0.01)
+    coverage.normalised = sweep(coverage, 1, medians, FUN="/")
+    
+    if (frameworkOff == "offtargetGermline") {
+      autosomesOff <- which(!bedFileOfftarget[,1] %in% c("chrX", "chrY", "X", "Y"))
+      sdsOfGermlineSamplesOff <- apply(coverageOff[autosomesOff,], 2, determineSDsOfGermlineSample)
+      mediansAndSdsOff = calculateLocationAndScale(bedFileOfftarget, coverageOff, genderOfSamplesOff, sdsOfGermlineSamplesOff, autosomesOff)
+      mediansOff = as.numeric(mediansAndSdsOff[,1])
+      sdsOfProbesOff = trimValues(as.numeric(mediansAndSdsOff[,2]), 0.01)
+      coverage.normalised.off = sweep(coverageOff, 1, mediansOff, FUN="/")
+    }
+    
+    
+    stopCluster(cl)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!is.null(opt$triosFile)) {
+      source("./trios/germlineTrioSolver.R",local=TRUE)
+    } else {
+      source("./germline/germlineSolver.R",local=TRUE)
+    }
   }
-  
-  # We create cluster for parallel computation each time we run germline analysis
-  no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-  cl<-makeCluster(no_cores, type="FORK")
-  registerDoParallel(cl)
-  
-  
-  samplesToAnalyse = which(clustering == cluster)
-  coverage <- coverageAllSamples[,samplesToAnalyse]
-  genderOfSamples = genderOfSamplesCohort[samplesToAnalyse]
-  if (frameworkOff == "offtargetGermline") {
-    samplesToAnalyseOff = which(colnames(coverageAllSamplesOff) %in% colnames(coverage))
-    coverageOff <- coverageAllSamplesOff[,samplesToAnalyseOff]
-    genderOfSamplesOff <- sapply(1:ncol(coverageOff), function(i) {return(genderOfSamplesCohort[which(colnames(normal) == colnames(coverageOff)[i])])})
-  }
-
-  
-  
-  #clusterExport(cl, c('EstimateModeSimple', 'bedFile', 'genderOfSamples', "lehmanHodges", 'Qn'))
-  
-  
-  
-  
-  
-  autosomes <- which(!bedFile[,1] %in% c("chrX", "chrY", "X", "Y"))
-  sdsOfGermlineSamples <- apply(coverage[autosomes,], 2, determineSDsOfGermlineSample)
-
-  #medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
-  mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, sdsOfGermlineSamples, autosomes)
-  medians = as.numeric(mediansAndSds[,1])
-  sdsOfProbes = trimValues(as.numeric(mediansAndSds[,2]), 0.01)
-  coverage.normalised = sweep(coverage, 1, medians, FUN="/")
-  
-  if (frameworkOff == "offtargetGermline") {
-    autosomesOff <- which(!bedFileOfftarget[,1] %in% c("chrX", "chrY", "X", "Y"))
-    sdsOfGermlineSamplesOff <- apply(coverageOff[autosomesOff,], 2, determineSDsOfGermlineSample)
-    mediansAndSdsOff = calculateLocationAndScale(bedFileOfftarget, coverageOff, genderOfSamplesOff, sdsOfGermlineSamplesOff, autosomesOff)
-    mediansOff = as.numeric(mediansAndSdsOff[,1])
-    sdsOfProbesOff = trimValues(as.numeric(mediansAndSdsOff[,2]), 0.01)
-    coverage.normalised.off = sweep(coverageOff, 1, mediansOff, FUN="/")
-  }
-
-  
-  stopCluster(cl)
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-
-  
-  
-  
-  if (!is.null(opt$triosFile)) {
-    source("./trios/germlineTrioSolver.R",local=TRUE)
-  } else {
-    source("./germline/germlineSolver.R",local=TRUE)
-  }
+  if (framework == "germline" | !is.null(opt$triosFile)) quit()
 }
-if (framework == "germline" | !is.null(opt$triosFile)) quit()
 
 
 
 
-
-
+print(paste("Processing of somatic variants started.", Sys.time()))
 
 no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 cl<-makeCluster(no_cores, type="FORK")
