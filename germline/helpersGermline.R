@@ -592,9 +592,7 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
   smallDistances = which(covariancesForWholeDataset > 0.05)
   if (length(smallDistances) > 10) {
     distancesToPredict = distancesToPredict[smallDistances]
-    covariances <- unlist(sapply(1:length(distancesToPredict), function(l) {
-      covarianceTable[2,which.min(abs(distancesToPredict[l] - covarianceTable[1,]))]
-      }))
+    covariances <- covariancesForWholeDataset[smallDistances]
     
     coordsOfIntermediateValues <- sapply(1:length(smallDistances), function(l) {return(
       c(currentBedFile[smallDistances[l],1], round((currentBedFile[smallDistances[l],3] + currentBedFile[smallDistances[l] + 1,2])/ 2),

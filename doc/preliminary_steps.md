@@ -43,10 +43,25 @@ You should already have on-target `.bed` file. To generate off-target `.bed` fil
 
 For WGS you need to prepare file with chromosomes' starts and ends based on reference genome you've used. 
 
+
+
 ## Calcuiation of read coverage (both on- and off- target)
 
+Let's say you want to calculate read coverage, using `.bed` file with path specified with `bed_file`, `.bam` file specified with `BAM` variable and sample name `output`. This command has to be executed:
+
+`BedCoverage -bam $BAM -in $bed_file -min_mapq 5 -decimals 4 > $output".cov"`
+
+Please keep files that you obtain from normals/tumors or on-target/off-target or of course different sequencing kits in separate folders - you will need to merge this files later!
+
+Then you need to merge your ".cov" files into one table. To do this, you can use script `mergeFilesFromFolder.R` script provided with `ClinCNV` using `input_folder` and `output_folder` as variables to keep your absolute paths:
+
+`Rscript mergeFilesFromFolder.R -i $input_folder -o $output_folder`
 
 ## B-allele frequency for Somatic framework
+
+
+
+
 
 ## Text files with sample IDs
 
