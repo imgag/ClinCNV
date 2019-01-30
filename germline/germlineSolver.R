@@ -28,9 +28,8 @@ if (!dir.exists(folder_name)) {
 }
 covar = T
 sdsOfGermlineSamplesForNormalisedData = apply(coverage.normalised[autosomes,], 2, determineSDsOfGermlineSample)
-covarianceTable = returnLowessForCorrelation(coverage.normalised, sdsOfGermlineSamplesForNormalisedData)
+covarianceTree = returnTreeForCorrelation(coverage.normalised, sdsOfGermlineSamplesForNormalisedData)
 print("Covariances for the data...")
-print(covarianceTable)
 if (frameworkOff == "offtargetGermline") {
   sdsOfGermlineSamplesForNormalisedDataOff = apply(coverage.normalised.off[autosomesOff,], 2, determineSDsOfGermlineSample)
 }
@@ -41,9 +40,11 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   if (frameworkOff == "offtargetGermline") { 
     if (sample_name %in% colnames(coverage.normalised.off)) {
     sam_no_off = which(colnames(coverage.normalised.off) == sample_name)
+    } else {
+      sam_no_off = F
     }
-  }else {
-    sam_no_off = 0
+  } else {
+    sam_no_off = F
   }
   
   if (!is.null(opt$normalSample)) {
@@ -80,7 +81,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   matrix_of_likeliks_for_FDR <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2))
   
   if (covar) {
-    listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2), covarianceTable, bedFile)
+    listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2), covarianceTree, bedFile, threshold)
      matrix_of_likeliks <- listForLikeliks[[1]]
      bedFileWithArtificialProbes = listForLikeliks[[2]]
   } else {

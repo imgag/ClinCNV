@@ -533,48 +533,45 @@ likelihoodOfTwoVariables <- function(var1, var2, covariance, mean1, mean2, x1, x
 
 
 
-returnLowessForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples) {
+returnTreeForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples) {
   coverageNormalisedBySds = sweep(coverage.normalised - 1, 2, sdsOfGermlineSamples, FUN="/")
   covariancesClose = rep(0, nrow(coverage.normalised))
   distnacesClose = rep(-1, nrow(coverage.normalised))
+  sumOfLengths = rep(-1, nrow(coverage.normalised))
+  
   for (i in 2:nrow(coverageNormalisedBySds)) {
     if (bedFile[i,1] %in% c("chrX","chrY")) next
     if (bedFile[i,1] == bedFile[i-1,1]) {
       covariancesClose[i - 1] = correlationMatrixForPairedLikelik(coverageNormalisedBySds[(i-1),], coverageNormalisedBySds[i,])[1,2]
       distnacesClose[i - 1] = bedFile[i,2] - bedFile[i-1,3] + 1
+      sumOfLengths[i-1] = bedFile[i,3] - bedFile[i,2] + bedFile[i - 1,3] - bedFile[i-1,2]
     }
   }
-  covariancesClose = covariancesClose[-which((distnacesClose < 0))]
-  distnacesClose = distnacesClose[-which((distnacesClose < 0))]
-  log2Distances = log2(distnacesClose)
   
-  degressOfTwo = 1:20
-  vecOfCovariances = rep(0,length(degressOfTwo))
-  for (i in degressOfTwo) {
-    bordersAround = 0
-    leftBorder = i  - 1.00001
-    rightBorder = i 
-    numberOfIncreases = 0
-    while (length(which(log2Distances >= leftBorder & log2Distances < rightBorder) ) < 100 & numberOfIncreases < 10) {
-      leftBorder = leftBorder - 0.1
-      rightBorder = rightBorder + 0.1
-      numberOfIncreases = numberOfIncreases + 1
-    }
-    if (length(which(log2Distances >= leftBorder & log2Distances < rightBorder) ) < 100) {
-      vecOfCovariances[i] = 0
-    } else {
-      vecOfCovariances[i] = median(covariancesClose[which(log2Distances >= leftBorder & log2Distances < rightBorder) ])
-    }
+  trainingDataset <- as.data.frame(cbind(covariancesClose, distnacesClose, sumOfLengths))
+  if (length(which(distnacesClose < 0)) > 0)
+  trainingDataset = trainingDataset[-which(distnacesClose < 0),]
+  if (nrow(trainingDataset) > 100) {
+  fit <- ctree(covariancesClose ~ log2((distnacesClose)) + (sumOfLengths), data=trainingDataset)
+  plot(fit)
+  } else {
+    return("NA")
   }
-  degressOfTwo = degressOfTwo - 1
   
   
-  return(rbind(degressOfTwo, vecOfCovariances))
+  return(fit)
 }
 
 
-form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_states, covarianceTable, currentBedFile) {
-  distancesToPredict = currentBedFile[2:nrow(currentBedFile),2] - currentBedFile[1:(nrow(currentBedFile) - 1),3] + 1
+form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_states, covarianceTree, currentBedFile, threshold_local) {
+  distancesToPredict = (currentBedFile[2:nrow(currentBedFile),2] - currentBedFile[1:(nrow(currentBedFile) - 1),3] + 1)
+  distancesToPredict[which(is.na(distancesToPredict) | distancesToPredict <= 0)] = 10**6
+  lengthsLeft = currentBedFile[1:(nrow(currentBedFile) - 1),3] - currentBedFile[1:(nrow(currentBedFile) - 1),2]
+  lengthsRight = currentBedFile[2:nrow(currentBedFile),3] - currentBedFile[2:nrow(currentBedFile),2]
+  sumLengths <- lengthsLeft + lengthsRight
+  datasetToPredice <- as.data.frame(cbind(distancesToPredict, sumLengths))
+  colnames(datasetToPredice) <- c("distnacesClose", "sumOfLengths")
+  
   
   vector_of_values <- resid[,k]
   
@@ -589,28 +586,29 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
     return(-2 * log(value))
   })
   
-  whichCovariancesAreTooSmall = which(covarianceTable[2,] > 0.05)
-  distancesThatAreSignificant = which.min(abs(distancesToPredict[i] - covarianceTable[1,]))
-  smallDistances <- which(!distancesThatAreSignificant %in% whichCovariancesAreTooSmall)
+  covariancesForWholeDataset <- Predict(covarianceTree, datasetToPredice)
+  smallDistances = which(covariancesForWholeDataset > 0.05)
   if (length(smallDistances) > 10) {
-    distancesToPredict = log2(distances[smallDistances] + 1)
-    covariances <- sapply(1:length(distancesToPredict), function(i) {covarianceTable[2,which.min(abs(distancesToPredict[i] - covarianceTable[1,]))]
-      })
+    distancesToPredict = distancesToPredict[smallDistances]
+    covariances <- unlist(sapply(1:length(distancesToPredict), function(l) {
+      covarianceTable[2,which.min(abs(distancesToPredict[l] - covarianceTable[1,]))]
+      }))
     
-    coordsOfIntermediateValues <- sapply(1:length(smallDistances), function(i) {return(
-      c(currentBedFile[smallDistances[i],1], round((currentBedFile[smallDistances[i],3] + currentBedFile[smallDistances[i] + 1,2])/ 2),
-        round((currentBedFile[smallDistances[i],3] + currentBedFile[smallDistances[i] + 1,2])/ 2)))})
+    coordsOfIntermediateValues <- sapply(1:length(smallDistances), function(l) {return(
+      c(currentBedFile[smallDistances[l],1], round((currentBedFile[smallDistances[l],3] + currentBedFile[smallDistances[l] + 1,2])/ 2),
+        round((currentBedFile[smallDistances[l],3] + currentBedFile[smallDistances[l] + 1,2])/ 2)))})
     coordsOfIntermediateValues = matrix(coordsOfIntermediateValues, ncol=3, byrow=T)
     colnames(coordsOfIntermediateValues) <- colnames(currentBedFile)[1:3]
-    likeliksOfIntermediateValues <- sapply(1:length(smallDistances), function(i) {return(
-      -2 * sapply(1:length(cn_states), function(j) {
-        likelihoodOfTwoVariables(sds[smallDistances[i]]**2, sds[smallDistances[i] + 1]**2,
-                                 covariances[i] * sds[smallDistances[i]] * sds[smallDistances[i] + 1] * ifelse(vector_of_states[j] < 0.1, 0, 1),
-                                 vector_of_states[j], vector_of_states[j],
-                                 vector_of_values[smallDistances[i]], vector_of_values[smallDistances[i] + 1]
-        ) } ) - (matrix_of_BFs[smallDistances[i],] + matrix_of_BFs[smallDistances[i] + 1,])
+    likeliksOfIntermediateValues <- sapply(1:length(smallDistances), function(l) {return(
+      -2 * sapply(1:length(cn_states), function(m) {
+        likelihoodOfTwoVariables(sds[smallDistances[l]]**2, sds[smallDistances[l] + 1]**2,
+                                 covariances[l] * sds[smallDistances[l]] * sds[smallDistances[l] + 1] * ifelse(vector_of_states[m] < 0.1, 0, 1),
+                                 vector_of_states[m], vector_of_states[m],
+                                 vector_of_values[smallDistances[l]], vector_of_values[smallDistances[l] + 1]
+        ) } ) - (matrix_of_BFs[smallDistances[l],] + matrix_of_BFs[smallDistances[l] + 1,])
     )})
     likeliksOfIntermediateValues = matrix(likeliksOfIntermediateValues, ncol=length(cn_states), byrow=T)
+    likeliksOfIntermediateValues[which(likeliksOfIntermediateValues < -threshold + 1)] = -threshold + 1
     
     # TIME TO MERGE TO MATRICES OF LIKELIHOODS
     commonBedFile = rbind(currentBedFile[,1:3], coordsOfIntermediateValues)
@@ -618,7 +616,7 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
     matrix_of_BFs = rbind(matrix_of_BFs, likeliksOfIntermediateValues)[orderOfBedFile,]
     commonBedFile = commonBedFile[orderOfBedFile,]
   } else {
-    commonBedFile = bedFile
+    commonBedFile = bedFile[,1:3]
   }
   
   return(list(matrix_of_BFs,commonBedFile))
@@ -660,7 +658,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, sdsOfG
       }
       whichSamplesUsed = which(genderOfSamples == "M")
     }
-    medians <- parApply(cl=cl,coveragesToDealWith, 1, median)
+    medians <- parApply(cl=cl,coveragesToDealWith[,whichSamplesUsed], 1, median)
     coveragesToDealWithStandardized = sweep(coveragesToDealWith[,whichSamplesUsed], 1, medians)
     coveragesToDealWithStandardized <- sweep(coveragesToDealWithStandardized, 2, sdsOfGermlineSamples[whichSamplesUsed], FUN="/")
     
