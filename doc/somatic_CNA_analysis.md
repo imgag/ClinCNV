@@ -21,7 +21,7 @@ The folder `somatic` will be created and results for each samples pair will be p
 4. Playing with _Sensitivity_ and _Specificity_ balance (increase of the threshold `--scoreS` leads to higher _Specificity_ and lower _Sensitivity_ and vice versa, default value is 100, however due to size of CNAs and high level of noise due to usage of FFPE samples it is recommended to keep this value high):
 `--scoreS 150`
 
-5. Increasing or decreasing minimum length of detected variant (default = 5 data points or bigger):
+5. Increasing or decreasing minimum length of detected variant (measured in data points, default = 5 data points or bigger):
 `--lengthS 10`
 
 6. Including B-allele frequencies. Files with BAFs need to be located into same folder `/example/BAFs`:
@@ -105,9 +105,18 @@ Sometimes you can see copy number segments which are located exactly at `y=2` li
 
 
 
-### Clonality plot
+### Clonality plots
 
-We also draw a heatmap in an attempt to show the clonal structure of the sample. 
+Each tumor sample may contain sub-clones - parts of tumor that share some unique variants between them which are not presented in samples that do not belong to this particular sub-clone. Further sub-clones may be divided into more sub-clones, etc. `ClinCNV` does not try to build a tree of somatic evolution for sub-clones, however it is crucially important to identify all these sub-clones and classify detected CNAs according to the abundance of such sub-clones.
+
+`ClinCNV` divides all the possible purities into intervals (by default from 0.05 to 1.0 with the step 0.025) and identifies from 1 up to 6 distinct sub-clone purities that help to explain big parts of variation in detected CNAs. `ClinCNV` does not try to estimate clonal structure if no CNAs were detected.
+
+The first plot - heatmap of the likelihood landscape of variants detected in the sample, red color denotes "pretty unrealistic", blue - the opposite, darker is more likely. On y-axis you can see possible purities of the biggest clone, on x-axis - possible purity of the second biggest clone. You may see 2 main types of heatmaps: "stripe" and "ellipsoid":
+
+![Heatmap of likelihood landscape][stripe_low_clone]  ![Heatmap of likelihood landscape][stripe_high_clone]
+
+
+When more than 2 clones are presented 2D heatmap representation
 
 
 
@@ -122,3 +131,6 @@ We also draw a heatmap in an attempt to show the clonal structure of the sample.
 [BAF_track_plus_pvals_norm]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_BAF_pvalue_normal.png "IGV track of BAFs"
 [IGV_tracks_high_clonality]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_IGV_tracks_high_clonality.png "IGV track of copy number"
 [IGV_tracks_low_clonality]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_IGV_tracks_low_clonality.png "IGV track of copy number"
+[stripe_low_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/stripe_low_clone.png "Heatmap of likelihood landscape"
+[stripe_high_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/stripe_high_clone.png "Heatmap of likelihood landscape"
+

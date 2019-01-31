@@ -55,7 +55,7 @@ vect_of_t_likeliks <- fast_dt_list(ncol(matrixOfLogFold) - 1)
 
 cn_states <- c()
 copy_numbers = 0:15
-purity <- seq(from=5, to=101, by=5) / 100
+purity <- seq(from=5, to=100.1, by=opt$purityStep) / 100
 purities <- c()
 copy_numbers_used <- c()
 statesUsed <- c()
@@ -697,8 +697,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
           datasetForBarplot = (datasetForBarplot / 10**6)
           maxheight = max(datasetForBarplot)
-          png(paste0(sample_name, "_clonalityBarplot.png"), width=1600, height=640)
-          bp <- barplot(datasetForBarplot, col=c("brown","blue","darkblue","red") ,  font.axis=2, beside=T, main=paste("Presence of clones in tumor", sample_name), ylim=c(0, 1.05 * maxheight), xlab="Purities investigated", ylab="Length, MB")
+          png(paste0(sample_name, "_clonalityBarplot.png"), width=2400, height=640)
+          bp <- barplot(datasetForBarplot, col=c("brown","blue","darkblue","red") ,  font.axis=2, beside=T, main=paste("Presence of clones in tumor", sample_name, ", estimated purity: ", max(as.numeric(found_CNVs_total[,5]))), ylim=c(0, 1.05 * maxheight), xlab="Subclones investigated", ylab="Length, MB")
           for (z in 1:ncol(datasetForBarplotNumber)) {
             for (v in 1:nrow(datasetForBarplotNumber)) {
               if (datasetForBarplotNumber[v,z] > 0) {
@@ -776,7 +776,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         
         
         # true clonal structure
-        maxNumOfClones <- min(7, length(uniqueLocalPurities))
+        maxNumOfClones <- min(6, length(uniqueLocalPurities))
         localPurityStates = 1:length(uniqueLocalPurities)
         resultBestCombination = 0
         minResult = 10**100
@@ -794,7 +794,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               bestCombination = q
               resultBestCombination = combinationsOfPurities[,bestCombination]
               minResult = minResultForCombination
-              print(minResult)
             }
           }
         }

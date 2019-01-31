@@ -111,6 +111,9 @@ option_list = list(
   make_option(c("-cloneP", "--clonePenalty"), type="integer", default=200, 
               help="penalty for each additional clone (if you feel that you have some false positive clones, increase this value from default 200)", metavar="number"),  
   
+  make_option(c("-purityS", "--purityStep"), type="double", default=2.5, 
+              help="step of purity we investigate (from 5% to 100% with the step you specify, default=2.5)", metavar="number"),  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
