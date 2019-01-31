@@ -114,7 +114,7 @@ At the chromosome level a complex case it looks like:
 Note - at the p-arm (left) B-allele frequency changed from 0.5 to almost 0/1, but the coverage increased. It may indicate loss-of-heterozygosity event followed by a duplication. `ClinCNV` determines this event as 
 
 #chr	|start|	end|	tumor_CN_change|	tumor_clonality|	CN_change|	loglikelihood|	number_of_regions|	state
-:-------------------------:|:-------------------------:
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
 chr7	|688268|	55208953|	3|	0.8|	2.8|	2646|	642|	LOHDup
 
 More on this table and potentially detectable events below.
