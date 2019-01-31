@@ -1,8 +1,8 @@
 # How to run `ClinCNV` for somatic analysis
 
-Saying _somatic_ we assume that for each tumor sample sequenced you also sequence a normal sample (it can be that several tumor samples were taken from one patient and only one normal was sequenced). We don't detect such events as _mosaicism_ even if it is theoretically possible - because we don't have a request for implementing such mode in `ClinCNV`, but if you need to detect mosaic events in "germline" samples - drop us an email.
+Saying _somatic_ we assume that for each tumor sample sequenced you also sequence a normal sample (it can be that several tumor samples were taken from one patient and only one normal was sequenced). We don't detect such events as _mosaicism_ even if it is theoretically possible - because we don't have a request for implementing such mode in `ClinCNV`, but if you need to detect mosaic somatic events - drop us an email.
 
-Same as for _germline_ samples `ClinCNV` utilize on-target and (optionally) off-target coverage, but also `ClinCNV` may use _B-allele frequencies_ (BAFs) in _somatic_ mode. In brief, a CNV event may lead to changes in allele balance of point mutations (SNVs). The typical strategy on how to use signals from SNVs is 1) calculate read depths of SNVs for reference allele and alternative allele in both normal and tumor samples, 2) sub-select SNVs that are likely to be heterozgyous in normal tissue (which allele balance is close to 0.5), 3) measure the deviation of allele balance from normal to tumor. For example, if a sample has normally diploid region and it has a SNV with _C_ as reference and _T_ as alternative, we may expect 50% of reads, aligned to that position, to have _C_ in their sequence and 50% should have _T_ - thus we have something close to 0.5 as a B-allele frequency at this position (more accurately, allele balance _can be modelled_ with binomial distribution with probability of success close to 0.5). But if the region was duplicated (e.g. region containing _T_ was copied and we end up with 2 genomic regions containing _T_ and 1 genomic regions containing _C_ in each cancer cell), we expect ~33% of reads containing _C_ and ~66% containing _T_. Signal from B-allele frequencies helps a lot in somatic diagnositcs, it can distinguish between complex copy-number alterations and normal ones, only B-allele frequency change may indicate Loss of Heterozygosity events and it significantly improves the accuracy. So we highly recommend you to obtain BAF data from your samples, even if some additional efforts are required to prepare such data.
+Same as for _germline_ samples `ClinCNV` utilize on-target and (optionally) off-target coverage (explanation can be found [there](https://www.cell.com/trends/genetics/fulltext/S0168-9525(13)00127-3 ), but also `ClinCNV` may use _B-allele frequencies_ (BAFs) in _somatic_ mode. In brief, a CNV event may lead to changes in allele balance of point mutations (SNVs). The typical strategy on how to use signals from SNVs is 1) calculate read depths of SNVs for reference allele and alternative allele in both normal and tumor samples, 2) sub-select SNVs that are likely to be heterozgyous in normal tissue (which allele balance is close to 0.5 - half of reads support one allele and half support the alternative), 3) measure the deviation of allele balance from normal to tumor. For example, if a sample has normally diploid region and it has a SNV with _C_ as reference and _T_ as alternative, we may expect 50% of reads, aligned to that position, to have _C_ in their sequence and 50% should have _T_ - thus we have something close to 0.5 as a B-allele frequency at this position (more accurately, allele balance _can be modelled_ with binomial distribution with probability of success close to 0.5). But if the region was duplicated (e.g. region containing _T_ was copied and we end up with 2 genomic regions containing _T_ and 1 genomic regions containing _C_ in each cell), we expect ~33% of reads containing _C_ and ~66% containing _T_. Signal from B-allele frequencies helps a lot in somatic diagnositcs, it can help to detect allele-specific copy number changes, only B-allele frequency change may indicate Loss of Heterozygosity events and it significantly improves the accuracy of somatic calling. So we highly recommend you to obtain BAF data from your samples, even if some additional efforts are required to prepare this data.
 
 ## Targeted sequencing
 
@@ -25,11 +25,9 @@ The folder `somatic` will be created and results for each samples pair will be p
 `--lengthS 10`
 
 6. Including B-allele frequencies. Files with BAFs need to be located into same folder `/example/BAFs`:
-`--bafFolder /example/BAFs`
+`--bafFolder /example/BAFs`. Due to different issues not all the samples may have BAF file, but you need to be sure that **at least one pair of tumor/normal samples has its BAF track** in the corresponding folder.
 
-Due to described above problems not all the samples may have BAF file, but you need to be sure that **at least one pair of tumor/normal samples has its BAF track** in the corresponding folder.
-
-7. peeding up the tool by using several cores (only some parts of the pipeline are parallelised):
+7. Speeding up the tool by using several cores (only some parts of the pipeline are parallelised):
 `--numberOfThreads 4`
 
 ## WGS
@@ -102,6 +100,24 @@ For low purity tumor segments are much less distant from the horizontal line `y=
 ![IGV track of copy number][IGV_tracks_low_clonality]
 
 Sometimes you can see copy number segments which are located exactly at `y=2` line. These are lines indicating copy-neutral loss-of-heterozygosity. Usage of BAF tracks and coverage tracks together is necessary for visual inspection of LOH events.
+
+If you visualise both BAF and coverage tracks you should see something like:
+
+![IGV track of copy number][IGV_tracks_all]
+
+It is important to check visually if the predictions match both coverage and BAF patterns. At this plot not the most complicated tumor is shown - sometimes literally whole sample is detected as copy number alterated (with different events there), and, unfortunately, `ClinCNV` does not contain all the answers to the tumor structure. You still have to investigate complex cases yourself.
+
+At the chromosome level a complex case it looks like:
+
+![IGV track of copy number][IGV_tracks_chrom]
+
+Note - at the p-arm (left) B-allele frequency changed from 0.5 to almost 0/1, but the coverage increased. It may indicate loss-of-heterozygosity event followed by a duplication. `ClinCNV` determines this event as 
+
+#chr	|start|	end|	tumor_CN_change|	tumor_clonality|	CN_change|	loglikelihood|	number_of_regions|	state
+:-------------------------:|:-------------------------:
+chr7	|688268|	55208953|	3|	0.8|	2.8|	2646|	642|	LOHDup
+
+More on this table and potentially detectable events below.
 
 
 
@@ -185,6 +201,9 @@ _"genes"_ shows the list of affected genes if you've annotated your `.bed` file 
 [BAF_track_plus_pvals_norm]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_BAF_pvalue_normal.png "IGV track of BAFs"
 [IGV_tracks_high_clonality]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_IGV_tracks_high_clonality.png "IGV track of copy number"
 [IGV_tracks_low_clonality]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_IGV_tracks_low_clonality.png "IGV track of copy number"
+[IGV_tracks_all]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_IGV_tracks_all.png "IGV track of copy number"
+[IGV_tracks_chrom]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_IGV_tracks_chrom.png "IGV track of copy number"
+
 [stripe_low_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/stripe_low_clone.png "Heatmap of likelihood landscape"
 [stripe_high_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/stripe_high_clone.png "Heatmap of likelihood landscape"
 [ellipsoid_low_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/ellipsoid_low_clone.png "Heatmap of likelihood landscape"
