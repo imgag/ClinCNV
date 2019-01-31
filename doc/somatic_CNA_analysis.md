@@ -10,7 +10,7 @@ Same as for _germline_ samples `ClinCNV` utilize on-target and (optionally) off-
 `Rscript clinCNV.R --normal normal.cov --bed bedFile.bed --tumor tumor.cov --pairs pairs.txt`
 
 2. Specifying output folder **(here and until the end of the numbered list instruction you should add the line to the line you got on the previous step)**:
-`--out /your/folder`
+`--out /your_output_folder`
 
 The folder `somatic` will be created and results for each samples pair will be put in the corresponding subfolder.
 
