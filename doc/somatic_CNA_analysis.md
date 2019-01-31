@@ -111,7 +111,7 @@ At the chromosome level a complex case may look like:
 
 ![IGV track of copy number][IGV_tracks_chrom]
 
-Note - at the p-arm (left) B-allele frequency changed from 0.5 to almost 0/1, but the coverage increased. If an "classic" duplication happens, this region has to be duplicated around 10 times (BAF balance will move from 0.5 to ~0.1-0.9), and we don't see such a huge increase in coverage. Thus, this coverage/BAF pattern may indicate loss-of-heterozygosity event followed by a low-copy duplication. `ClinCNV` determines this event as 
+Note - at the p-arm (left) B-allele frequency changed from 0.5 to almost 0/1, but the coverage increased. If a "classic" duplication happens, this region has to be duplicated around 10 times (BAF balance will move from 0.5 to ~0.1-0.9), and we don't see such a huge increase in coverage. Thus, this coverage/BAF pattern may indicate loss-of-heterozygosity event followed by a low-copy duplication. `ClinCNV` determines this event as 
 
 #chr	|start|	end|	tumor_CN_change|	tumor_clonality|	CN_change|	loglikelihood|	number_of_regions|	state
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
@@ -157,7 +157,7 @@ In this tumor we can see 2 clones: major with purity 0.775 and minor with purity
 And in this example we see 3 clones at 0.3, 0.4 and 0.725, all of them have different variants, only the smallest clone has duplications of high copy numbers (>4) and all clones have copy-number neutral LOH events.
 ![Barplot of clonal landscape][barplot_multiple_clone]
 
-`ClinCNV` was never intended to be a tool for clonal evolution reconstruction, however, it makes corrections according to number of clones. But `ClinCNV` can still make mistakes. If `ClinCNV` tell you that there are 2 clones and you absolutely sure that there should be only 1 clone, you can increase the penalty for a new clone: `--clonePenalty 500` instead of default 200. Decrease this parameter if you want the tool to be more sensitive to different clones.
+`ClinCNV` was never intended to be a tool for clonal evolution reconstruction, however, it makes corrections according to number of clones. But `ClinCNV` can still make mistakes. If `ClinCNV` tells you that there are 2 clones and you are absolutely sure that there should be only 1 clone, you can increase the penalty for a new clone with the flag, e.g.: `--clonePenalty 500` instead of default 200. Decrease this parameter if you want the tool to be more sensitive to different clones. This parameter does not affect the heatmap explained above - use it as a guide for choosing the penalty for additional clones in complex cases.
 
 
 
