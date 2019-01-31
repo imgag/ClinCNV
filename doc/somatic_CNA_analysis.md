@@ -53,7 +53,7 @@ In this particular sample we can see some chromosome arms marked with red bars, 
 
 ![Barplot of deviated BAFs on chromosome arm level][BAF_barplot_more]
 
-In this particular example we can see that part of chr1 left arm is affected by CNVs (or there could be a aneuploidy with small tumor content) and even larger part of chr1 right arm affected by CNVs (or it could be aneuploidy with higher tumor content). Other chromosome arms may be analysed in a similar manner (chr13 right, chr14 right, chr16 right, chr17 left and right, chr18 right, chr19 left, etc.).
+In this particular example we can see that part of chr1 left arm is affected by CNVs (or there could be a aneuploidy with small tumor content) and even larger part of chr1 right arm affected by CNAs (or it could be aneuploidy with higher tumor content). Other chromosome arms may be analysed in a similar manner (chr13 right, chr14 right, chr16 right, chr17 left and right, chr18 right, chr19 left, etc.).
 
 ![Barplot of deviated BAFs on chromosome arm level][BAF_barplot_even_more]
 
@@ -63,19 +63,19 @@ In this sample almost all the chromosomes were likely to be damaged by CNAs. We 
 
 You can find 3 IGV BAF tracks per pair tumor/normal in the BAF folder.
 
-First two tracks (named according to tumor and normal samples) contain just germline heterozygous positions and how did they change in tumor:
+First two tracks (named according to tumor and normal samples) contain just germline heterozygous positions (green) and how did they change in tumor (dark red):
 ![IGV track of BAFs][BAF_track]
 
-At the chromosome level it may look like depicted - you can see that dark red dots are signficantly deviated from germline ones in the right arm and somehow different in the left arm of the chromosome which may be caused by 1) clonality of the event happened with the left arm is lower than clonality of the event on the right, 2) event on the left is duplication with 3 alleles except 2 in normal while the event on the left is a heterozygous deletion or LOH event, 3) the event on the left may be a duplication of high copy number with the low clonality while the event on the right can be a duplication of extra high copy number with almost 100% purity of the tumor sample. Only looking at coverage plots (and running `ClinCNV` of course) may help you to understand what actually happened.
+At the chromosome level it may look like depicted - you can see that dark red dots are signficantly deviated from germline ones in the right arm and somehow different in the left arm of the chromosome which may be caused by 1) clonality of the event happened with the left arm is lower than clonality of the event on the right, 2) event on the left is duplication with 3 alleles except 2 in normal while the event on the right is a heterozygous deletion or LOH event, 3) the event on the left may be a duplication of high copy number with the low clonality while the event on the right can be a duplication of extra high copy number with almost 100% purity of the tumor sample. Only looking at coverage plots (and running `ClinCNV` of course) may help you to understand what actually happened.
 
 ![IGV track of BAFs][BAF_track_chr]
 
 
-The third track shows p-values less than 0.05. Red segment means "BAF for particular SNVs in this segment are significantly different between normal and tumor samples", blue segment shows "the difference is not significant at 0.05 level". As you can see, only bunch of SNVs may show us a CN change - there are a lot of CNAs not significant at 0.05 level while in general we can clearly see a shift. This plot is especially useful for sanity checks of `ClinCNV` results together with coverage plots. If red segments (or "saw" of small red pikes) match with the detected CNAs, then you can trust the results.
+The third track shows p-values less than 0.05. Red segment means "BAFs for particular SNVs in this segment are significantly different between normal and tumor samples", blue segment shows "the difference is not significant at 0.05 level". As you can see on the left part of the track, only bunch of SNVs may show us a CN change - there are a lot of CNAs not significant at 0.05 level while in general we can clearly see a shift. This plot is especially useful for sanity checks of `ClinCNV` results together with coverage plots. If red segments (or "saw" of small red pikes) match with the detected CNAs, then you can trust the results.
 
 ![IGV track of BAFs][BAF_track_plus_pvals]
 
-For the "normal" genomic regions you may expect this plot to look like below. There is some evidence of a CNA on the right arm of the chromosome, however it is inconclusive without checking the coverage plot.
+For the "normal" genomic regions you may expect this plot to look like below - almost straight line (5% of SNVs will show p-value < 0.05 at random). There is some evidence of a focal CNA on the right arm of the chromosome (red pike), however it is inconclusive without checking the coverage plot.
 
 ![IGV track of BAFs][BAF_track_plus_pvals_norm]
 
@@ -107,7 +107,7 @@ If you visualise both BAF and coverage tracks you should see something like:
 
 It is important to check visually if the predictions match both coverage and BAF patterns. At this plot not the most complicated tumor is shown - sometimes literally whole sample is detected as copy number alterated (with different events there), and, unfortunately, `ClinCNV` does not contain all the answers to the tumor structure. You still have to investigate complex cases yourself.
 
-At the chromosome level a complex case it looks like:
+At the chromosome level a complex case may look like:
 
 ![IGV track of copy number][IGV_tracks_chrom]
 
