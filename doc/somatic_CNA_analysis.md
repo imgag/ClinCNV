@@ -30,6 +30,9 @@ The folder `somatic` will be created and results for each samples pair will be p
 7. Speeding up the tool by using several cores (only some parts of the pipeline are parallelised):
 `--numberOfThreads 4`
 
+8. In case if you have prior knowledge on number of clones in your tumor and the clonal inference of `ClinCNV` was not accurate you can specify the penalty for additional clones (less penalty = more clones, default penalty is 200):
+`--clonePenalty 500`
+
 ## WGS
 
 The same, but step 3 has to be skipped. 
