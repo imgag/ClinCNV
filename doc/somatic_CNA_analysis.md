@@ -182,12 +182,17 @@ _"CN_change"_ is an absolute copy-number change. At first `ClinCNV` finds an abs
 
 _"loglikelihood"_ shows the quality score of particular variant, bigger the score is - more credible is the variant.
 
-_"number_of_regions"_ is the number of datapoints in the variant (on- and off-target regions). More datapoints usually means more credible variant.
+_"number_of_regions"_ is the number of datapoints within the variant (on- and off-target regions). More datapoints usually means more credible variant.
 
-_"state"_ is an important column. It can be 1) **"CNV"** - classic copy-number change, 2) **"LOH"** - copy-number heutral loss-of-heterozgysity, 3) **"LOHDup"** - loss of heterozygosity followed by a duplication of the particular region (such event creates a unique pattern of B-allele frequency and coverage change), 4) **"CNVboth"** - copy-number change without B-allele frequency balance shift (that mean both 2 alleles were e.g. duplicated or triplicated), 5) **"CNVcomplex"** - when both alleles had experienced copy-number change, but with different amount (e.g. one allele was copied up to 2 copies and the second one was copied up to 5 copies).
+_"state"_ is an important column. It can be 1) **"CNV"** - classic copy-number change, 2) **"LOH"** - copy-number heutral loss-of-heterozgysity, 3) **"LOHDup"** - loss of heterozygosity followed by a duplication of the particular region (such event creates a unique pattern of B-allele frequency and coverage change), 4) **"CNVboth"** - copy-number change without B-allele frequency balance shift (that mean both 2 alleles were e.g. duplicated or triplicated), 5) **"CNVcomplex"** - when both alleles had experienced copy-number change, but with different amount (e.g. one allele was copied up to 2 copies and the second one was copied up to 5 copies). "CNVboth", "LOHDup", "CNVcomplex" are considered as rare variants and their score is slightly penalised comparing to other variants.
 
 _"genes"_ shows the list of affected genes if you've annotated your `.bed` file before the analysis, otherwise it shows just 0.
 
+
+
+# Still have questions?
+
+Ask them at `german dot demidov at medizin dot uni-tuebingen dot de`. We are glad to help you with everything connected to `ClinCNV`!
 
 
 
