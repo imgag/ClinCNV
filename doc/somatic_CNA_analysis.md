@@ -158,19 +158,19 @@ Top line shows the clonalities that were considered "significant" by `ClinCNV`. 
 
 First three columns of the table show coordinates of the variant.
 
-4th column - "tumor_CN_change" - shows a copy number after correction on percentage of this clone in sequenced tumor mass. Usually this number is the most interesting for the researchers.
+4th column - _"tumor_CN_change"_ - shows a copy number after correction on percentage of this clone in sequenced tumor mass. Usually this number is the most interesting for the researchers.
 
-"tumor_clonality" shows to which subclone this particular variant belongs.
+_"tumor_clonality"_ shows to which subclone this particular variant belongs.
 
-"CN_change" is an absolute copy-number change. At first `ClinCNV` finds an absolute copy-number change and then it infers "tumor_CN_change" and "tumor_clonality". This value may also be reported if you don't want to interpret the clonal structure.
+_"CN_change"_ is an absolute copy-number change. At first `ClinCNV` finds an absolute copy-number change and then it infers "tumor_CN_change" and "tumor_clonality". This value may also be reported if you don't want to interpret the clonal structure.
 
-"loglikelihood" shows the quality score of particular variant, bigger the score is - more credible is the variant.
+_"loglikelihood"_ shows the quality score of particular variant, bigger the score is - more credible is the variant.
 
-"number_of_regions" is the number of datapoints in the variant (on- and off-target regions). More datapoints usually means more credible variant.
+_"number_of_regions"_ is the number of datapoints in the variant (on- and off-target regions). More datapoints usually means more credible variant.
 
-"state" is an important column. It can be 1) "CNV" - classic copy-number change, 2) "LOH" - copy-number heutral loss-of-heterozgysity, 3) "LOHDup" - loss of heterozygosity followed by a duplication of the particular region (such event creates a unique pattern of B-allele frequency and coverage change), 4) "CNVboth" - copy-number change without B-allele frequency balance shift (that mean both 2 alleles were e.g. duplicated or triplicated), 5) "CNVcomplex" - when both alleles had experienced copy-number change, but with different amount (e.g. one allele was copied up to 2 copies and the second one was copied up to 5 copies).
+_"state"_ is an important column. It can be 1) **"CNV"** - classic copy-number change, 2) **"LOH"** - copy-number heutral loss-of-heterozgysity, 3) **"LOHDup"** - loss of heterozygosity followed by a duplication of the particular region (such event creates a unique pattern of B-allele frequency and coverage change), 4) **"CNVboth"** - copy-number change without B-allele frequency balance shift (that mean both 2 alleles were e.g. duplicated or triplicated), 5) **"CNVcomplex"** - when both alleles had experienced copy-number change, but with different amount (e.g. one allele was copied up to 2 copies and the second one was copied up to 5 copies).
 
-"genes" shows the list of affected genes if you've annotated your `.bed` file before the analysis, otherwise it shows just 0.
+_"genes"_ shows the list of affected genes if you've annotated your `.bed` file before the analysis, otherwise it shows just 0.
 
 
 
