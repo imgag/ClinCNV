@@ -130,9 +130,15 @@ Rarely you may see other complex patterns, most often they happen when 2 clones 
 
 When more than 2 clones are presented 2D heatmap representation becomes non relevant. You can check the full clonal structure at barplots.
 
+At X axis of this barplot you can see all the potential purities we've investigated. At Y axis - length in MB. Each purity has 4 bars: brown for copy-number neutral changes (loss of heterozygosity), blue - for duplication of copy number 3 and 4, dark blue - duplications of high copy number, red - for deletions. White marks at barplot shows lengths of variants. Number on top of the bar shows the number of variants.
 
+In this particular tumor we can see one major clone with purity of 0.325. It contains 3 duplication of copy number 3 or 4 (blue bar) and 3 deletions (red bar).
 ![Barplot of clonal landscape][barplot_one_clone] 
+
+In this tumor we can see 2 clones: major with purity 0.775 and minor with purity 0.175. Small clone contains only duplications of small copy number (7 in total) and big clone - only deletions (four cases).
 ![Barplot of clonal landscape][barplot_two_clone]
+
+And in this example we see 3 clones at 0.3, 0.4 and 0.725, all of them have different variants, only the smallest clone has duplications of high copy numbers (>4) and all clones have copy-number neutral LOH events.
 ![Barplot of clonal landscape][barplot_multiple_clone]
 
 
@@ -151,5 +157,5 @@ When more than 2 clones are presented 2D heatmap representation becomes non rele
 [ellipsoid_low_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/ellipsoid_low_clone.png "Heatmap of likelihood landscape"
 [ellipsoid_high_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/ellipsoid_high_clone.png "Heatmap of likelihood landscape"
 [barplot_one_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_one_clone.png "Barplot of clonal landscape"
-[barplot_one_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_two_clone.png "Barplot of clonal landscape"
-[barplot_one_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_multiple_clone.png "Barplot of clonal landscape"
+[barplot_two_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_two_clone.png "Barplot of clonal landscape"
+[barplot_multiple_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_multiple_clone.png "Barplot of clonal landscape"
