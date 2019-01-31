@@ -242,6 +242,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   
   
   matrixOfClonality = matrix(0, nrow=1, ncol=1)
+
   if (!dir.exists(paste0(folder_name, sample_name)) | (opt$reanalyseCohort == T)) {
     
     dir.create(paste0(folder_name, sample_name))
@@ -251,6 +252,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     
     finalIteration = F
     while(T) {
+
       # CLEAN FOLDER IN THE BEGINNING OF EACH ITERATION
       if (!finalIteration)
         do.call(file.remove, list(list.files(paste0(folder_name, sample_name), full.names = TRUE)))
@@ -668,7 +670,79 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       }
       
       
-      if (finalIteration == T) break
+      if (finalIteration == T) {
+        if (nrow(found_CNVs_total) > 0){
+          allPotentialPurities = allPotentialPurities[allPotentialPurities > 0]
+          datasetForBarplot = matrix(0, nrow=4, ncol=length(unique(allPotentialPurities)))
+          colnames(datasetForBarplot) = sort(unique(allPotentialPurities))
+          rownames(datasetForBarplot) = c("CNeutral", "DUP", "HIGHDUP", "DEL")
+          datasetForBarplotLikelik = matrix(0, nrow=4, ncol=length(unique(allPotentialPurities)))
+          colnames(datasetForBarplotLikelik) = sort(unique(allPotentialPurities))
+          rownames(datasetForBarplotLikelik) = c("CNeutral", "DUP", "HIGHDUP", "DEL")
+          datasetForBarplotNumber = matrix(0, nrow=4, ncol=length(unique(allPotentialPurities)))
+          for (z in 1:nrow(found_CNVs_total)) {
+            dupOrDel = 1
+            if (as.numeric(found_CNVs_total[z,4]) > 2 & as.numeric(found_CNVs_total[z,4]) < 5) {
+              dupOrDel = 2
+            } else if (as.numeric(found_CNVs_total[z,4]) > 4) {
+              dupOrDel = 3
+            } else if (as.numeric(found_CNVs_total[z,4]) < 2) {
+              dupOrDel = 4
+            }
+            datasetForBarplot[dupOrDel, which(colnames(datasetForBarplot) == found_CNVs_total[z,5])] = datasetForBarplot[dupOrDel, which(colnames(datasetForBarplot) == found_CNVs_total[z,5])] + 
+              as.numeric(found_CNVs_total[z,3]) - as.numeric(found_CNVs_total[z,2])
+            datasetForBarplotLikelik[dupOrDel, which(colnames(datasetForBarplotLikelik) == found_CNVs_total[z,5])] = datasetForBarplotLikelik[dupOrDel, which(colnames(datasetForBarplotLikelik) == found_CNVs_total[z,5])] + 
+              as.numeric(found_CNVs_total[z,7])
+            datasetForBarplotNumber[dupOrDel, which(colnames(datasetForBarplotLikelik) == found_CNVs_total[z,5])] = datasetForBarplotNumber[dupOrDel, which(colnames(datasetForBarplotLikelik) == found_CNVs_total[z,5])] + 1
+          }
+          datasetForBarplot = (datasetForBarplot / 10**6)
+          maxheight = max(datasetForBarplot)
+          png(paste0(sample_name, "_clonalityBarplot.png"), width=1600, height=640)
+          bp <- barplot(datasetForBarplot, col=c("brown","blue","darkblue","red") ,  font.axis=2, beside=T, main=paste("Presence of clones in tumor", sample_name), ylim=c(0, 1.05 * maxheight), xlab="Purities investigated", ylab="Length, MB")
+          for (z in 1:ncol(datasetForBarplotNumber)) {
+            for (v in 1:nrow(datasetForBarplotNumber)) {
+              if (datasetForBarplotNumber[v,z] > 0) {
+                text(bp[v,z], datasetForBarplot[v,z] + 0.02 * maxheight, datasetForBarplotNumber[v,z])
+              }
+            }
+            currentPurity = colnames(datasetForBarplot)[z]
+            found_CNVs_total_LOH = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) == 2 & found_CNVs_total[,5] == currentPurity),,drop=F]
+            if (nrow(found_CNVs_total_LOH) > 1) {
+              linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_LOH[, 3]) 
+                                      - as.numeric(found_CNVs_total_LOH[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_LOH) - 1)]
+              for (height in linesToDepict)
+                segments(bp[1,z] - 0.4, height, bp[1,z] + 0.4, height, col="white", lwd=3)
+            }
+            
+            found_CNVs_total_dup = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) > 2 & as.numeric(found_CNVs_total[,4]) < 5 & found_CNVs_total[,5] == currentPurity),,drop=F]
+            if (nrow(found_CNVs_total_dup) > 1) {
+              linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_dup[, 3]) 
+                                      - as.numeric(found_CNVs_total_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_dup) - 1)]
+              for (height in linesToDepict)
+                segments(bp[2,z] - 0.4, height, bp[2,z] + 0.4, height, col="white", lwd=3)
+            }
+            
+            found_CNVs_total_high_dup = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) > 4 & found_CNVs_total[,5] == currentPurity),,drop=F]
+            if (nrow(found_CNVs_total_high_dup) > 1) {
+              linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_high_dup[, 3]) 
+                                   - as.numeric(found_CNVs_total_high_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_high_dup) - 1)]
+              for (height in linesToDepict)
+                segments(bp[3,z] - 0.4, height, bp[3,z] + 0.4, height, col="white", lwd=3)
+            }
+            
+            found_CNVs_total_del = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) < 2 & found_CNVs_total[,5] == currentPurity),,drop=F]
+            if (nrow(found_CNVs_total_del) > 1) {
+              linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_del[, 3]) 
+                                   - as.numeric(found_CNVs_total_del[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_del) - 1)]
+              for (height in linesToDepict)
+                segments(bp[4,z] - 0.4, height, bp[4,z] + 0.4, height, col="white", lwd=3)
+            }
+          }
+          
+          dev.off()
+        }
+        
+        break}
       
       
       
@@ -702,47 +776,51 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         
         
         # true clonal structure
-        maxNumOfClones <- 7
+        maxNumOfClones <- min(7, length(uniqueLocalPurities))
         localPurityStates = 1:length(uniqueLocalPurities)
         resultBestCombination = 0
+        minResult = 10**100
         for (m in 1:maxNumOfClones) {
           combinationsOfPurities <- combn(localPurityStates, m)
           bestCombination = 1
-          minResult = 0
-          for (r in 1:nrow(likeliksFoundCNVsVsPuritiesGlobal)) {
-            minResult = minResult + min(likeliksFoundCNVsVsPuritiesGlobal[r,combinationsOfPurities[,1]])
-          }
           
           for (q in 1:ncol(combinationsOfPurities)) {
-            minResultForCombination = 0
+            minResultForCombination = as.numeric(opt$clonePenalty) * m
             for (r in 1:nrow(likeliksFoundCNVsVsPuritiesGlobal)) {
               minResultForCombination = minResultForCombination + min(
               likeliksFoundCNVsVsPuritiesGlobal[r,combinationsOfPurities[,q]])
             }
             if (minResult > minResultForCombination) {
               bestCombination = q
-              minResult = minResultForCombination
-            }
-          }
-          if (m == 1) {
-            minResultSoFar = minResult
-            resultBestCombination = combinationsOfPurities[bestCombination]
-          } else {
-            if (minResult > minResultSoFar - opt$scoreS - 100) {
-              print(uniqueLocalPurities[resultBestCombination])
-              break
-            } else {
-              print("Current improve")
-              print(minResultSoFar - minResult)
-              minResultSoFar = minResult
               resultBestCombination = combinationsOfPurities[,bestCombination]
+              minResult = minResultForCombination
+              print(minResult)
             }
           }
         }
         clonalBestPurities = uniqueLocalPurities[resultBestCombination]
         if (length(clonalBestPurities) == 0) {
           clonalBestPurities = c(0, 1)
-        }
+        } 
+        #   if (m == 1) {
+        #     minResultSoFar = minResult
+        #     resultBestCombination = combinationsOfPurities[bestCombination]
+        #   } else {
+        #     if (minResult > minResultSoFar - opt$scoreS - 100) {
+        #       print(uniqueLocalPurities[resultBestCombination])
+        #       break
+        #     } else {
+        #       print("Current improve")
+        #       print(minResultSoFar - minResult)
+        #       minResultSoFar = minResult
+        #       resultBestCombination = combinationsOfPurities[,bestCombination]
+        #     }
+        #   }
+        # }
+        # clonalBestPurities = uniqueLocalPurities[resultBestCombination]
+        # if (length(clonalBestPurities) == 0) {
+        #   clonalBestPurities = c(0, 1)
+        # }
         
       } else {
         print("No high quality CNVs found in this sample for finding clonality.")
@@ -767,4 +845,4 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   }
 }
 
-
+stopCluster(cl)

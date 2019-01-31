@@ -54,35 +54,35 @@ option_list = list(
   make_option(c("-bOff", "--bedOfftarget"), type="character", default=NULL, 
               help="offtarget bed file with panel description (chr \t start \t end \t gc_content \t annotation). has to use same notation as .cov files.", metavar="character"),
   
-  make_option(c("-num", "--colNum"), type="double", default=4, 
-              help="column where coverages start", metavar="character"),
+  make_option(c("-num", "--colNum"), type="integer", default=4, 
+              help="column where coverages start", metavar="number"),
   
   make_option(c("-script", "--folderWithScript"), type="character", default=current_working_dir, 
               help="folder where you put script", metavar="character"),
   
-  make_option(c("-r", "--reanalyseCohort"), type="logical", default=F, 
-              help="if T, reanalyses whole cohort [default= %default]", metavar="character"),
+  make_option(c("-r", "--reanalyseCohort"), action="store_false", 
+              help="if specified, reanalyses whole cohort [default= %default]"),
   
   make_option(c("-sg", "--scoreG"), type="double", default="40", 
-              help="minimum threshold for significance germline variants", metavar="character"),
+              help="minimum threshold for significance germline variants", metavar="number"),
   
-  make_option(c("-lg", "--lengthG"), type="double", default="2", 
-              help="minimum threshold for length of germline variants", metavar="character"),
+  make_option(c("-lg", "--lengthG"), type="integer", default="2", 
+              help="minimum threshold for length of germline variants", metavar="number"),
   
   make_option(c("-ss", "--scoreS"), type="double", default="200", 
-              help="minimum threshold for significance somatic variants", metavar="character"),
+              help="minimum threshold for significance somatic variants", metavar="number"),
   
-  make_option(c("-ls", "--lengthS"), type="double", default="4", 
-              help="minimum threshold for length of somatic variants", metavar="character"),
+  make_option(c("-ls", "--lengthS"), type="integer", default="4", 
+              help="minimum threshold for length of somatic variants", metavar="number"),
   
-  make_option(c("-mnaxnumg", "--maxNumGermCNVs"), type="double", default="100", 
-              help="maximum number of germline CNVs allowed (increase thresholds if does not meet criteria)", metavar="character"),
+  make_option(c("-mnaxnumg", "--maxNumGermCNVs"), type="integer", default="100", 
+              help="maximum number of germline CNVs allowed (increase thresholds if does not meet criteria)", metavar="number"),
   
-  make_option(c("-mnaxnums", "--maxNumSomCNAs"), type="double", default="100", 
-              help="maximum number of somatic CNAs allowed (increase thresholds if does not meet criteria)", metavar="character"),
+  make_option(c("-mnaxnums", "--maxNumSomCNAs"), type="integer", default="100", 
+              help="maximum number of somatic CNAs allowed (increase thresholds if does not meet criteria)", metavar="number"),
   
-  make_option(c("-mnaxnumit", "--maxNumIter"), type="double", default="3", 
-              help="maximum number of iterations of variant calling", metavar="character"),
+  make_option(c("-mnaxnumit", "--maxNumIter"), type="integer", default=3, 
+              help="maximum number of iterations of variant calling", metavar="number"),
   
   make_option(c("-bafF", "--bafFolder"), type="character", default=NULL, 
               help="folder where you put BAF frequencies (one per normal, one per tumor sample)", metavar="character"),
@@ -96,17 +96,20 @@ option_list = list(
   make_option(c("-triosFile", "--triosFile"), type="character", default=NULL, 
               help="file with information about trios, child-father-mother", metavar="character"),
   
-  make_option(c("-fdrG", "--fdrGermline"), type="character", default=0, 
-              help="number of iterations for FDR check (more - better, but slower, 0 = no FDR correction)", metavar="character"),
+  make_option(c("-fdrG", "--fdrGermline"), type="integer", default=0, 
+              help="number of iterations for FDR check (more - better, but slower, 0 = no FDR correction)", metavar="number"),
 
   make_option(c("-numT", "--numberOfThreads"), type="character", default=1, 
               help="number of threads used for some bottleneck parts, default=1", metavar="character"),  
   
-  make_option(c("-numObsInCluster", "--minimumNumOfElemsInCluster"), type="character", default=100, 
-              help="minimum number of elements in cluster (done for germline), default=100, clustering happens only if number of samples bigger than 3 by number of elements in cluster", metavar="character"),  
+  make_option(c("-numObsInCluster", "--minimumNumOfElemsInCluster"), type="integer", default=100, 
+              help="minimum number of elements in cluster (done for germline), default=100, clustering happens only if number of samples bigger than 3 by number of elements in cluster", metavar="number"),  
   
-  make_option(c("-vis", "--visulizationIGV"), type="character", default=T, 
-              help="if you dont need IGV tracks as output, specify as F (as printing out IGV tracks slows down the program)", metavar="character"),  
+  make_option(c("-vis", "--visulizationIGV"), action="store_true", default=T, 
+              help="if you dont need IGV tracks as output, specify this flag (as printing out IGV tracks slows down the program)"),  
+  
+  make_option(c("-cloneP", "--clonePenalty"), type="integer", default=200, 
+              help="penalty for each additional clone (if you feel that you have some false positive clones, increase this value from default 200)", metavar="number"),  
   
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
