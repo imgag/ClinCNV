@@ -117,9 +117,22 @@ Low purity "stripe" pattern            |  High purity "stripe" pattern
 :-------------------------:|:-------------------------:
 ![Heatmap of likelihood landscape][stripe_low_clone]  |  ![Heatmap of likelihood landscape][stripe_high_clone]
  
+Stripe pattern basically means that, according to `ClinCNV`, this tumor contains only 1 clone or 1 major clone + 1 subclone of that major clone, and subclone inside the major clone is large (at least 80% of the major clone) - if the sublone is smaller, we will see "ellipsoid" pattern:
+
+Low purity "ellipsoid" pattern            |  High purity "ellipsoid" pattern
+:-------------------------:|:-------------------------:
+![Heatmap of likelihood landscape][ellipsoid_low_clone]  |  ![Heatmap of likelihood landscape][ellipsoid_high_clone]
+
+Ellipsoid pattern means that there are at least 2 clones and 1 clone is not enough to explain the tumor's variants.
+
+Rarely you may see other complex patterns, most often they happen when 2 clones is not enough. In this case you should look at the barplot in your results directory.
 
 
-When more than 2 clones are presented 2D heatmap representation
+When more than 2 clones are presented 2D heatmap representation becomes non relevant. You can check the full clonal structure at barplots.
+
+One clone barplot         |  Multiple clones barplot
+:-------------------------:|:-------------------------:
+![Barplot of clonal landscape][barplot_one_clone]  |  ![Barplot of clonal landscape][barplot_multiple_clone]
 
 
 
@@ -136,4 +149,8 @@ When more than 2 clones are presented 2D heatmap representation
 [IGV_tracks_low_clonality]: https://github.com/imgag/ClinCNV/raw/master/doc/images/somatic_IGV_tracks_low_clonality.png "IGV track of copy number"
 [stripe_low_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/stripe_low_clone.png "Heatmap of likelihood landscape"
 [stripe_high_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/stripe_high_clone.png "Heatmap of likelihood landscape"
+[stripe_low_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/stripe_low_clone.png "Heatmap of likelihood landscape"
+[ellipsoid_high_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/ellipsoid_high_clone.png.png "Heatmap of likelihood landscape"
+[ellipsoid_low_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/ellipsoid_low_clone.png.png "Heatmap of likelihood landscape"
+
 
