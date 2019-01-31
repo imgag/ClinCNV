@@ -113,7 +113,10 @@ Each tumor sample may contain sub-clones - parts of tumor that share some unique
 
 The first plot - heatmap of the likelihood landscape of variants detected in the sample, red color denotes "pretty unrealistic", blue - the opposite, darker is more likely. On y-axis you can see possible purities of the biggest clone, on x-axis - possible purity of the second biggest clone. You may see 2 main types of heatmaps: "stripe" and "ellipsoid":
 
-![Heatmap of likelihood landscape][stripe_low_clone]  ![Heatmap of likelihood landscape][stripe_high_clone]
+Low purity "stripe" pattern            |  High purity "stripe" pattern
+:-------------------------:|:-------------------------:
+![Heatmap of likelihood landscape][stripe_low_clone]  |  ![Heatmap of likelihood landscape][stripe_high_clone]
+ 
 
 
 When more than 2 clones are presented 2D heatmap representation
