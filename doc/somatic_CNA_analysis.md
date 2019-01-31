@@ -111,7 +111,7 @@ At the chromosome level a complex case it looks like:
 
 ![IGV track of copy number][IGV_tracks_chrom]
 
-Note - at the p-arm (left) B-allele frequency changed from 0.5 to almost 0/1, but the coverage increased. It may indicate loss-of-heterozygosity event followed by a duplication. `ClinCNV` determines this event as 
+Note - at the p-arm (left) B-allele frequency changed from 0.5 to almost 0/1, but the coverage increased. If an "classic" duplication happens, this region has to be duplicated around 10 times (BAF balance will move from 0.5 to ~0.1-0.9), and we don't see such a huge increase in coverage. Thus, this coverage/BAF pattern may indicate loss-of-heterozygosity event followed by a low-copy duplication. `ClinCNV` determines this event as 
 
 #chr	|start|	end|	tumor_CN_change|	tumor_clonality|	CN_change|	loglikelihood|	number_of_regions|	state
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
