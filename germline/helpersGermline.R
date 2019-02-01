@@ -608,7 +608,7 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
         ) } ) - (matrix_of_BFs[smallDistances[l],] + matrix_of_BFs[smallDistances[l] + 1,])
     )})
     likeliksOfIntermediateValues = matrix(likeliksOfIntermediateValues, ncol=length(cn_states), byrow=T)
-    #likeliksOfIntermediateValues[which(likeliksOfIntermediateValues < -threshold + 1)] = -threshold + 1
+    likeliksOfIntermediateValues[which(likeliksOfIntermediateValues < -threshold + 1)] = -threshold + 1
     
     # TIME TO MERGE TO MATRICES OF LIKELIHOODS
     orderOfBedFile = order(coordsOfIntermediateValues[,1], as.numeric(coordsOfIntermediateValues[,2]), as.numeric(coordsOfIntermediateValues[,3]))
