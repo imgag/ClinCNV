@@ -608,31 +608,31 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
         ) } ) - (matrix_of_BFs[smallDistances[l],] + matrix_of_BFs[smallDistances[l] + 1,])
     )})
     likeliksOfIntermediateValues = matrix(likeliksOfIntermediateValues, ncol=length(cn_states), byrow=T)
-    likeliksOfIntermediateValues[which(likeliksOfIntermediateValues < -threshold + 1)] = -threshold + 1
+    #likeliksOfIntermediateValues[which(likeliksOfIntermediateValues < -threshold + 1)] = -threshold + 1
     
     # TIME TO MERGE TO MATRICES OF LIKELIHOODS
-    commonBedFile = rbind(currentBedFile[,1:3], coordsOfIntermediateValues)
-    orderOfBedFile = order(commonBedFile[,1], as.numeric(commonBedFile[,2]), as.numeric(commonBedFile[,3]))
-    matrix_of_BFs = rbind(matrix_of_BFs, likeliksOfIntermediateValues)[orderOfBedFile,]
-    commonBedFile = commonBedFile[orderOfBedFile,]
+    orderOfBedFile = order(coordsOfIntermediateValues[,1], as.numeric(coordsOfIntermediateValues[,2]), as.numeric(coordsOfIntermediateValues[,3]))
+    likeliksOfIntermediateValues = likeliksOfIntermediateValues[orderOfBedFile,]
+    coordsOfIntermediateValues = coordsOfIntermediateValues[orderOfBedFile,]
   } else {
-    commonBedFile = bedFile[,1:3]
+    commonBedFile = matrix(0, nrow=0,ncol=3)
   }
   
-  return(list(matrix_of_BFs,commonBedFile))
+  return(list(likeliksOfIntermediateValues,coordsOfIntermediateValues))
 }
 
 
 remapVariants <- function(found_CNVs, toyBedFileAfterCovariance, toyBedFile) {
-  for (k in 1:nrow(found_CNVs)) {
-    start = as.numeric(toyBedFileAfterCovariance[found_CNVs[k,2],2])
-    end = as.numeric(toyBedFileAfterCovariance[found_CNVs[k,3],3])
-    newStart = min(which(as.numeric(toyBedFile[,2]) >= start))
-    newEnd = max(which(as.numeric(toyBedFile[,3]) <= end))
-    found_CNVs[k,2] = newStart
-    found_CNVs[k,3] = newEnd
+  found_CNVs_local = found_CNVs
+  for (k in 1:nrow(found_CNVs_local)) {
+    start = as.numeric(toyBedFile[found_CNVs_local[k,2],2])
+    end = as.numeric(toyBedFile[found_CNVs_local[k,3],3])
+    newStart = min(which(as.numeric(toyBedFileAfterCovariance[,3]) > start))
+    newEnd = max(which(as.numeric(toyBedFileAfterCovariance[,2]) < end))
+    found_CNVs_local[k,2] = newStart
+    found_CNVs_local[k,3] = newEnd
   }
-  return(found_CNVs)
+  return(found_CNVs_local)
 }
 
 calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, sdsOfGermlineSamples, autosomes) {

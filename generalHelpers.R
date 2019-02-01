@@ -322,7 +322,6 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
   counter = 0
   while(i <= nrow(vector_of_regions)){
     current_region_to_look_for_CNVs = vector_of_regions[i,]
-
     start = current_region_to_look_for_CNVs[2]
     end = current_region_to_look_for_CNVs[3]
     allowed_length = max(3, minimum_length_of_CNV)
@@ -353,7 +352,7 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
       evaluate_segment_further = T
      
         for (k in found_CNV[2]:found_CNV[3]) {
-          matrix_of_likeliks_local[k,] = 0
+          matrix_of_likeliks_local[k,] =  matrix_of_likeliks_local[k,] / 2
         }
 
       matrix_for_calculations <- -matrix_of_likeliks_local[start:end,] + matrix_of_likeliks_local[start:end, initial_state]
