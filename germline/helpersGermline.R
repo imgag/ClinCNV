@@ -590,7 +590,7 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
   
   covariancesForWholeDataset <- Predict(covarianceTree, datasetToPredice)
   smallDistances = which(covariancesForWholeDataset > 0.1 & distancesToPredict < 9500)
-  if (length(smallDistances) > 10) {
+  if (length(smallDistances) > 0) {
     distancesToPredict = distancesToPredict[smallDistances]
     covariances <- covariancesForWholeDataset[smallDistances]
     
@@ -612,9 +612,10 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
     
     # TIME TO MERGE TO MATRICES OF LIKELIHOODS
     orderOfBedFile = order(coordsOfIntermediateValues[,1], as.numeric(coordsOfIntermediateValues[,2]), as.numeric(coordsOfIntermediateValues[,3]))
-    likeliksOfIntermediateValues = likeliksOfIntermediateValues[orderOfBedFile,]
-    coordsOfIntermediateValues = coordsOfIntermediateValues[orderOfBedFile,]
+    likeliksOfIntermediateValues = likeliksOfIntermediateValues[orderOfBedFile,,drop=F]
+    coordsOfIntermediateValues = coordsOfIntermediateValues[orderOfBedFile,,drop=F]
   } else {
+    return(NULL)
     commonBedFile = matrix(0, nrow=0,ncol=3)
   }
   

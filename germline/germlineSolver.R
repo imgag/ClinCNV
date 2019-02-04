@@ -6,7 +6,9 @@ registerDoParallel(cl)
 
 cn_states <- 0:8
 
-
+#load("/Users/gdemidov/Downloads/prepared.RData")
+#opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/"
+#opt$out = "/Users/gdemidov/Tuebingen/CLL/tmpResults"
 #locationsShiftedLogFoldChanges <- sweep(matrixOfLogFold, 1, locations)
 
 
@@ -84,15 +86,16 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   
   
   matrix_of_likeliks_for_FDR <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2))
+  matrix_of_likeliks <- matrix_of_likeliks_for_FDR
   
-  if (covar) {
-    listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2), covarianceTree, bedFile, threshold)
-     matrix_of_likeliks_with_covar <- listForLikeliks[[1]]
-     bedFileWithArtificialProbes = listForLikeliks[[2]]
-     matrix_of_likeliks <- matrix_of_likeliks_for_FDR
-  } else {
-    matrix_of_likeliks <- matrix_of_likeliks_for_FDR
-  }
+  #if (covar) {
+  #  listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2), covarianceTree, bedFile, threshold)
+  #   matrix_of_likeliks_with_covar <- listForLikeliks[[1]]
+  #   bedFileWithArtificialProbes = listForLikeliks[[2]]
+  #   matrix_of_likeliks <- matrix_of_likeliks_for_FDR
+  #} else {
+  #  matrix_of_likeliks <- matrix_of_likeliks_for_FDR
+  #}
   
   if (sam_no_off) {
     matrix_of_likeliks_off = form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised.off), sam_no_off, localSdsOff, coverage.normalised.off, sqrt(cn_states / 2))
@@ -144,25 +147,15 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         if (k == 1) {
           which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) <= as.numeric(left_borders[[l]]) )
           which_to_allow_ontarget = which(bedFile[,1] == chrom & as.numeric(bedFile[,2]) <= as.numeric(left_borders[[l]]) )
-          if (covar) {
-            which_to_allow_with_covariance = which(bedFileWithArtificialProbes[,1] == chrom & as.numeric(bedFileWithArtificialProbes[,2]) <= as.numeric(left_borders[[l]]) )
-          }
         } else {
           which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) >= as.numeric(right_borders[[l]]) )
           which_to_allow_ontarget = which(bedFile[,1] == chrom & as.numeric(bedFile[,2]) >= as.numeric(right_borders[[l]]) )
-          if (covar) {
-            which_to_allow_with_covariance = which(bedFileWithArtificialProbes[,1] == chrom & as.numeric(bedFileWithArtificialProbes[,2]) >= as.numeric(right_borders[[l]]) )
-          }
         }
         if (length(which_to_allow) <= 1) {
           next
         }
         toyMatrixOfLikeliks = globalMatrixOfLikeliks[which_to_allow,]
         toyBedFile = globalBed[which_to_allow,]
-        if (covar) {
-          toyBedFileAfterCovariance = bedFileWithArtificialProbes[which_to_allow_with_covariance, ]
-          toy_matrix_of_likeliks_with_covar = matrix_of_likeliks_with_covar[which_to_allow_with_covariance,]
-        }
         found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, initial_state))
         
         # Due to inroduction of covariances intermediate probes we need to remap our variants back to the original bedFile
@@ -175,8 +168,19 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           for (z in 1:nrow(found_CNVs)) {
             startOfFoundCNV = as.numeric(toyBedFile[found_CNVs[z,2], 2])
             endOfFoundCNV = as.numeric(toyBedFile[found_CNVs[z,3], 3])
-            valuesInside = which(as.numeric(toyBedFileAfterCovariance[,2]) > startOfFoundCNV & as.numeric(toyBedFileAfterCovariance[,3]) < endOfFoundCNV)
-            scoreToAdd = sum(toy_matrix_of_likeliks_with_covar[valuesInside,found_CNVs[z,4]] - toy_matrix_of_likeliks_with_covar[valuesInside,initial_state])
+            #valuesInside = which(as.numeric(toyBedFileAfterCovariance[,2]) > startOfFoundCNV & as.numeric(toyBedFileAfterCovariance[,3]) < endOfFoundCNV)
+            
+            valuesInsideBed = which(bedFile[,1] == chrom & bedFile[,2] >= startOfFoundCNV & bedFile[,3] <= endOfFoundCNV)
+            if (length(valuesInsideBed) > 0) {
+              listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds[valuesInsideBed], coverage.normalised[valuesInsideBed,], sqrt(cn_states / 2), covarianceTree, bedFile[valuesInsideBed,], threshold)
+              if (!is.null(listForLikeliks)) {
+                matrix_of_likeliks_with_covar_CNV <- listForLikeliks[[1]]
+                bedFileWithArtificialProbesCNV = listForLikeliks[[2]]
+                scoreToAdd = sum(matrix_of_likeliks_with_covar_CNV[,found_CNVs[z,4]] - matrix_of_likeliks_with_covar_CNV[,initial_state])
+              }
+            }
+            
+            #scoreToAdd = sum(toy_matrix_of_likeliks_with_covar[valuesInside,found_CNVs[z,4]] - toy_matrix_of_likeliks_with_covar[valuesInside,initial_state])
             if (-(as.numeric(found_CNVs[z,1]) + scoreToAdd) < threshold) {
             print("")
             print(paste(chrom, toyBedFile[found_CNVs[z,2],2], toyBedFile[found_CNVs[z,3],3]))
