@@ -98,15 +98,18 @@ Due to variability of data storage formats we can not suggest you a single recip
 
 **Trios:**
 
+```
 Mother_ID1,Fater_ID1,Kid_ID1
 Mother_ID2,Fater_ID2,Kid_ID2
 etc
+```
 
 **Normal-Tumor pairs:**
-
+```
 Tumor_ID1,Normal_ID1
 Tumor_ID1,Normal_ID2
 etc
+```
 
 "Mother_ID1" is just an example, it can be anything (better without special characters such as `#`). If you have sequenced multiple tumor probes and only one normal per one sample, specify it as it is. Main condition is: *those IDs has to be presented in the file with coverages with exactly same names.*
 
