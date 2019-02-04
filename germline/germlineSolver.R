@@ -31,12 +31,10 @@ if (!dir.exists(folder_name)) {
 covar = T
 
 print(paste("We start to estimate covariances between neighboring regions in germline data - may take some time", Sys.time()))
-sdsOfGermlineSamplesForNormalisedData = apply(coverage.normalised[autosomes,], 2, determineSDsOfGermlineSample)
-if (frameworkOff == "offtargetGermline") {
-  sdsOfGermlineSamplesForNormalisedDataOff = apply(coverage.normalised.off[autosomesOff,], 2, determineSDsOfGermlineSample)
-}
 setwd(opt$out)
-covarianceTree = returnTreeForCorrelation(coverage.normalised, sdsOfGermlineSamplesForNormalisedData)
+covarianceTree = returnTreeForCorrelation(coverage.normalised, 
+                                          sdsOfGermlineSamples, sdsOfProbes, 
+                                          bedFileFiltered)
 setwd(opt$folderWithScript)
 print(paste("Tree of covariances (using 2 predictors - sum of regions' lengths and log2 of distance between regions) plotted in", opt$out, Sys.time()))
 
@@ -89,9 +87,9 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   matrix_of_likeliks <- matrix_of_likeliks_for_FDR
   
   #if (covar) {
-  #  listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2), covarianceTree, bedFile, threshold)
+  #  listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2), covarianceTree, bedFileFiltered, threshold)
   #   matrix_of_likeliks_with_covar <- listForLikeliks[[1]]
-  #   bedFileWithArtificialProbes = listForLikeliks[[2]]
+  #   bedFileFilteredWithArtificialProbes = listForLikeliks[[2]]
   #   matrix_of_likeliks <- matrix_of_likeliks_for_FDR
   #} else {
   #  matrix_of_likeliks <- matrix_of_likeliks_for_FDR
@@ -99,13 +97,13 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   
   if (sam_no_off) {
     matrix_of_likeliks_off = form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised.off), sam_no_off, localSdsOff, coverage.normalised.off, sqrt(cn_states / 2))
-    globalBed = rbind(bedFile, bedFileOfftarget)
+    globalBed = rbind(bedFileFiltered, bedFileFilteredOfftarget)
     orderOfBed = order(globalBed[,1], as.numeric(globalBed[,2]))
     globalBed = globalBed[orderOfBed,]
     globalMatrixOfLikeliks = rbind(matrix_of_likeliks, matrix_of_likeliks_off)
     globalMatrixOfLikeliks = globalMatrixOfLikeliks[orderOfBed,]
   } else {
-    globalBed = bedFile
+    globalBed = bedFileFiltered
     globalMatrixOfLikeliks = matrix_of_likeliks
   }
 
@@ -146,36 +144,36 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         which_to_allow_ontarget <- "NA"
         if (k == 1) {
           which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) <= as.numeric(left_borders[[l]]) )
-          which_to_allow_ontarget = which(bedFile[,1] == chrom & as.numeric(bedFile[,2]) <= as.numeric(left_borders[[l]]) )
+          which_to_allow_ontarget = which(bedFileFiltered[,1] == chrom & as.numeric(bedFileFiltered[,2]) <= as.numeric(left_borders[[l]]) )
         } else {
           which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) >= as.numeric(right_borders[[l]]) )
-          which_to_allow_ontarget = which(bedFile[,1] == chrom & as.numeric(bedFile[,2]) >= as.numeric(right_borders[[l]]) )
+          which_to_allow_ontarget = which(bedFileFiltered[,1] == chrom & as.numeric(bedFileFiltered[,2]) >= as.numeric(right_borders[[l]]) )
         }
         if (length(which_to_allow) <= 1) {
           next
         }
         toyMatrixOfLikeliks = globalMatrixOfLikeliks[which_to_allow,]
-        toyBedFile = globalBed[which_to_allow,]
+        toybedFileFiltered = globalBed[which_to_allow,]
         found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, initial_state))
         
-        # Due to inroduction of covariances intermediate probes we need to remap our variants back to the original bedFile
+        # Due to inroduction of covariances intermediate probes we need to remap our variants back to the original bedFileFiltered
         if (covar & nrow(found_CNVs) > 0) {
           #print("")
           #for (y in 1:nrow(found_CNVs)) {
-          #  print(toyBedFileAfterCovariance[found_CNVs[y,2]:found_CNVs[y,3],])
+          #  print(toybedFileFilteredAfterCovariance[found_CNVs[y,2]:found_CNVs[y,3],])
           #}
-          #found_CNVs_for_covariance_correction <- remapVariants(found_CNVs, toyBedFileAfterCovariance, toyBedFile)
+          #found_CNVs_for_covariance_correction <- remapVariants(found_CNVs, toybedFileFilteredAfterCovariance, toybedFileFiltered)
           for (z in 1:nrow(found_CNVs)) {
-            startOfFoundCNV = as.numeric(toyBedFile[found_CNVs[z,2], 2])
-            endOfFoundCNV = as.numeric(toyBedFile[found_CNVs[z,3], 3])
-            #valuesInside = which(as.numeric(toyBedFileAfterCovariance[,2]) > startOfFoundCNV & as.numeric(toyBedFileAfterCovariance[,3]) < endOfFoundCNV)
+            startOfFoundCNV = as.numeric(toybedFileFiltered[found_CNVs[z,2], 2])
+            endOfFoundCNV = as.numeric(toybedFileFiltered[found_CNVs[z,3], 3])
+            #valuesInside = which(as.numeric(toybedFileFilteredAfterCovariance[,2]) > startOfFoundCNV & as.numeric(toybedFileFilteredAfterCovariance[,3]) < endOfFoundCNV)
             
-            valuesInsideBed = which(bedFile[,1] == chrom & bedFile[,2] >= startOfFoundCNV & bedFile[,3] <= endOfFoundCNV)
+            valuesInsideBed = which(bedFileFiltered[,1] == chrom & bedFileFiltered[,2] >= startOfFoundCNV & bedFileFiltered[,3] <= endOfFoundCNV)
             if (length(valuesInsideBed) > 0) {
-              listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds[valuesInsideBed], coverage.normalised[valuesInsideBed,], sqrt(cn_states / 2), covarianceTree, bedFile[valuesInsideBed,], threshold)
+              listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds[valuesInsideBed], coverage.normalised[valuesInsideBed,], sqrt(cn_states / 2), covarianceTree, bedFileFiltered[valuesInsideBed,], threshold)
               if (!is.null(listForLikeliks)) {
                 matrix_of_likeliks_with_covar_CNV <- listForLikeliks[[1]]
-                bedFileWithArtificialProbesCNV = listForLikeliks[[2]]
+                bedFileFilteredWithArtificialProbesCNV = listForLikeliks[[2]]
                 scoreToAdd = sum(matrix_of_likeliks_with_covar_CNV[,found_CNVs[z,4]] - matrix_of_likeliks_with_covar_CNV[,initial_state])
                 found_CNVs[z,1] = as.numeric(found_CNVs[z,1]) + scoreToAdd
               }
@@ -183,7 +181,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             
           }
           #for (y in 1:nrow(found_CNVs)) {
-          #  print(toyBedFile[found_CNVs[y,2]:found_CNVs[y,3],])
+          #  print(toybedFileFiltered[found_CNVs[y,2]:found_CNVs[y,3],])
           #}
         }
         #found_CNVs = found_CNVs[which(-1 * found_CNVs[,1] > threshold),,drop=F]
@@ -197,8 +195,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         if (nrow(found_CNVs) > 0) {
           alleleFrequency = rep(1 / ncol(coverage.normalised), nrow(found_CNVs))
           for (i in 1:nrow(found_CNVs)) {
-            whichOnTarget = which(as.numeric(bedFile[which_to_allow_ontarget,2]) >= as.numeric(toyBedFile[found_CNVs[i,2],2]) &
-                                      as.numeric(bedFile[which_to_allow_ontarget,3]) <= as.numeric(toyBedFile[found_CNVs[i,3],3])
+            whichOnTarget = which(as.numeric(bedFileFiltered[which_to_allow_ontarget,2]) >= as.numeric(toybedFileFiltered[found_CNVs[i,2],2]) &
+                                      as.numeric(bedFileFiltered[which_to_allow_ontarget,3]) <= as.numeric(toybedFileFiltered[found_CNVs[i,3],3])
                                       )
             cnState = cn_states[found_CNVs[i,4]]
             if (length(whichOnTarget) > 0) {
@@ -234,7 +232,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
           outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
           reverseFunctionUsedToTransform = function(x, chrom) {return((2 * x ** 2))}
-          outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
+          outputSegmentsAndDotsFromListOfCNVs(toybedFileFiltered, found_CNVs, start, end, outputFileNameCNVs, 
                                               outputFileNameDots, sample_name, toyCoverageGermline, reverseFunctionUsedToTransform, cn_states)
           if(opt$debug) {
             print("END OF IGV PLOTTING")
@@ -247,7 +245,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         if (nrow(found_CNVs) > 0) {
           # UNCOMMENT FOR PLOTTING!!!
           
-          cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyCoverageGermline, toyBedFile, output_of_plots, chrom, cn_states, 
+          cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyCoverageGermline, toybedFileFiltered, output_of_plots, chrom, cn_states, 
                                           toySizesOfPointsFromLocalSds,alleleFrequency, plottingOfPNGs)
           if (found_CNVs[1,1] != -1000) {
             found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
@@ -257,12 +255,12 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           }
           for (i in 1:nrow(found_CNVs)) {
             
-            CNVnamesInside <- unlist(unique(toyBedFile[found_CNVs[i,2]:found_CNVs[i,3],4]))
+            CNVnamesInside <- unlist(unique(toybedFileFiltered[found_CNVs[i,2]:found_CNVs[i,3],4]))
             if(opt$debug) {
               print(CNVnamesInside)
             }
             
-            CNVentry = matrix(c(sample_name, chrom, toyBedFile[found_CNVs[i,2],2], toyBedFile[found_CNVs[i,3],3], 
+            CNVentry = matrix(c(sample_name, chrom, toybedFileFiltered[found_CNVs[i,2],2], toybedFileFiltered[found_CNVs[i,3],3], 
                                 paste(CNVnamesInside, collapse=", "),
                                 found_CNVs[i,4] - 1, 
                                 found_CNVs[i,5]),
@@ -296,17 +294,23 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     positionsToExclude = c()
     for (z in 1:nrow(found_CNVs_total)) {
       if (as.numeric(found_CNVs_total[z,5] > 200)) {
-        positionsToExclude = c(positionsToExclude, which(bedFile[,1] == found_CNVs_total[z,1] & as.numeric(bedFile[,2]) >= as.numeric(found_CNVs_total[z,2])
-                                                                                                                                      & as.numeric(bedFile[,3]) <= as.numeric(found_CNVs_total[z,3])))
+        positionsToExclude = c(positionsToExclude, which(bedFileFiltered[,1] == found_CNVs_total[z,1] & as.numeric(bedFileFiltered[,2]) >= as.numeric(found_CNVs_total[z,2])
+                                                                                                                                      & as.numeric(bedFileFiltered[,3]) <= as.numeric(found_CNVs_total[z,3])))
       }
     }
-    matrix_of_likeliks_for_FDR = matrix_of_likeliks_for_FDR[-union( which(bedFile[,1] %in% c("chrX", "chrY")) ,  positionsToExclude),]
+    matrix_of_likeliks_for_FDR = matrix_of_likeliks_for_FDR[-union( which(bedFileFiltered[,1] %in% c("chrX", "chrY")) ,  positionsToExclude),]
     numberOfIterationsForFDR = as.numeric(opt$fdrGermline)
-    detectedFalseCNVs <- foreach(i=1:numberOfIterationsForFDR, .combine="rbind") %dopar% {
-      shuffledMatrixOfLikelis = matrix_of_likeliks_for_FDR[sample(1:nrow(matrix_of_likeliks_for_FDR)),1:(main_initial_state + 2)]
-      detectedCnvs <- find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, main_initial_state, shuffledMatrixOfLikelis, main_initial_state)
-      detectedCnvs
+    print(paste("Started to perform FDR permutations", Sys.time()))
+    stepLikeChromosome = floor(nrow(matrix_of_likeliks_for_FDR) / 22)
+    for (z in seq(from=1, to=nrow(matrix_of_likeliks_for_FDR), by=stepLikeChromosome)) {
+      matrix_of_likeliks_for_FDR_part = matrix_of_likeliks_for_FDR[z:(z + stepLikeChromosome),]
+      detectedFalseCNVs <- foreach(i=1:numberOfIterationsForFDR, .combine="rbind") %dopar% {
+        shuffledMatrixOfLikelis = matrix_of_likeliks_for_FDR_part[sample(1:nrow(matrix_of_likeliks_for_FDR_part)),1:(main_initial_state + 2)]
+        detectedCnvs <- find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, main_initial_state, shuffledMatrixOfLikelis, main_initial_state)
+        detectedCnvs
+      }
     }
+    print(paste("Fnished to perform FDR permutations", Sys.time()))
     detectedDeletions <-  detectedFalseCNVs[which(detectedFalseCNVs[,4] < main_initial_state),1:4,drop=F]
     detectedDuplications <-  detectedFalseCNVs[which(detectedFalseCNVs[,4] > main_initial_state),1:4,drop=F]
     

@@ -581,8 +581,27 @@ robust_correlation <- function(robust_std, estimation_of_center_x, estimation_of
   return(r)
 }
 
-correlationMatrixForPairedLikelik <- function(x, y) {
-  correlationBetweenValues <- robust_correlation(Qn, 0, 0, x, y)
+robust_correlation_short <- function(robust_std_x, robust_std_y, x, y, robust_std) {
+  square_root_of_two <- sqrt(2) 
+  std_of_x <- robust_std_x
+  std_of_y <- robust_std_y
+  if (std_of_x == 0 | std_of_y == 0) {return(0)}
+  first_component = (x) / (square_root_of_two * std_of_x)
+  second_component = (y) / (square_root_of_two * std_of_y)
+  u = first_component + second_component
+  v = first_component - second_component
+  var_of_u = robust_std(u) ** 2
+  var_of_v = robust_std(v) ** 2
+  r = (var_of_u - var_of_v) / (var_of_u + var_of_v + 10**-10)
+  return(r)
+}
+
+correlationMatrixForPairedLikelik <- function(x, y, robust_std_x=NULL, robust_std_y=NULL) {
+  if (is.null(robust_std_x) & is.null(robust_std_y)) {
+    correlationBetweenValues <- robust_correlation(Qn, 0, 0, x, y)
+  } else {
+    correlationBetweenValues=robust_correlation_short(robust_std_x, robust_std_y, x, y, Qn)
+  }
   return(matrix(c(1,correlationBetweenValues,correlationBetweenValues,1), nrow=2))
 }
 

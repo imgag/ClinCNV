@@ -533,18 +533,18 @@ likelihoodOfTwoVariables <- function(var1, var2, covariance, mean1, mean2, x1, x
 
 
 
-returnTreeForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples) {
-  coverageNormalisedBySds = sweep(coverage.normalised - 1, 2, sdsOfGermlineSamples, FUN="/")
-  covariancesClose = rep(0, nrow(coverage.normalised))
-  distnacesClose = rep(-1, nrow(coverage.normalised))
-  sumOfLengths = rep(-1, nrow(coverage.normalised))
+returnTreeForCorrelation <- function(coverage.normalised.local, sdsOfGermlineSamples, sdsOfProbes, bedFileFilteredTmp) {
+  coverageNormalisedBySds = sweep(coverage.normalised.local - 1, 2, sdsOfGermlineSamples, FUN="/")
+  covariancesClose = rep(0, nrow(coverage.normalised.local))
+  distnacesClose = rep(-1, nrow(coverage.normalised.local))
+  sumOfLengths = rep(-1, nrow(coverage.normalised.local))
   
   for (i in 2:nrow(coverageNormalisedBySds)) {
-    if (bedFile[i,1] %in% c("chrX","chrY")) next
-    if (bedFile[i,1] == bedFile[i-1,1]) {
-      covariancesClose[i - 1] = correlationMatrixForPairedLikelik(coverageNormalisedBySds[(i-1),], coverageNormalisedBySds[i,])[1,2]
-      distnacesClose[i - 1] = bedFile[i,2] - bedFile[i-1,3] + 1
-      sumOfLengths[i-1] = bedFile[i,3] - bedFile[i,2] + bedFile[i - 1,3] - bedFile[i-1,2]
+    if (bedFileFilteredTmp[i,1] %in% c("chrX","chrY")) next
+    if (bedFileFilteredTmp[i,1] == bedFileFilteredTmp[i-1,1]) {
+      covariancesClose[i - 1] = correlationMatrixForPairedLikelik(coverageNormalisedBySds[(i-1),], coverageNormalisedBySds[i,], sdsOfProbes[i-1], sdsOfProbes[i])[1,2]
+      distnacesClose[i - 1] = bedFileFilteredTmp[i,2] - bedFileFilteredTmp[i-1,3] + 1
+      sumOfLengths[i-1] = bedFileFilteredTmp[i,3] - bedFileFilteredTmp[i,2] + bedFileFilteredTmp[i - 1,3] - bedFileFilteredTmp[i-1,2]
     }
   }
   
@@ -552,7 +552,7 @@ returnTreeForCorrelation <- function(coverage.normalised, sdsOfGermlineSamples) 
   if (length(which(distnacesClose < 0)) > 0)
   trainingDataset = trainingDataset[-which(distnacesClose < 0 | distnacesClose > 9500),]
   if (nrow(trainingDataset) > 100) {
-  fit <- ctree(covariancesClose ~ log2((distnacesClose)) + (sumOfLengths), data=trainingDataset, control=ctree_control(mincriterion = 0.975))
+  fit <- ctree(covariancesClose ~ log2((distnacesClose)) + (sumOfLengths), data=trainingDataset, control=ctree_control(mincriterion = 0.99))
   png(filename="treeOnCorrelationOfCoverage.png", width=4000, height=1800)
   plot(fit)
   dev.off()
@@ -636,11 +636,12 @@ remapVariants <- function(found_CNVs, toyBedFileAfterCovariance, toyBedFile) {
   return(found_CNVs_local)
 }
 
-calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, sdsOfGermlineSamples, autosomes) {
-  mediansAndSds = matrix(0, nrow=0, ncol=2)
+calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autosomes) {
   whichSamplesUsed = 1:ncol(coverage)
+  mediansResult = c()
   # WE ASSUME THERE ARE ENOUGH SAMPLES OF BOTH GENDERS
   for (chrom in unique(bedFile[,1])) {
+    whichSamplesUsed = 1:ncol(coverage)
     print(chrom)
     coveragesToDealWith = coverage[which(bedFile[,1] == chrom),]
     if (chrom == "chrX") {
@@ -652,35 +653,58 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, sdsOfG
     } else if (chrom == "chrY") {
       if (length(which(genderOfSamples == "M")) <= 2) {
         whichSamplesUsed = which(genderOfSamples == "F")
-        QNs = rep(1000, nrow(coveragesToDealWithStandardized))
         medians = rep(1, nrow(coveragesToDealWithStandardized))
-        mediansAndSds = rbind(mediansAndSds, cbind(medians, QNs))
         next
       }
       whichSamplesUsed = which(genderOfSamples == "M")
     }
     medians <- parApply(cl=cl,coveragesToDealWith[,whichSamplesUsed], 1, median)
-    coveragesToDealWithStandardized = sweep(coveragesToDealWith[,whichSamplesUsed], 1, medians)
-    coveragesToDealWithStandardized <- sweep(coveragesToDealWithStandardized, 2, sdsOfGermlineSamples[whichSamplesUsed], FUN="/")
-    
-    QNs <- parApply(cl=cl, coveragesToDealWithStandardized, 1, Qn)
-    if (chrom == "chrX") {
-      medianOfSdsForAllProbes = median(mediansAndSds[autosomes,2])
-      medianOfSdsForX = median(QNs)
-      QNs = QNs / (medianOfSdsForX / medianOfSdsForAllProbes)
-    }
-    if (chrom == "chrY") {
-      medianOfSdsForAllProbes = median(mediansAndSds[autosomes,2])
-      medianOfSdsForX = median(QNs)
-      QNs = QNs / (medianOfSdsForX / medianOfSdsForAllProbes)
-    }
     if (chrom == "chrX" & length(which(genderOfSamples == "F")) <= 0.5 * length(which(genderOfSamples == "M"))) {
       medians = sqrt(2) * medians
     }
     if (chrom == "chrY" & length(which(genderOfSamples == "M")) > 2) {
       medians = sqrt(2) * medians
     }
-    mediansAndSds = rbind(mediansAndSds, cbind(medians, QNs))
+    mediansResult = c(mediansResult, medians) 
   }
-  return(mediansAndSds)
+  
+  coverage.normalised = sweep(coverage, 1, mediansResult, FUN="/") - 1
+  sdsOfGermlineSamplesTmp = apply(coverage.normalised[autosomes,], 2, Qn)
+  sdsResults = c()
+  for (chrom in unique(bedFile[,1])) {
+    whichSamplesUsed = 1:ncol(coverage)
+    coveragesToDealWith = coverage.normalised[which(bedFile[,1] == chrom),]
+    if (chrom == "chrX") {
+      if (length(which(genderOfSamples == "F")) > 0.5 * length(which(genderOfSamples == "M"))) {
+        whichSamplesUsed = which(genderOfSamples == "F")
+      } else {
+        whichSamplesUsed = which(genderOfSamples == "M")
+      }
+    } else if (chrom == "chrY") {
+      if (length(which(genderOfSamples == "M")) <= 2) {
+        whichSamplesUsed = which(genderOfSamples == "F")
+        QNs = rep(1000, nrow(coveragesToDealWithStandardized))
+        medians = rep(1, nrow(coveragesToDealWithStandardized))
+        next
+      }
+      whichSamplesUsed = which(genderOfSamples == "M")
+    }
+    
+    coveragesToDealWithStandardized = coveragesToDealWith[,whichSamplesUsed]
+    coveragesToDealWithStandardized <- sweep(coveragesToDealWithStandardized, 2, sdsOfGermlineSamplesTmp[whichSamplesUsed], FUN="/")
+    
+    QNs <- parApply(cl=cl, coveragesToDealWithStandardized, 1, Qn)
+    if (chrom == "chrX") {
+      medianOfSdsForAllProbes = median(sdsResults[autosomes])
+      medianOfSdsForX = median(QNs)
+      QNs = QNs / (medianOfSdsForX / medianOfSdsForAllProbes)
+    }
+    if (chrom == "chrY") {
+      medianOfSdsForAllProbes = median(sdsResults[autosomes])
+      medianOfSdsForX = median(QNs)
+      QNs = QNs / (medianOfSdsForX / medianOfSdsForAllProbes)
+    }
+    sdsResults <- c(sdsResults, QNs)
+  }
+  return(list(coverage.normalised + 1, cbind(mediansResult, sdsResults), sdsOfGermlineSamplesTmp))
 }

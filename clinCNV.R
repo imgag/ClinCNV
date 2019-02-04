@@ -203,6 +203,8 @@ normal <- as.matrix(normal[,opt$colNum:ncol(normal)])
 if (length(whichBedIsNA) > 0)
   normal = normal[-whichBedIsNA,]
 
+numberOfRowsBeforeAllTheFiltrationNormal = nrow(normal)
+
 if (framework == "somatic") {
   #tumor <- read.table(opt$tumor, header=T, stringsAsFactors = F, comment.char="&" )
   tumor <- ReadFileFast(opt$tumor, header=T)
@@ -272,7 +274,7 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
     bedFileOfftarget = bedFileOfftarget[-rowsToRemove,]
   }
 }
-
+print(paste("Amount of regions after filtering of 0-covered regions", round(100 * nrow(normal) / numberOfRowsBeforeAllTheFiltrationNormal, digits = 3) ) )
 ### GC CONTENT NORMALIZATION
 
 if (framework == "somatic") {
@@ -378,6 +380,8 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   bedFileOfftarget <- lst[[2]]
 }
 
+print(paste("Amount of regions after GC-extreme filtering", round(100 * nrow(normal) / numberOfRowsBeforeAllTheFiltrationNormal, digits = 3) ) )
+
 ### BED FILE OFFTARGET MAY NOT CONTAIN COLUMN WITH GENES
 if (ncol(bedFile)  == 4) {
   bedFile <- cbind(bedFile, rep(0, nrow(bedFile)))
@@ -396,6 +400,7 @@ if (framework == "somatic") {
 } else {
   regionsToFilerOutOn = findRegionsToFilerOutDueSystematicallyLowCoverage(normal)
 }
+print(paste("Amount of regions after Systematically Low Covered regions filtering", round(100 * nrow(normal) / numberOfRowsBeforeAllTheFiltrationNormal, digits = 3) ) )
 
 if (length(regionsToFilerOutOn)>0) {
 	normal = normal[-regionsToFilerOutOn,] + 10**-20
@@ -499,22 +504,29 @@ if (framework == "germline") {
     
     
     autosomes <- which(!bedFile[,1] %in% c("chrX", "chrY", "X", "Y"))
-    sdsOfGermlineSamples <- apply(coverage[autosomes,], 2, determineSDsOfGermlineSample)
-    
+
     #medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
     print(paste("We start estimation of parameters of germline cohort. It may take some time. Cluster of samples being analysed:", cluster, Sys.time()))
-    mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, sdsOfGermlineSamples, autosomes)
-    medians = as.numeric(mediansAndSds[,1])
-    sdsOfProbes = trimValues(as.numeric(mediansAndSds[,2]), 0.01)
-    coverage.normalised = sweep(coverage, 1, medians, FUN="/")
+    mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes)
+    coverage.normalised = mediansAndSds[[1]]
+    sdsOfProbes = trimValues(as.numeric(mediansAndSds[[2]][,2]), 0.01)
+    sdsOfGermlineSamples = mediansAndSds[[3]]
+    filterOutRegionsWithSmallMedians <- which(mediansAndSds[[2]][,1] > 0.3)
+    sdsOfProbes = sdsOfProbes[filterOutRegionsWithSmallMedians]
+    bedFileFiltered = bedFile[filterOutRegionsWithSmallMedians,]
+    coverage.normalised = coverage.normalised[filterOutRegionsWithSmallMedians,]
+    
     
     if (frameworkOff == "offtargetGermline") {
-      autosomesOff <- which(!bedFileOfftarget[,1] %in% c("chrX", "chrY", "X", "Y"))
-      sdsOfGermlineSamplesOff <- apply(coverageOff[autosomesOff,], 2, determineSDsOfGermlineSample)
-      mediansAndSdsOff = calculateLocationAndScale(bedFileOfftarget, coverageOff, genderOfSamplesOff, sdsOfGermlineSamplesOff, autosomesOff)
-      mediansOff = as.numeric(mediansAndSdsOff[,1])
-      sdsOfProbesOff = trimValues(as.numeric(mediansAndSdsOff[,2]), 0.01)
-      coverage.normalised.off = sweep(coverageOff, 1, mediansOff, FUN="/")
+      
+      mediansAndSdsOff = calculateLocationAndScale(bedFileOfftarget, coverageOff, genderOfSamplesOff, autosomesOff)
+      coverage.normalised.off = mediansAndSdsOff[[1]]
+      sdsOfProbesOff = trimValues(as.numeric(mediansAndSdsOff[[2]][,2]), 0.01)
+      sdsOfGermlineSamplesOff = mediansAndSdsOff[[3]]
+      filterOutRegionsWithSmallMedians <- which(mediansAndSdsOff[[2]][,1] > 0.3)
+      sdsOfProbesOff = sdsOfProbesOff[filterOutRegionsWithSmallMedians]
+      bedFileFilteredOfftarget = bedFileOfftarget[filterOutRegionsWithSmallMedians,]
+      coverage.normalised.off = coverage.normalised.off[filterOutRegionsWithSmallMedians,]
     }
     
     
