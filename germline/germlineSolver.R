@@ -302,7 +302,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     numberOfIterationsForFDR = as.numeric(opt$fdrGermline)
     print(paste("Started to perform FDR permutations", Sys.time()))
     stepLikeChromosome = floor(nrow(matrix_of_likeliks_for_FDR) / 22)
-    for (z in seq(from=1, to=nrow(matrix_of_likeliks_for_FDR), by=stepLikeChromosome)) {
+    for (z in seq(from=1, to=nrow(matrix_of_likeliks_for_FDR) - stepLikeChromosome - 1, by=stepLikeChromosome)) {
       matrix_of_likeliks_for_FDR_part = matrix_of_likeliks_for_FDR[z:(z + stepLikeChromosome),]
       detectedFalseCNVs <- foreach(i=1:numberOfIterationsForFDR, .combine="rbind") %dopar% {
         shuffledMatrixOfLikelis = matrix_of_likeliks_for_FDR_part[sample(1:nrow(matrix_of_likeliks_for_FDR_part)),1:(main_initial_state + 2)]
