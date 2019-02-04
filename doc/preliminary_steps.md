@@ -39,7 +39,7 @@ Depending on your goal, you may want to extract:
 
 You should already have on-target `.bed` file. To generate off-target `.bed` file from your on-target file `panel.bed` you need to run following commands (making offset of 400 bp from the sides of targeted regions, window sike of 50KB and removing all regions that are less than 25KB in the end):
 
-`
+```
 # Determine offtarget with offset of 400 to the left and to the right of the targeted region
 BedExtend -in $bedFile -n 400 | BedMerge -out "extended_"$bedFile
 # hg19.bed here is from the previous paragraph
@@ -48,25 +48,25 @@ BedSubtract -in hg19.bed -in2 "extended_"$bedFile -out offtarget.bed
 BedChunk -in offtarget.bed -n 50000 -out offtarget_chunks.bed
 # Remove regions <25k
 BedShrink -in offtarget_chunks.bed -n 12500 | BedExtend -n 12500 -out "offtarget_chunks_"$bedFile
-`
+```
 ### .bed file annotation
 
 `ngsbits` has to be installed. 
 
-`
+```
 BedAnnotateGC -in $bedFile -out "gcAnnotated."$bedFile -ref reference.fa
 BedAnnotateGenes -in "gcAnnotated."$bedFile -out "annotated."$bedFile
 rm "gcAnnotated.""$bedFile
-`
+```
 
 
 ### WGS
 
 For WGS you need to prepare file with chromosomes' starts and ends based on reference genome you've used. Then you can use the same strategy as for off-target `.bed` file generation:
 
-`
+```
 BedChunk -in startAndEndOfChromosomes.bed -n 1000 -out chunks.bed
-`
+```
 
 You may not care about centromeric regions - they will be excluded by `ClinCNV`.
 
@@ -75,13 +75,13 @@ You may not care about centromeric regions - they will be excluded by `ClinCNV`.
 
 Let's say you want to calculate read coverage, using `.bed` file with path specified with `bed_file`, `.bam` file specified with `BAM` variable and sample name `output`. This command has to be executed:
 
-`BedCoverage -bam $BAM -in $bed_file -min_mapq 5 -decimals 4 > $output".cov"`
+```BedCoverage -bam $BAM -in $bed_file -min_mapq 5 -decimals 4 > $output".cov"```
 
 Please keep files that you obtain from normals/tumors or on-target/off-target or of course different sequencing kits in separate folders - you will need to merge this files later!
 
 Then you need to merge your ".cov" files into one table. To do this, you can use script `mergeFilesFromFolder.R` script provided with `ClinCNV` using `input_folder` and `output_folder` as variables to keep your absolute paths:
 
-`Rscript mergeFilesFromFolder.R -i $input_folder -o $output_folder`
+```Rscript mergeFilesFromFolder.R -i $input_folder -o $output_folder```
 
 
 
