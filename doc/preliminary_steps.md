@@ -71,7 +71,7 @@ BedChunk -in startAndEndOfChromosomes.bed -n 1000 -out chunks.bed
 You may not care about centromeric regions - they will be excluded by `ClinCNV`.
 
 
-## Calcuiation of read coverage (both on- and off- target)
+## Calculation of read coverage (both on- and off- target)
 
 Let's say you want to calculate read coverage, using `.bed` file with path specified with `bed_file`, `.bam` file specified with `BAM` variable and sample name `output`. This command has to be executed:
 

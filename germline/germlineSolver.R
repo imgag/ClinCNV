@@ -177,16 +177,10 @@ for (sam_no in 1:ncol(coverage.normalised)) {
                 matrix_of_likeliks_with_covar_CNV <- listForLikeliks[[1]]
                 bedFileWithArtificialProbesCNV = listForLikeliks[[2]]
                 scoreToAdd = sum(matrix_of_likeliks_with_covar_CNV[,found_CNVs[z,4]] - matrix_of_likeliks_with_covar_CNV[,initial_state])
+                found_CNVs[z,1] = as.numeric(found_CNVs[z,1]) + scoreToAdd
               }
             }
             
-            #scoreToAdd = sum(toy_matrix_of_likeliks_with_covar[valuesInside,found_CNVs[z,4]] - toy_matrix_of_likeliks_with_covar[valuesInside,initial_state])
-            if (-(as.numeric(found_CNVs[z,1]) + scoreToAdd) < threshold) {
-            print("")
-            print(paste(chrom, toyBedFile[found_CNVs[z,2],2], toyBedFile[found_CNVs[z,3],3]))
-            print(scoreToAdd)
-            }
-            found_CNVs[z,1] = as.numeric(found_CNVs[z,1]) + scoreToAdd
           }
           #for (y in 1:nrow(found_CNVs)) {
           #  print(toyBedFile[found_CNVs[y,2]:found_CNVs[y,3],])
