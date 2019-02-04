@@ -37,12 +37,38 @@ Depending on your goal, you may want to extract:
 
 ### Targeted sequencing
 
-You should already have on-target `.bed` file. To generate off-target `.bed` file from your on-target file `panel.bed` you need to run following commands:
+You should already have on-target `.bed` file. To generate off-target `.bed` file from your on-target file `panel.bed` you need to run following commands (making offset of 400 bp from the sides of targeted regions, window sike of 50KB and removing all regions that are less than 25KB in the end):
+
+`
+# Determine offtarget with offset of 400 to the left and to the right of the targeted region
+BedExtend -in $bedFile -n 400 | BedMerge -out "extended_"$bedFile
+# hg19.bed here is from the previous paragraph
+BedSubtract -in hg19.bed -in2 "extended_"$bedFile -out offtarget.bed
+# Chunk offtarget into pieces of 50kbps
+BedChunk -in offtarget.bed -n 50000 -out offtarget_chunks.bed
+# Remove regions <25k
+BedShrink -in offtarget_chunks.bed -n 12500 | BedExtend -n 12500 -out "offtarget_chunks_"$bedFile
+`
+### .bed file annotation
+
+`ngsbits` has to be installed. 
+
+`
+BedAnnotateGC -in $bedFile -out "gcAnnotated."$bedFile -ref reference.fa
+BedAnnotateGenes -in "gcAnnotated."$bedFile -out "annotated."$bedFile
+rm "gcAnnotated.""$bedFile
+`
+
 
 ### WGS
 
-For WGS you need to prepare file with chromosomes' starts and ends based on reference genome you've used. 
+For WGS you need to prepare file with chromosomes' starts and ends based on reference genome you've used. Then you can use the same strategy as for off-target `.bed` file generation:
 
+`
+BedChunk -in startAndEndOfChromosomes.bed -n 1000 -out chunks.bed
+`
+
+You may not care about centromeric regions - they will be excluded by `ClinCNV`.
 
 
 ## Calcuiation of read coverage (both on- and off- target)
@@ -63,7 +89,7 @@ Then you need to merge your ".cov" files into one table. To do this, you can use
 
 B-allele frequency extraction works in 2 steps - first, you extract high quality positions from your `.vcf` file from the normal sample, then you calculate coverage of this position in your tumor sample using BAF file obtained at previous step.
 
-
+You should perform standard germline variant calling on you normal sample and get `.vcf` as output. `.vcf` files may differ - so you may need to slightly change the script.
 
 
 ## Text files with sample IDs
