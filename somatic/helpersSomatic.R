@@ -124,7 +124,13 @@ form_matrix_of_likeliks_one_sample <- function(i, j, vector_of_values, sds, cn_s
   start <- 1
   end <- j - i + 1
   
+  homozygousDelSD = 0.5 / 10
+  sdsTmp = sds
   matrix_of_BFs = sapply(1:ncol(matrix_of_BFs), function(l) {
+    sds = sdsTmp
+    if (vector_of_states[l] < 0.5) {
+      sds[which(sds < homozygousDelSD)] = homozygousDelSD
+    }
     value = return_likelik((vector_of_values - vector_of_states[l]) / (sds * multipliersDueToLog[l]) ) / (sds * multipliersDueToLog[l]) + 10^-100
     return(-2 * log(value))
   })

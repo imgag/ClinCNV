@@ -61,16 +61,22 @@ esimtateVarianceFromSampleNoise <- function(vecOfSDsParam, numberOfRepetitions) 
 
 
 
-form_matrix_of_likeliks_one_sample <- function(i, j, k, sds, resid, cn_states) {
+form_matrix_of_likeliks_one_sample <- function(i, j, k, sds, resid, vectorOfCNstates) {
   vector_of_values <- resid[,k]
   
-  vector_of_states <- cn_states
-  matrix_of_BFs <- matrix(0, nrow=(j - i + 1), ncol=length(vector_of_states))
+  matrix_of_BFs <- matrix(0, nrow=(j - i + 1), ncol=length(vectorOfCNstates))
   start <- 1
   end <- j - i + 1
   
+  homozygousDelSD = 0.5 / 10
+  
+  sdsTmp = sds
   matrix_of_BFs = sapply(1:ncol(matrix_of_BFs), function(l) {
-    value = return_likelik((vector_of_values - vector_of_states[l]) / (sds) ) / (sds) + 10^-100
+    sds = sdsTmp
+    if (vectorOfCNstates[l] < 0.5) {
+      sds[which(sds < homozygousDelSD)] = homozygousDelSD
+    }
+    value = return_likelik((vector_of_values - vectorOfCNstates[l]) / (sds) ) / (sds) + 10^-100
     return(-2 * log(value))
   })
   return(matrix_of_BFs)
@@ -538,6 +544,8 @@ returnTreeForCorrelation <- function(coverage.normalised.local, sdsOfGermlineSam
   covariancesClose = rep(0, nrow(coverage.normalised.local))
   distnacesClose = rep(-1, nrow(coverage.normalised.local))
   sumOfLengths = rep(-1, nrow(coverage.normalised.local))
+  minLength = rep(-1, nrow(coverage.normalised.local))
+  maxLength = rep(-1, nrow(coverage.normalised.local))
   
   for (i in 2:nrow(coverageNormalisedBySds)) {
     if (bedFileFilteredTmp[i,1] %in% c("chrX","chrY")) next
@@ -545,14 +553,16 @@ returnTreeForCorrelation <- function(coverage.normalised.local, sdsOfGermlineSam
       covariancesClose[i - 1] = correlationMatrixForPairedLikelik(coverageNormalisedBySds[(i-1),], coverageNormalisedBySds[i,], sdsOfProbes[i-1], sdsOfProbes[i])[1,2]
       distnacesClose[i - 1] = bedFileFilteredTmp[i,2] - bedFileFilteredTmp[i-1,3] + 1
       sumOfLengths[i-1] = bedFileFilteredTmp[i,3] - bedFileFilteredTmp[i,2] + bedFileFilteredTmp[i - 1,3] - bedFileFilteredTmp[i-1,2]
+      minLength[i-1] = min(bedFileFilteredTmp[i,3] - bedFileFilteredTmp[i,2], bedFileFilteredTmp[i - 1,3] - bedFileFilteredTmp[i-1,2])
+      maxLength[i-1] = max(bedFileFilteredTmp[i,3] - bedFileFilteredTmp[i,2], bedFileFilteredTmp[i - 1,3] - bedFileFilteredTmp[i-1,2])
     }
   }
   
-  trainingDataset <- as.data.frame(cbind(covariancesClose, distnacesClose, sumOfLengths))
+  trainingDataset <- as.data.frame(cbind(covariancesClose, distnacesClose, sumOfLengths, minLength, maxLength))
   if (length(which(distnacesClose < 0)) > 0)
   trainingDataset = trainingDataset[-which(distnacesClose < 0 | distnacesClose > 9500),]
   if (nrow(trainingDataset) > 100) {
-  fit <- ctree(covariancesClose ~ log2((distnacesClose)) + (sumOfLengths), data=trainingDataset, control=ctree_control(mincriterion = 0.99))
+  fit <- ctree(covariancesClose ~ log2((distnacesClose)) + (sumOfLengths) + minLength + maxLength, data=trainingDataset, control=ctree_control(mincriterion = 0.99))
   png(filename="treeOnCorrelationOfCoverage.png", width=4000, height=1800)
   plot(fit)
   dev.off()
@@ -568,11 +578,14 @@ returnTreeForCorrelation <- function(coverage.normalised.local, sdsOfGermlineSam
 form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_states, covarianceTree, currentBedFile, threshold_local) {
   distancesToPredict = (currentBedFile[2:nrow(currentBedFile),2] - currentBedFile[1:(nrow(currentBedFile) - 1),3] + 1)
   distancesToPredict[which(is.na(distancesToPredict) | distancesToPredict <= 0)] = 10**6
-  lengthsLeft = currentBedFile[1:(nrow(currentBedFile) - 1),3] - currentBedFile[1:(nrow(currentBedFile) - 1),2]
-  lengthsRight = currentBedFile[2:nrow(currentBedFile),3] - currentBedFile[2:nrow(currentBedFile),2]
+  lengthsLeft = as.numeric(currentBedFile[1:(nrow(currentBedFile) - 1),3] - currentBedFile[1:(nrow(currentBedFile) - 1),2])
+  lengthsRight = as.numeric(currentBedFile[2:nrow(currentBedFile),3] - currentBedFile[2:nrow(currentBedFile),2])
   sumLengths <- lengthsLeft + lengthsRight
-  datasetToPredice <- as.data.frame(cbind(distancesToPredict, sumLengths))
-  colnames(datasetToPredice) <- c("distnacesClose", "sumOfLengths")
+  maxLengths <- apply(rbind(lengthsLeft, lengthsRight), 2, max)
+  minLengths <- apply(rbind(lengthsLeft, lengthsRight), 2, min)
+  
+  datasetToPredice <- as.data.frame(cbind(distancesToPredict, sumLengths, minLengths, maxLengths))
+  colnames(datasetToPredice) <- c("distnacesClose", "sumOfLengths", "minLength", "maxLength")
   
   
   vector_of_values <- resid[,k]
