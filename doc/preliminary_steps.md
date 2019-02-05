@@ -72,15 +72,15 @@ You may not care about centromeric regions - they will be excluded by `ClinCNV`.
 
 A rule of thumb for CNV detection resolution with `ClinCNV` - the smallest CNV you may try to detect should contain 3 windows, mainly because the windows on the left and on the right can be partially affected by CNVs so you need to have at least one "central" window to be able to genotype variant. (Imagine: you have a copy number 4 variant that affect only 2 neighboring windows and only partially - you may see a copy number 3 in the end, depicted below)
 
-`
+```
 Variant:
 __________^^^^^^^^^^___________
 2222222222444444444422222222222
+
 What coverage we see in our windows:
-:
 _______|_______|_______|_______
 2222222 3333333 3333333 2222222
-`
+```
 
 ## Calculation of read coverage (both on- and off- target)
 
