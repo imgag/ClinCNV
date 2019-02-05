@@ -68,8 +68,19 @@ For WGS you need to prepare file with chromosomes' starts and ends based on refe
 BedChunk -in startAndEndOfChromosomes.bed -n 1000 -out chunks.bed
 ```
 
-You may not care about centromeric regions - they will be excluded by `ClinCNV`.
+You may not care about centromeric regions - they will be excluded by `ClinCNV`. 1000bp is OK for 30x and more coverage (for 40x you can go for 500bp - if your biologists did a good job and the level of noise is low) which means CNV length of 3KB-1.5KB. But for shallow WGS you should choose 5000 or 10000 bp (0.1x would require 10KB, 5x may go up to 5KB).
 
+A rule of thumb for CNV detection resolution with `ClinCNV` - the smallest CNV you may try to detect should contain 3 windows, mainly because the windows on the left and on the right can be partially affected by CNVs so you need to have at least one "central" window to be able to genotype variant. (Imagine: you have a copy number 4 variant that affect only 2 neighboring windows and only partially - you may see a copy number 3 in the end, depicted below)
+
+`
+Variant:
+__________^^^^^^^^^^___________
+2222222222444444444422222222222
+What coverage we see in our windows:
+:
+_______|_______|_______|_______
+2222222 3333333 3333333 2222222
+`
 
 ## Calculation of read coverage (both on- and off- target)
 
