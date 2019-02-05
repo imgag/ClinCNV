@@ -79,7 +79,7 @@ __________^^^^^^^^^^___________
 
 What coverage we see in our windows:
 _______|_______|_______|_______
-2222222 3333333 3333333 2222222
+   2       3       3       2   
 ```
 
 ## Calculation of read coverage (both on- and off- target)
