@@ -77,7 +77,7 @@ Variant:
 __________^^^^^^^^^^___________
 2222222222444444444422222222222
 
-What coverage we see in our windows:
+What normalised coverage indicates in our windows:
 _______|_______|_______|_______
    2       3       3       2   
 ```

@@ -115,7 +115,13 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   iterations = 0
   maxIteration = opt$maxNumIter
   vectorWithNumberOfOutliers <- c()
-  vectorOfZScores <- (coverage.normalised[,sam_no] - 1) / localSds
+  vectorOfZScores = rep(0, nrow(bedFile))
+  vectorOfZScores[which(!bedFile[,1] %in% c("chrX","chrY"))] <- (coverage.normalised[which(!bedFile[,1] %in% c("chrX","chrY")),sam_no] - 1) / localSds
+  if (genderOfSamples[sam_no] == "F") {
+    vectorOfZScores[which(bedFile[,1] %in% c("chrX"))] <- c(vectorOfZScores, (coverage.normalised[which(bedFile[,1] %in% c("chrX")),sam_no] - 1) / localSds)
+  } else {
+    vectorOfZScores[which(bedFile[,1] %in% c("chrX","chrY"))] <- c(vectorOfZScores, (coverage.normalised[which(bedFile[,1] %in% c("chrX","chrY")),sam_no] - sqrt(1/2)) / localSds)
+  }
   while (!numberOfCNVsIsSufficientlySmall & iterations < maxIteration) {
     initial_state = main_initial_state
     found_CNVs_total <- matrix(0, nrow=0, ncol=9)
@@ -362,7 +368,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   finalPValue = 1.0
   fileToOut <- paste0(folder_name, sample_name, paste0("/", sample_name, "_cnvs.tsv"))
   fileConn<-file(fileToOut)
-  writeLines(c(paste("##number of iterations:", iterations, ", gender of sample:", genderOfSamples[sam_no],  collapse = " "), 
+  writeLines(c(paste("##number of iterations:", iterations, ", gender of sample:", genderOfSamples[sam_no], ", was it outlier after clustering?", outliersByClustering[sam_no], collapse = " "), 
                paste("##fraction of outliers:", round(median(vectorWithNumberOfOutliers), digits=3), collapse = " ")), fileConn)
   close(fileConn)
   found_CNVs_total[,7] = (format(as.numeric(found_CNVs_total[,7]), nsmall=3))

@@ -422,17 +422,30 @@ FindRobustMeanAndStandardDeviation <- function(x, genders, chrom, modeEstimated 
 
 
 returnClustering <- function(minNumOfElemsInCluster) {
+  minNumOfElemsInCluster = as.numeric(minNumOfElemsInCluster)
   set.seed(100)
   clustering = rep(0, ncol(normal))
-  if (ncol(normal) < 3 * minNumOfElemsInCluster) {
-    return(clustering)
-  }
-  numOfElementsInCluster = minNumOfElemsInCluster
-  
+
+  numOfElementsInCluster = (minNumOfElemsInCluster)
+  outliersFromClustering = rep(FALSE, ncol(normal))
 
   coverageForClustering = sqrt(normal[which(!bedFile[,1] %in% c("chrX","chrY")),])
-  sdsOfRegions <- apply(coverageForClustering, 1, sd)
-  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.75) | sdsOfRegions == 0)
+  sdsOfRegions <- apply(coverageForClustering, 1, mad)
+  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.9) | sdsOfRegions == 0)
+  
+  if (ncol(normal) < 3 * minNumOfElemsInCluster) {
+    print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
+    fit <- cmdscale(dist(t(sqrt(normal[-union(potentiallyPolymorphicRegions, which(bedFile[,1] %in% c("chrX","chrY"))),]))),eig=TRUE, k=2) # k is the number of dim
+    x <- fit$points[,1]
+    y <- fit$points[,2]
+    setwd(opt$out)
+    png(filename="clusteringSolution.png", width=2048, height=2048)
+    plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
+         main="Metric MDS", type="n")
+    text(x, y, labels = row.names(distMatrix), cex=.7, col=clustering + 1)
+    dev.off()
+    return(clustering)
+  }
   
   coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
@@ -483,6 +496,8 @@ returnClustering <- function(minNumOfElemsInCluster) {
   
   significantClusters = which(numOfObservationsInClusters >= numOfElementsInCluster)
   
+  outliersFromClustering[which(!clustering %in% significantClusters)] = TRUE
+  
   for (i in 1:length(numOfObservationsInClusters)) {
     if (numOfObservationsInClusters[i] < numOfElementsInCluster) {
       for (elem in which(clustering == i)) {
@@ -516,7 +531,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
   dev.off()
   setwd(opt$folderWithScript)
   
-  return(clustering)
+  return(list(clustering, outliersFromClustering))
 }
 
 
@@ -595,7 +610,14 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
   start <- 1
   end <- j - i + 1
   
+  homozygousDelSD = 0.5 / 10
+  
+  sdsTmp = sds
   matrix_of_BFs = sapply(1:ncol(matrix_of_BFs), function(l) {
+    sds = sdsTmp
+    if (vectorOfCNstates[l] < 0.5) {
+      sds[which(sds < homozygousDelSD)] = homozygousDelSD
+    }
     value = return_likelik((vector_of_values - vector_of_states[l]) / (sds) ) / (sds) + 10^-100
     
     return(-2 * log(value))

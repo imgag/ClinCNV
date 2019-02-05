@@ -4,15 +4,17 @@ library(mclust)
 setwd(opt$folderWithScript)
 source("./somatic/helpersSomatic.R",local=TRUE)
 
+
+
 print(paste("Work on data preparation for somatic samples started (log-fold change matrices plus parameters estimation)", Sys.time()))
 
-listOfValue <- formilngLogFoldChange(pairs, normal, tumor)
+listOfValue <- formilngLogFoldChange(pairs, tmpNormal, tumor)
 matrixOfLogFold <- listOfValue[[1]]
 dictFromColumnToTumor <- listOfValue[[2]]
 
 bordersOfChroms <- getBordersOfChromosomes(bedFile)
 #sdsOfSomaticSamples <- sapply(1:ncol(matrixOfLogFold), function(i) {determineSDsOfSomaticSample(matrixOfLogFold[,i], bedFile)})
-matrixWithSds <- findSDsOfSamples(pairs, normal, tumor, bedFile, bordersOfChroms)
+matrixWithSds <- findSDsOfSamples(pairs, tmpNormal, tumor, bedFile, bordersOfChroms)
 sdsOfSomaticSamples <- matrixWithSds[4,]
 
 sdsOfProbes <- sapply(1:nrow(matrixOfLogFold), function(i) {determineSDsOfSomaticProbe(matrixOfLogFold[i,], i)})
@@ -22,11 +24,11 @@ esimtatedVarianceFromSampleNoise <- listOfVarianceAndMultiplicator[[2]]
 multiplicator <- listOfVarianceAndMultiplicator[[1]]
 
 if (frameworkOff == "offtarget") {
-  listOfValue <- formilngLogFoldChange(pairs, normalOff, tumorOff)
+  listOfValue <- formilngLogFoldChange(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff)
   matrixOfLogFoldOff =  listOfValue[[1]]
   dictFromColumnToTumorOff = listOfValue[[2]]
   bordersOfChroms <- getBordersOfChromosomes(bedFileOfftarget)
-  matrixWithSdsOff <- findSDsOfSamples(pairs, normalOff, tumorOff, bedFileOfftarget, bordersOfChroms)
+  matrixWithSdsOff <- findSDsOfSamples(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileOfftarget, bordersOfChroms)
   sdsOfSomaticSamplesOff <- matrixWithSdsOff[4,]
 
   sdsOfProbesOff <- sapply(1:nrow(matrixOfLogFoldOff), function(i) {determineSDsOfSomaticProbe(matrixOfLogFoldOff[i,], i)})
@@ -154,39 +156,6 @@ colours <- c("darkgreen", colorsForLess, colorsForBigger, colorsForHigh)
 
 
 
-# CORRECTION OF CNS!!!
-# sdsOfNormals <- apply(normal, 1, sd)
-# medianBaselineSD <- median(sdsOfNormals)
-# 
-# sdsPois <- c()
-# for (i in 1:1000) {
-#   samplePois <- rpois(lambda=i, n=10000)
-#   sdsPois <- c(sdsPois, sd(samplePois / i))
-# }
-# diffs <- abs(sdsPois - medianBaselineSD)
-# lambdaFromSimulation <- which.min(diffs)
-# 
-# normalCoverage <- rpois(1000000, lambda=lambdaFromSimulation)
-# tumorCoverage <- rpois(1000000, lambda=lambdaFromSimulation)
-# sd_to_normalise = sd(log2(tumorCoverage / normalCoverage))
-# multipliersDueToLog <- c(1)
-# for (state in 2:length(cn_states)) {
-#   tumorCoverage <- rpois(1000000, lambda=0.5 * lambdaFromSimulation * cn_states[state])
-#   sd_to_normalise_tumor = sd(log2(tumorCoverage / normalCoverage))
-#   multipliersDueToLog <- c(multipliersDueToLog, sd_to_normalise_tumor / sd_to_normalise)
-# }
-# multipliersDueToLog[which(is.nan(multipliersDueToLog))] <- max(multipliersDueToLog[which(!is.nan(multipliersDueToLog))])
-# 
-# ### Make SDs for states equal
-# for (state in unique(cn_states)) {
-#   whichStatesAre = which(cn_states == state)
-#   if (state != 2) {
-#     multipliersDueToLog[whichStatesAre] = median(multipliersDueToLog[whichStatesAre])
-#   } else {
-#     multipliersDueToLog[whichStatesAre] = 1
-#   }
-# }
-
 
 
 
@@ -257,8 +226,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       if (!finalIteration)
         do.call(file.remove, list(list.files(paste0(folder_name, sample_name), full.names = TRUE)))
       
-      
-      
       local_purities <- purities
       local_copy_numbers_used <- copy_numbers_used
       local_cn_states <- cn_states
@@ -268,28 +235,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         local_multipliersDueToLogOff <- multipliersDueToLogOff
       
       if (finalIteration ) {
-        # if ((abs(max(matrixOfClonality) - min(matrixOfClonality)) > 1000)) {
-        #   clonalSignificanceThreshold = 1000
-        #   indices = which(matrixOfClonality == min(matrixOfClonality), arr.ind = TRUE)
-        #   oneClone = min(matrixOfClonality[indices[1], indices[1]], matrixOfClonality[indices[2], indices[2]])
-        #   if (abs(oneClone - matrixOfClonality[indices[1,1], indices[1,2]]) > clonalSignificanceThreshold) {
-        #     clonalBestPurities <- rownames(which(matrixOfClonality == min(matrixOfClonality), arr.ind = TRUE))
-        #     clonalBestPurities = as.numeric(clonalBestPurities)
-        #   } else {
-        #     clonalBestPurities <- rownames(which(matrixOfClonality == oneClone, arr.ind = TRUE))
-        #     clonalBestPurities = as.numeric(clonalBestPurities)
-        #     tableOfBestPurities <- table(rownames(which(matrixOfClonality == oneClone, arr.ind = TRUE)))
-        #     clonalBestPurities = as.numeric(names(tableOfBestPurities[which.max(tableOfBestPurities)]))
-        #   }
-        #   
-        #   clonalBestPurities <- c(as.numeric(clonalBestPurities), 0)
-        #   indices_to_remove_by_purity <- which(!(purities %in% clonalBestPurities))
-        #   local_purities <- purities[-indices_to_remove_by_purity]
-        #   local_copy_numbers_used <- copy_numbers_used[-indices_to_remove_by_purity]
-        #   local_cn_states <- cn_states[-indices_to_remove_by_purity]
-        #   local_multipliersDueToLog <- multipliersDueToLog[-indices_to_remove_by_purity]
-        #   local_cnv_states = local_cnv_states[-indices_to_remove_by_purity]
-        # }
         clonalBestPurities <- c(as.numeric(clonalBestPurities), 0)
         indices_to_remove_by_purity <- which(!(purities %in% clonalBestPurities))
         local_purities <- purities[-indices_to_remove_by_purity]
@@ -801,25 +746,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         if (length(clonalBestPurities) == 0) {
           clonalBestPurities = c(0, 1)
         } 
-        #   if (m == 1) {
-        #     minResultSoFar = minResult
-        #     resultBestCombination = combinationsOfPurities[bestCombination]
-        #   } else {
-        #     if (minResult > minResultSoFar - opt$scoreS - 100) {
-        #       print(uniqueLocalPurities[resultBestCombination])
-        #       break
-        #     } else {
-        #       print("Current improve")
-        #       print(minResultSoFar - minResult)
-        #       minResultSoFar = minResult
-        #       resultBestCombination = combinationsOfPurities[,bestCombination]
-        #     }
-        #   }
-        # }
-        # clonalBestPurities = uniqueLocalPurities[resultBestCombination]
-        # if (length(clonalBestPurities) == 0) {
-        #   clonalBestPurities = c(0, 1)
-        # }
         
       } else {
         print("No high quality CNVs found in this sample for finding clonality.")

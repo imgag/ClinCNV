@@ -69,7 +69,7 @@ option_list = list(
   make_option(c("-lg", "--lengthG"), type="integer", default="2", 
               help="minimum threshold for length of germline variants", metavar="number"),
   
-  make_option(c("-ss", "--scoreS"), type="double", default="200", 
+  make_option(c("-ss", "--scoreS"), type="double", default="100", 
               help="minimum threshold for significance somatic variants", metavar="number"),
   
   make_option(c("-ls", "--lengthS"), type="integer", default="4", 
@@ -120,8 +120,6 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
-
-
 
 
 if (is.null(opt$normal) | is.null(opt$bed)) {
@@ -451,7 +449,9 @@ if (frameworkTrios == "trios") {
 }
 
 print(paste("We start to cluster your data (you will find a plot if clustering is possible in your output directory)", opt$out, Sys.time()))
-clustering <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
+clusteringList <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
+clustering = clusteringList[[1]]
+outliersByClusteringCohort = clusteringList[[2]]
 
 print(paste("Processing of germline variants started (we need to do it as an additional step for Saomtic calling since we need to know at least genders).", Sys.time()))
 
@@ -479,6 +479,7 @@ if (framework == "germline") {
       print(colnames(normal)[which(clustering == -1)])
       next
     }
+
     
     # We create cluster for parallel computation each time we run germline analysis
     no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
@@ -487,8 +488,15 @@ if (framework == "germline") {
     
     
     samplesToAnalyse = which(clustering == cluster)
+    if (!is.null(opt$normalSample)) {
+      if (!opt$normalSample %in% colnames(coverageAllSamples)[samplesToAnalyse]) {
+        next
+      }
+    }
+    
     coverage <- coverageAllSamples[,samplesToAnalyse]
     genderOfSamples = genderOfSamplesCohort[samplesToAnalyse]
+    outliersByClustering = outliersByClusteringCohort[samplesToAnalyse]
     if (frameworkOff == "offtargetGermline") {
       samplesToAnalyseOff = which(colnames(coverageAllSamplesOff) %in% colnames(coverage))
       coverageOff <- coverageAllSamplesOff[,samplesToAnalyseOff]
@@ -567,5 +575,16 @@ registerDoParallel(cl)
 
 
 setwd(opt$folderWithScript)
-source("./somatic/somaticSolver.R",local=TRUE)
+
+for (cluster in unique(clustering)) {
+  print(paste("Working on somatic samples, cluster", cluster, Sys.time()))
+    tmpNormal = normal[,which(clustering == cluster)]
+    if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
+      if (!opt$normalSample %in% colnames(tmpNormal)) {
+        next
+      }
+    }
+    source("./somatic/somaticSolver.R",local=TRUE)
+}
+
 stopCluster(cl)
