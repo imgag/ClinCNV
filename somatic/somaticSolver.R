@@ -835,7 +835,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     }
     fileToOut <- paste0(folder_name, sample_name, paste0("/CNAs_", sample_name, ".txt"))
     fileConn<-file(fileToOut)
-    writeLines(c(paste("##"," QC ", 0, "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
+    writeLines(c(paste("##"," QC ", 0, ", gender of sample:", genderOfSamplesCohort[germline_sample_no], "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
     close(fileConn)
     if(opt$debug) {
       print(found_CNVs_total)

@@ -362,7 +362,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   finalPValue = 1.0
   fileToOut <- paste0(folder_name, sample_name, paste0("/", sample_name, "_cnvs.tsv"))
   fileConn<-file(fileToOut)
-  writeLines(c(paste("##number of iterations:", iterations,  collapse = " "), 
+  writeLines(c(paste("##number of iterations:", iterations, ", gender of sample:", genderOfSamples[sam_no],  collapse = " "), 
                paste("##fraction of outliers:", round(median(vectorWithNumberOfOutliers), digits=3), collapse = " ")), fileConn)
   close(fileConn)
   found_CNVs_total[,7] = (format(as.numeric(found_CNVs_total[,7]), nsmall=3))

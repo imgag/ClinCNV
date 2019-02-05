@@ -515,7 +515,7 @@ if (framework == "germline") {
     sdsOfProbes = sdsOfProbes[filterOutRegionsWithSmallMedians]
     bedFileFiltered = bedFile[filterOutRegionsWithSmallMedians,]
     coverage.normalised = coverage.normalised[filterOutRegionsWithSmallMedians,]
-    
+    print(paste("Amount of regions after low covered regions filtering (median < 0.3) in cluster", cluster, ":", round(100 * nrow(coverage.normalised) / numberOfRowsBeforeAllTheFiltrationNormal, digits = 3) ) )
     
     if (frameworkOff == "offtargetGermline") {
       
