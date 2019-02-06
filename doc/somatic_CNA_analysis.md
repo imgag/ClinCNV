@@ -220,7 +220,7 @@ Ask them at `german dot demidov at medizin dot uni-tuebingen dot de`. We are gla
 [ellipsoid_low_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/ellipsoid_low_clone.png "Heatmap of likelihood landscape"
 [ellipsoid_high_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/ellipsoid_high_clone.png "Heatmap of likelihood landscape"
 [strange_pattern]: https://github.com/imgag/ClinCNV/raw/master/doc/images/strange_pattern.png "Heatmap of likelihood landscape"
-[strange_pattern2]: https://github.com/imgag/ClinCNV/raw/master/doc/images/strange_pattern_2.png "Heatmap of likelihood landscape"
+[strange_pattern2]: https://github.com/imgag/ClinCNV/raw/master/doc/images/strange_pattern2.png "Heatmap of likelihood landscape"
 [barplot_one_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_one_clone.png "Barplot of clonal landscape"
 [barplot_two_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_two_clone.png "Barplot of clonal landscape"
 [barplot_multiple_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_multiple_clone.png "Barplot of clonal landscape"
