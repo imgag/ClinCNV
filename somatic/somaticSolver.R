@@ -14,28 +14,35 @@ dictFromColumnToTumor <- listOfValue[[2]]
 
 bordersOfChroms <- getBordersOfChromosomes(bedFile)
 #sdsOfSomaticSamples <- sapply(1:ncol(matrixOfLogFold), function(i) {determineSDsOfSomaticSample(matrixOfLogFold[,i], bedFile)})
-matrixWithSds <- findSDsOfSamples(pairs, tmpNormal, tumor, bedFile, bordersOfChroms)
+matrixWithSdsList <- findSDsOfSamples(pairs, tmpNormal, tumor, bedFile, bordersOfChroms, genderOfSamples)
+matrixWithSds = matrixWithSdsList[[1]]
 sdsOfSomaticSamples <- matrixWithSds[4,]
+sdsOfProbes <- matrixWithSdsList[[2]]
 
-sdsOfProbes <- sapply(1:nrow(matrixOfLogFold), function(i) {determineSDsOfSomaticProbe(matrixOfLogFold[i,], i)})
+# 
+# Qns <- rep(0, nrow(matrixOfLogFold))
+# for (i in 1:nrow(matrixOfLogFold)) {
+#   vec <- rnorm(length(sdsOfSomaticSamples), sd = sdsOfProbes[i] * (matrixWithSds[4,]))
+#   Qns[i] <- Qn(vec)
+# }
+# QnsReal <- apply(matrixOfLogFold, 1, Qn)
+# summary(Qns / QnsReal)
 
-listOfVarianceAndMultiplicator <- esimtateVarianceFromSampleNoise(sdsOfSomaticSamples, 100000)
-esimtatedVarianceFromSampleNoise <- listOfVarianceAndMultiplicator[[2]]
-multiplicator <- listOfVarianceAndMultiplicator[[1]]
 
 if (frameworkOff == "offtarget") {
   listOfValue <- formilngLogFoldChange(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff)
   matrixOfLogFoldOff =  listOfValue[[1]]
   dictFromColumnToTumorOff = listOfValue[[2]]
   bordersOfChroms <- getBordersOfChromosomes(bedFileOfftarget)
-  matrixWithSdsOff <- findSDsOfSamples(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileOfftarget, bordersOfChroms)
+  matrixWithSdsOffList <- findSDsOfSamples(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileOfftarget, bordersOfChroms, genderOfSamples)
+  matrixWithSdsOff = matrixWithSdsOffList[[1]]
   sdsOfSomaticSamplesOff <- matrixWithSdsOff[4,]
-
-  sdsOfProbesOff <- sapply(1:nrow(matrixOfLogFoldOff), function(i) {determineSDsOfSomaticProbe(matrixOfLogFoldOff[i,], i)})
+  sdsOfProbesOff <- matrixWithSdsOffList[[2]]
+  #sdsOfProbesOff <- sapply(1:nrow(matrixOfLogFoldOff), function(i) {determineSDsOfSomaticProbe(matrixOfLogFoldOff[i,], i)})
   
-  listOfVarianceAndMultiplicatorOff <- esimtateVarianceFromSampleNoise(sdsOfSomaticSamplesOff, 100000)
-  esimtatedVarianceFromSampleNoiseOff <- listOfVarianceAndMultiplicatorOff[[2]]
-  multiplicatorOff <- listOfVarianceAndMultiplicatorOff[[1]]
+  #listOfVarianceAndMultiplicatorOff <- esimtateVarianceFromSampleNoise(sdsOfSomaticSamplesOff, 10000)
+  #esimtatedVarianceFromSampleNoiseOff <- listOfVarianceAndMultiplicatorOff[[2]]
+  #multiplicatorOff <- listOfVarianceAndMultiplicatorOff[[1]]
   
 }
 
@@ -192,7 +199,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   ### Multiplier due to different CN - calculation with covariance
   multipliersDueToLog = c()
   for (cn in cn_states) {
-  multipliersDueToLog = c(multipliersDueToLog, returnMultiplierDueToLog(2,cn,matrixWithSds[1,sam_no], matrixWithSds[2,sam_no], matrixWithSds[3,sam_no]))
+    multipliersDueToLog = c(multipliersDueToLog, returnMultiplierDueToLog(2,cn,matrixWithSds[1,sam_no], matrixWithSds[2,sam_no], matrixWithSds[3,sam_no]))
   }
   multipliersDueToLog = sqrt(multipliersDueToLog) 
   multipliersDueToLog = multipliersDueToLog / multipliersDueToLog[1]
@@ -212,7 +219,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   
   matrixOfClonality = matrix(0, nrow=1, ncol=1)
 
-  if (!dir.exists(paste0(folder_name, sample_name)) | (opt$reanalyseCohort == T)) {
+  if (!dir.exists(paste0(folder_name, sample_name)) | (!is.null(opt$reanalyseCohort))) {
     
     dir.create(paste0(folder_name, sample_name))
     setwd(paste0(folder_name, sample_name))
@@ -266,11 +273,11 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       sampleInOfftarget=F
       
       
-      localSds = sdsOfProbes * esimtatedVarianceFromSampleNoise[sam_no] * multiplicator
+      localSds = sdsOfProbes * (sdsOfSomaticSamples[sam_no])
       if (frameworkOff == "offtarget") {
         if (sample_name %in% colnames(matrixOfLogFoldOff)) {
           sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
-          localSdsOff = sdsOfProbesOff * esimtatedVarianceFromSampleNoiseOff[sam_no_off] * multiplicatorOff
+          localSdsOff = sdsOfProbesOff * (sdsOfSomaticSamplesOff[sam_no_off])
           sampleInOfftarget = T
         }
       }
@@ -706,7 +713,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             }
           }
         }
-        minPointToNormalise = quantile(matrixOfClonality, 0.75)
+        minPointToNormalise = quantile(matrixOfClonality, 0.25)
         matrixOfClonalityForPlotting = matrixOfClonality
         matrixOfClonalityForPlotting[which(matrixOfClonalityForPlotting > minPointToNormalise)] = minPointToNormalise
         matrixOfClonalityForPlotting[upper.tri(matrixOfClonalityForPlotting)] <- NA

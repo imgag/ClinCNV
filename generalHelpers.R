@@ -582,6 +582,7 @@ robust_correlation <- function(robust_std, estimation_of_center_x, estimation_of
 }
 
 robust_correlation_short <- function(robust_std_x, robust_std_y, x, y, robust_std) {
+  # use only if data is centered around 0!
   square_root_of_two <- sqrt(2) 
   std_of_x <- robust_std_x
   std_of_y <- robust_std_y

@@ -442,9 +442,9 @@ returnClustering <- function(minNumOfElemsInCluster) {
     png(filename="clusteringSolution.png", width=2048, height=2048)
     plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
          main="Metric MDS", type="n")
-    text(x, y, labels = row.names(distMatrix), cex=.7, col=clustering + 1)
+    text(x, y, labels = row.names(normal), cex=.7, col=clustering + 1)
     dev.off()
-    return(clustering)
+    return(list(clustering, outliersFromClustering))
   }
   
   coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])

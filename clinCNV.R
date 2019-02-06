@@ -122,6 +122,7 @@ opt = parse_args(opt_parser);
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
 
+
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -577,7 +578,10 @@ registerDoParallel(cl)
 setwd(opt$folderWithScript)
 
 for (cluster in unique(clustering)) {
-  print(paste("Working on somatic samples, cluster", cluster, Sys.time()))
+    print(paste("Working on somatic samples, cluster", cluster, Sys.time()))
+  
+    samplesToAnalyse = which(clustering == cluster)
+    genderOfSamples = genderOfSamplesCohort[samplesToAnalyse]
     tmpNormal = normal[,which(clustering == cluster)]
     if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
       if (!opt$normalSample %in% colnames(tmpNormal)) {

@@ -146,6 +146,7 @@ Ellipsoid pattern means that there are at least 2 clones and 1 clone is not enou
 
 Rarely you may see other complex patterns, most often they happen when 2 clones is not enough. In this case you should look at the barplot in your results directory.
 
+![Heatmap of likelihood landscape][strange_pattern]
 
 When more than 2 clones are presented 2D heatmap representation becomes non relevant. You can check the full clonal structure at barplots.
 
@@ -216,6 +217,7 @@ Ask them at `german dot demidov at medizin dot uni-tuebingen dot de`. We are gla
 [stripe_high_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/stripe_high_clone.png "Heatmap of likelihood landscape"
 [ellipsoid_low_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/ellipsoid_low_clone.png "Heatmap of likelihood landscape"
 [ellipsoid_high_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/ellipsoid_high_clone.png "Heatmap of likelihood landscape"
+[strange_pattern]: https://github.com/imgag/ClinCNV/raw/master/doc/images/strange_pattern.png "Heatmap of likelihood landscape"
 [barplot_one_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_one_clone.png "Barplot of clonal landscape"
 [barplot_two_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_two_clone.png "Barplot of clonal landscape"
 [barplot_multiple_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_multiple_clone.png "Barplot of clonal landscape"

@@ -1,5 +1,11 @@
 
-findSDsOfSamples <- formilngLogFoldChange <- function(pairs, normalCov, tumorCov, bedFileForCalc, bordersOfChroms) {
+findSDsOfSamples <- formilngLogFoldChange <- function(pairs, normalCov, tumorCov, bedFileForCalc, bordersOfChroms, genderOfSamplesLocal) {
+  normalCovForVarianceMedians = apply(log2(normalCov), 1, median)
+  normalCenteredAroundZero = sweep(log2(normalCov), 2, normalCovForVarianceMedians)
+  normalCovForVarianceSD = apply(normalCenteredAroundZero, 2, Qn)
+  normalCenteredAroundZeroAndNormalisedBySD = sweep(normalCenteredAroundZero, 1, normalCovForVarianceSD, FUN="/")
+  probeVariance = apply(normalCenteredAroundZeroAndNormalisedBySD, 1, Qn)
+  
   matrixOfPairs <- matrix(0, nrow=nrow(normalCov), ncol=0)
   counter = 0
   for (i in 1:ncol(normalCov)) {
@@ -33,33 +39,56 @@ findSDsOfSamples <- formilngLogFoldChange <- function(pairs, normalCov, tumorCov
     } else {
       for (i in 2:length(bordersOfChroms)) {
         if (bordersOfChroms[i] < length(tumorS)) {
-        valuesBetweenBordersTum <- tumorS[bordersOfChroms[i-1]:bordersOfChroms[i]]
-        valuesBetweenBordersNorm <- normalS[bordersOfChroms[i-1]:bordersOfChroms[i]]
-        if (IQR(valuesBetweenBordersTum) > 0 & IQR(valuesBetweenBordersNorm) > 0) {
-        covMatrix = cov.rob(cbind(valuesBetweenBordersTum, valuesBetweenBordersNorm), cor=T)$cov
-        } else {
-          covMatrix = matrix(0, nrow=2, ncol=2)
-        }
-        if (length(valuesBetweenBordersTum) > 1)
-          sdsS[i] = covMatrix[1,1]
-          sdsN[i] = covMatrix[2,2]
-          covNS[i] = covMatrix[1,2]
+          valuesBetweenBordersTum <- tumorS[bordersOfChroms[i-1]:bordersOfChroms[i]]
+          valuesBetweenBordersNorm <- normalS[bordersOfChroms[i-1]:bordersOfChroms[i]]
+          valuesBetweenBordersSD <- probeVariance[bordersOfChroms[i-1]:bordersOfChroms[i]]
+          valuesBetweenBordersTum = (valuesBetweenBordersTum - median(valuesBetweenBordersTum)) / valuesBetweenBordersSD
+          valuesBetweenBordersNorm = (valuesBetweenBordersNorm - median(valuesBetweenBordersNorm)) / valuesBetweenBordersSD
+          sdsS[i - 1] = Qn(valuesBetweenBordersTum)**2
+          sdsN[i - 1] = Qn(valuesBetweenBordersNorm)**2
+          if (IQR(valuesBetweenBordersTum) > 0 & IQR(valuesBetweenBordersNorm) > 0) {
+            covNS[i - 1] = robust_correlation_short(sqrt(sdsS[i - 1]), sqrt(sdsN[i - 1]), valuesBetweenBordersTum, valuesBetweenBordersNorm, Qn) * sqrt(sdsS[i - 1]) * sqrt(sdsN[i - 1])
+          } else {
+            print(i)
+            covNS[i - 1] = 0
+          }
         }
       }
     }
     resSDarray = (sdsS + sdsN - 2 * covNS)[(sdsS > 0)]
     indexOfMedian <- which.min(abs(resSDarray - median(resSDarray)))
-    sdTum = median(sdsS[sdsS > 0][indexOfMedian])
-    sdNorm = median(sdsN[sdsS > 0][indexOfMedian])
-    covNS = median(covNS[sdsS > 0][indexOfMedian])
+    sdTum = (sdsS[sdsS > 0][indexOfMedian])
+    sdNorm = (sdsN[sdsS > 0][indexOfMedian])
+    covNS = (covNS[sdsS > 0][indexOfMedian])
     resSD = sqrt(resSDarray[indexOfMedian])
     sdsTum[(j + 1)/2] = sdTum
     sdsNorm[(j + 1)/2] = sdNorm
     covNormTum[(j + 1)/2] = covNS
     resSDofPair[(j + 1)/2] = resSD
   }
-  return(rbind(sdsTum, sdsNorm, covNormTum, resSDofPair))
+  return(list(rbind(sdsTum, sdsNorm, covNormTum, resSDofPair), probeVariance))
 }
+
+
+# # CODE FOR CHECKING VALIDITY OF
+# vars <- matrix(0, ncol=3, nrow=0)
+# finalCohort <- matrix(0, ncol=0, nrow=nrow(matrixOfLogFold))
+# for (sampleNo in 1:ncol(matrixOfLogFold)) {
+#   testSample <- matrix(0, nrow=length(probeVariance), ncol=2)
+#   testSample1 <- rep(0, length(probeVariance))
+#   for (i in 1:length(probeVariance)) {
+#     varTumNow = (sdsTum[sampleNo]) * probeVariance[i] ** 2
+#     varNormNow = (sdsNorm[sampleNo]) * probeVariance[i] ** 2
+#     covNow = covNormTum[sampleNo] * probeVariance[i] ** 2
+#     testSample[i,] = MASS::mvrnorm(1, mu=c(0,0), Sigma = matrix(c(varTumNow, covNow, covNow, varNormNow), nrow=2))
+#     testSample1[i] = rnorm(1, sd=sqrt(varTumNow + varNormNow - 2 * covNow))
+#   }
+#   finalCohort = cbind(finalCohort, testSample1)
+#   vars <- rbind(vars, c(Qn(testSample[,1] - testSample[,2]), Qn(testSample1), Qn(matrixOfLogFold[,sampleNo])))
+# }
+# QnsFake <- apply(finalCohort, 1, Qn)
+# QnsR <- apply(matrixOfLogFold, 1, Qn)
+# summary(QnsFake / QnsR)
 
 formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
   matrixOfLogFold <- matrix(0, nrow=nrow(normalCov), ncol=0)
