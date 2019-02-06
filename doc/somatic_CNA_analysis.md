@@ -142,7 +142,7 @@ Low purity "ellipsoid" pattern            |  High purity "ellipsoid" pattern
 :-------------------------:|:-------------------------:
 ![Heatmap of likelihood landscape][ellipsoid_low_clone]  |  ![Heatmap of likelihood landscape][ellipsoid_high_clone]
 
-Ellipsoid pattern means that there are at least 2 clones and 1 clone is not enough to explain the tumor's variants.
+Ellipsoid pattern means that there are at least 2 clones and 1 clone is not enough to explain the tumor's variants. All these rules described are not always true. You may see multiple clones and elliplsoid pattern, however it will most probably mean that the minor clones have small length and low likelihood.
 
 Rarely you may see other complex patterns, most often they happen when 2 clones is not enough. In this case you should look at the barplot in your results directory.
 
