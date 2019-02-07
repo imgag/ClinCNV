@@ -1,5 +1,5 @@
 
-source("./somatic/helpersBalleleFreq.R")
+source(paste0(opt$folderWithScript, "/somatic/helpersBalleleFreq.R"))
 setwd(opt$bafFolder)
 clusterExport(cl, c('determineHeterozygousPositions'))
 

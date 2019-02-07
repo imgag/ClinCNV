@@ -134,7 +134,7 @@ if (is.null(opt$normal) | is.null(opt$bed)) {
 }
 
 setwd(opt$folderWithScript)
-source(paste0(opt$folderWithScript, "generalHelpers.R"))
+source(paste0(opt$folderWithScript, "/generalHelpers.R"))
 
 ### PLOTTING OF PICTURES (DOES NOT REALLY NECESSARY IF YOU HAVE IGV SEGMENTS)
 plottingOfPNGs = F
