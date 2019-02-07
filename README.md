@@ -1,10 +1,13 @@
 # ClinCNV
+[![Build Status](https://travis-ci.org/imgag/ClinCNV.svg?branch=master)](https://travis-ci.org/imgag/ClinCNV)
 
 A tool for large-scale CNV and CNA detection.
 
 Authors: G. Demidov, S. Ossowski.
 
 Any issues should be reported to: *german dot demidov at medizin dot uni-tuebingen dot de *.
+
+This software is distributed under [MIT licence](./LICENSE).
 
 ## About this software
 
@@ -16,11 +19,13 @@ NOTE: version of ClinCNV we are talking about is located in the folder `somatic`
 
 We expect you to install ClinCNV on Linux or MacOS platforms. We expect you to install `R` (as new version as possible, we used ClinCNV with `R 3.2.3`, but you may experience problems installing libraries using the old version) and the following libraries: 
 ```
+install.packages("optparse")
 install.packages("robustbase")
 install.packages("MASS")
 install.packages("data.table")
 install.packages("foreach")
 install.packages("doParallel")
+install.packages("msm")
 ```
 For now we do not provide our own tool for pre-processing of the data. We recommend you to use *ngs-bits* (https://github.com/imgag/ngs-bits), however, as soon as your data match the format expected by ClinCNV you may proceed with any tool of choice (eg, *samtools*).
 
