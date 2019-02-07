@@ -4,7 +4,6 @@ library(mclust)
 setwd(opt$folderWithScript)
 source(paste0(opt$folderWithScript, "/somatic/helpersSomatic.R"),local=TRUE)
 
-vect_of_t_likeliks <- fast_dt_list(ncol(coverage.normalised) - 1)
 vect_of_norm_likeliks <- fast_dt_list(as.numeric(opt$degreesOfFreedomStudent))
 
 print(paste("Work on data preparation for somatic samples started (log-fold change matrices plus parameters estimation)", Sys.time()))
@@ -14,20 +13,11 @@ matrixOfLogFold <- listOfValue[[1]]
 dictFromColumnToTumor <- listOfValue[[2]]
 
 bordersOfChroms <- getBordersOfChromosomes(bedFile)
-#sdsOfSomaticSamples <- sapply(1:ncol(matrixOfLogFold), function(i) {determineSDsOfSomaticSample(matrixOfLogFold[,i], bedFile)})
 matrixWithSdsList <- findSDsOfSamples(pairs, tmpNormal, tumor, bedFile, bordersOfChroms, genderOfSamples)
 matrixWithSds = matrixWithSdsList[[1]]
 sdsOfSomaticSamples <- matrixWithSds[4,]
 sdsOfProbes <- matrixWithSdsList[[2]]
 
-# 
-# Qns <- rep(0, nrow(matrixOfLogFold))
-# for (i in 1:nrow(matrixOfLogFold)) {
-#   vec <- rnorm(length(sdsOfSomaticSamples), sd = sdsOfProbes[i] * (matrixWithSds[4,]))
-#   Qns[i] <- Qn(vec)
-# }
-# QnsReal <- apply(matrixOfLogFold, 1, Qn)
-# summary(Qns / QnsReal)
 
 
 if (frameworkOff == "offtarget") {
@@ -52,15 +42,6 @@ vect_of_t_likeliks <- fast_dt_list(ncol(matrixOfLogFold) - 1)
 
 
 
-
-# cn_states <- c()
-# purity <- seq(from=10, to=101, by=5) / 100
-# for (pur in purity) {
-#   cn_state <- 0 + 1 * pur * seq(from=0, to=20, by=1)
-#   cn_states <- c(cn_states, cn_state)
-# }
-# cn_states <- unique(cn_states[-which(cn_states > 1.5 & cn_states < 2.8)])
-# cn_state[which(cn_state < 0.01)] = 0.01
 
 
 cn_states <- c()
@@ -418,8 +399,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               }
             }
           }
-          bAlleleFreqsTumor = bAlleleFreqsTumor[which(closestBedRegions != 0),]
-          closestBedRegions = closestBedRegions[which(closestBedRegions != 0)]
+          #bAlleleFreqsTumor = bAlleleFreqsTumor[which(closestBedRegions != 0),]
+          #closestBedRegions = closestBedRegions[which(closestBedRegions != 0)]
           if (!finalIteration) {
             bAlleleFreqsTumorToy = bAlleleFreqsTumor[seq(from=1, to=nrow(bAlleleFreqsTumor), by=reduceOfSNVsSize),]
             closestBedRegionsToy = closestBedRegions[seq(from=1, to=nrow(bAlleleFreqsTumor), by=reduceOfSNVsSize)]
@@ -449,10 +430,13 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                 vecOfLikeliks[j] = likelihood
               }
               vecOfLikeliks
+            } else {
+              return(rep(0, length(local_cn_states)))
             }
           }
           for (i in 1:nrow(bAlleleFreqsTumor)) {
             closestBedRegion = closestBedRegionsToy[i]
+            if (closestBedRegion != 0)
             matrix_of_likeliks[closestBedRegion,] = matrix_of_likeliks[closestBedRegion,] + matrixOfBAFLikeliks[i,]
           }
           vectorsWithRegionCoordsFilled = T
@@ -537,8 +521,13 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             toyMatrixOfLikeliks = globalMatrOfLikeliks[which_to_allow,]
             toyLogFoldChange = globalLogFold[which_to_allow]
             
-
-            found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1))
+            blocked_states = c()
+            if (length(toyLogFoldChange) > opt$lengthS) {
+              arrayOfMediansOfToyLogFold <- sapply(1:(length(toyLogFoldChange) - opt$lengthS), function(i) {median(toyLogFoldChange[i:(i + opt$lengthS)])})
+              blocked_states = c(setdiff(c(1,2), initial_state),
+                                 which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
+            }
+            found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states))
             
             toySds <- globalSds[which_to_allow]
             
@@ -557,7 +546,15 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             }
             toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
             toyBedFile = bedFile[which_to_allow,]
-            found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1))
+            toyLogFoldChange = matrixOfLogFold[which_to_allow, sam_no]
+            
+            blocked_states = c()
+            if (length(toyLogFoldChange) > opt$lengthS) {
+              arrayOfMediansOfToyLogFold <- sapply(1:(length(toyLogFoldChange) - opt$lengthS), function(i) {median(toyLogFoldChange[i:(i + opt$lengthS)])})
+              blocked_states = c(setdiff(c(1,2), initial_state),
+                                 which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
+            }
+            found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states))
             toySds <- localSds[which_to_allow]
             
             
@@ -565,7 +562,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             #pvalsForQC <- c(pvalsForQC, pvalueForThisArmQC)
             #}
             
-            toyLogFoldChange = matrixOfLogFold[which_to_allow, sam_no]
+            
             toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
           }
           
@@ -584,7 +581,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             }
             likeliksFoundCNVsVsPuritiesGlobal = rbind(likeliksFoundCNVsVsPuritiesGlobal, likeliksFoundCNVsVsPurities)
           }
-
+          
           if (opt$visulizationIGV) {
             ### IGV PLOTTING
             if(opt$debug) {

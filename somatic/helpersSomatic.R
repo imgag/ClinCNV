@@ -1,5 +1,5 @@
 
-findSDsOfSamples <- formilngLogFoldChange <- function(pairs, normalCov, tumorCov, bedFileForCalc, bordersOfChroms, genderOfSamplesLocal) {
+findSDsOfSamples <- function(pairs, normalCov, tumorCov, bedFileForCalc, bordersOfChroms, genderOfSamplesLocal) {
   normalCovForVarianceMedians = apply(log2(normalCov), 1, median)
   normalCenteredAroundZero = sweep(log2(normalCov), 2, normalCovForVarianceMedians)
   normalCovForVarianceSD = apply(normalCenteredAroundZero, 2, Qn)
@@ -107,6 +107,8 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
       }
     }
   }
+  shifts <- apply(matrixOfLogFold, 1, EstimateModeSimple)
+  matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
   return(list(matrixOfLogFold, listOfMatrOfLogFoldToTumor))
 }
 
@@ -264,7 +266,9 @@ return_likelik <- function(x) {
 }
 
 EstimateModeSimple <- function(x) {
-  density_of_x <-  density(x, kernel="gaussian")
+  values <- combn(x, 2) / 2
+  values <- values[which(values > -1 & values < 1)]
+  density_of_x <-  density(values, kernel="gaussian")
   mu = density_of_x$x[which.max(density_of_x$y)]
   mu
 }

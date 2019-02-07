@@ -234,10 +234,11 @@ esimtateVarianceFromSampleNoise <- function(vecOfSDsParam, numberOfRepetitions) 
 
 
 
-find_final_state <- function(start, end, initial_state, matrix_of_likeliks_local) {
+find_final_state <- function(start, end, initial_state, matrix_of_likeliks_local, blocked_states) {
   super_small_likelik = -10^20
   sweeped_matrix <- sweep(matrix_of_likeliks_local[(start + 1):(end - 1),,drop=F], 1, matrix_of_likeliks_local[(start + 1):(end - 1),initial_state])
   res_within <- apply(sweeped_matrix, 2, sum)
+  res_within[blocked_states] = max(res_within) + 1
   cn_state_by_central_points <- which.min(res_within)
   
   only_central=F
@@ -290,7 +291,7 @@ maxSubArraySum <- function(x){
   return(c(bestSoFar, bestStartIndexSoFar, bestStopIndexSoFar))
 }
 
-find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, min_CNV_len) {
+find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, min_CNV_len, blocked_states) {
   # sweeping the likelihoods
   subset_matrix <- -1 * matrix_of_likeliks_local[j:k,,drop=F]
   matrix_of_BFs <- sweep(subset_matrix, 1, subset_matrix[,main_state], FUN="-")
@@ -298,7 +299,7 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, 
   best_bf <- 0
   value <- threshold
   sequence_for_iteration = seq(1:ncol(matrix_of_BFs))
-  sequence_for_iteration = sequence_for_iteration[-main_state]
+  sequence_for_iteration = setdiff(sequence_for_iteration, c(blocked_states, main_state))
   for (i in sequence_for_iteration) {
     res <- maxSubArraySum(matrix_of_BFs[,i])
     res[2] <- j + res[2] - 1
@@ -315,7 +316,7 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, 
 }
 
 
-find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, initial_state, matrix_of_likeliks_local, very_initial_state) {
+find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, initial_state, matrix_of_likeliks_local, very_initial_state, blocked_states=c()) {
   vector_of_regions <- matrix(c(-10, 1, nrow(matrix_of_likeliks_local), initial_state), nrow=1, ncol=4)
   found_CNVs <- matrix(nrow=0, ncol=11)
   i = 1
@@ -331,7 +332,7 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
     allowed_length = max(3, minimum_length_of_CNV)
     flag_not_found_or_too_short = F
     if (end - start > allowed_length){
-      found_CNV = find_one_CNV(start, end, current_region_to_look_for_CNVs[4], threshold, matrix_of_likeliks_local, minimum_length_of_CNV)
+      found_CNV = find_one_CNV(start, end, current_region_to_look_for_CNVs[4], threshold, matrix_of_likeliks_local, minimum_length_of_CNV, blocked_states)
       if (found_CNV[4] == 0)
         flag_not_found_or_too_short = T
     } else {
@@ -341,7 +342,7 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
       # if we do not segment further we add CNV to the list - found CNV is not significant or 
       result_CNV <- current_region_to_look_for_CNVs
       if (current_region_to_look_for_CNVs[4] != initial_state & end - start >= minimum_length_of_CNV){
-        bf_and_state <- find_final_state(start, end, very_initial_state, matrix_of_likeliks_local)
+        bf_and_state <- find_final_state(start, end, very_initial_state, matrix_of_likeliks_local, blocked_states)
         result_CNV[1] = bf_and_state[1]
         result_CNV[4] = bf_and_state[2]
         likelik_score_read_depth_only <- bf_and_state[3]
