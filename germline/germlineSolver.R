@@ -35,6 +35,9 @@ setwd(opt$out)
 covarianceTree = returnTreeForCorrelation(coverage.normalised, 
                                           sdsOfGermlineSamples, sdsOfProbes, 
                                           bedFileFiltered)
+if (is.null(covarianceTree)) {
+  covar = F
+}
 setwd(opt$folderWithScript)
 print(paste("Tree of covariances (using 2 predictors - sum of regions' lengths and log2 of distance between regions) plotted in", opt$out, Sys.time()))
 

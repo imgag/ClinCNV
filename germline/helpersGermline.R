@@ -582,7 +582,7 @@ returnTreeForCorrelation <- function(coverage.normalised.local, sdsOfGermlineSam
   plot(fit)
   dev.off()
   } else {
-    return("NA")
+    return(NULL)
   }
   
   
@@ -615,7 +615,7 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
   sdsTmp = sds
   matrix_of_BFs = sapply(1:ncol(matrix_of_BFs), function(l) {
     sds = sdsTmp
-    if (vectorOfCNstates[l] < 0.5) {
+    if (vector_of_states[l] < 0.5) {
       sds[which(sds < homozygousDelSD)] = homozygousDelSD
     }
     value = return_likelik((vector_of_values - vector_of_states[l]) / (sds) ) / (sds) + 10^-100

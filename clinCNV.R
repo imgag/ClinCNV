@@ -114,6 +114,9 @@ option_list = list(
   make_option(c("-purityS", "--purityStep"), type="double", default=2.5, 
               help="step of purity we investigate (from 5% to 100% with the step you specify, default=2.5)", metavar="number"),  
   
+  make_option(c("-dfStudent", "--degreesOfFreedomStudent"), type="integer", default=1000, 
+              help="number of degrees of freedom of Student's distribution for somatic analysis (a lot of outliers => reduce the default value of 1000 to e.g. 10)", metavar="number"),  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
@@ -130,7 +133,7 @@ if (is.null(opt$normal) | is.null(opt$bed)) {
 }
 
 setwd(opt$folderWithScript)
-source("generalHelpers.R")
+source(paste0(opt$folderWithScript, "generalHelpers.R"))
 
 ### PLOTTING OF PICTURES (DOES NOT REALLY NECESSARY IF YOU HAVE IGV SEGMENTS)
 plottingOfPNGs = F
@@ -435,7 +438,7 @@ stopCluster(cl)
 
 
 setwd(opt$folderWithScript)
-source("./germline/helpersGermline.R")
+source(paste0(opt$folderWithScript, "/germline/helpersGermline.R"))
 
 frameworkTrios = "single"
 if (!is.null(opt$triosFile)) {
@@ -556,9 +559,9 @@ if (framework == "germline") {
     
     
     if (!is.null(opt$triosFile)) {
-      source("./trios/germlineTrioSolver.R",local=TRUE)
+      source(paste0(opt$folderWithScript,"/trios/germlineTrioSolver.R"),local=TRUE)
     } else {
-      source("./germline/germlineSolver.R",local=TRUE)
+      source(paste0(opt$folderWithScript, "/germline/germlineSolver.R"),local=TRUE)
     }
   }
   if (framework == "germline" | !is.null(opt$triosFile)) quit()
@@ -588,7 +591,7 @@ for (cluster in unique(clustering)) {
         next
       }
     }
-    source("./somatic/somaticSolver.R",local=TRUE)
+    source(paste0(opt$folderWithScript, "/somatic/somaticSolver.R"),local=TRUE)
 }
 
 stopCluster(cl)

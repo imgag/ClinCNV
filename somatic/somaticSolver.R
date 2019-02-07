@@ -2,9 +2,10 @@ library(mclust)
 
 ### PROCESSING OF SOMATIC VARIANTS
 setwd(opt$folderWithScript)
-source("./somatic/helpersSomatic.R",local=TRUE)
+source(paste0(opt$folderWithScript, "/somatic/helpersSomatic.R"),local=TRUE)
 
-
+vect_of_t_likeliks <- fast_dt_list(ncol(coverage.normalised) - 1)
+vect_of_norm_likeliks <- fast_dt_list(as.numeric(opt$degreesOfFreedomStudent))
 
 print(paste("Work on data preparation for somatic samples started (log-fold change matrices plus parameters estimation)", Sys.time()))
 
@@ -218,7 +219,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   
   
   matrixOfClonality = matrix(0, nrow=1, ncol=1)
-
+  
   if (!dir.exists(paste0(folder_name, sample_name)) | (!is.null(opt$reanalyseCohort))) {
     
     dir.create(paste0(folder_name, sample_name))
@@ -228,7 +229,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     
     finalIteration = F
     while(T) {
-
+      
       # CLEAN FOLDER IN THE BEGINNING OF EACH ITERATION
       if (!finalIteration)
         do.call(file.remove, list(list.files(paste0(folder_name, sample_name), full.names = TRUE)))
@@ -258,7 +259,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       zeroPurity <- which(uniqueLocalPurities == 0)
       uniqueLocalPurities = sort(uniqueLocalPurities[-zeroPurity])
       likeliksFoundCNVsVsPuritiesGlobal = matrix(nrow=0, ncol=length(uniqueLocalPurities))
-
+      
       
       pvalsForQC <- c()
       threshold = opt$scoreS
@@ -368,14 +369,14 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       matrixOfLogFoldCorrectedSmall[which(matrixOfLogFoldCorrectedSmall > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
       
       matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2), local_multipliersDueToLog)
-
+      
       if (genderOfSamplesCohort[germline_sample_no] == "M") {
         if (length(which(bedFile[,1] %in% c("chrX","chrY"))) > 0)
-        matrix_of_likeliks[which(bedFile[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
-          1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[which(bedFile[,1] %in% c("chrX","chrY")),sam_no], 
-          localSds[which(bedFile[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
+          matrix_of_likeliks[which(bedFile[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
+            1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[which(bedFile[,1] %in% c("chrX","chrY")),sam_no], 
+            localSds[which(bedFile[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
       }
-
+      
       
       ### ADD LIKELIHOODS
       if (frameworkDataTypes == "covdepthBAF") {
@@ -397,18 +398,12 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           
           numOfSNVs = nrow(bAlleleFreqsTumor)
           reduceOfSNVsSize = 1
-          if (numOfSNVs > 2000) {
-            for (reduceOfSNVsSize in 2:100) {
-              if (numOfSNVs / reduceOfSNVsSize < 2000 ) {
-                break
-              }
-            }
-            reduceOfSNVsSize = reduceOfSNVsSize - 1
+          if (numOfSNVs > 1500 ) {
+            reduceOfSNVsSize = round(numOfSNVs / 1500)
           }
           if (length(closestBedRegions) == 0) closestBedRegions = rep(0, nrow(bAlleleFreqsTumor))
           for (i in 1:nrow(bAlleleFreqsTumor)) {
             # To avoid computationally expensive steps on the start of estimation
-
             if (vectorsWithRegionCoordsFilled) {
               closestBedRegion = closestBedRegions[i]
             } else {
@@ -422,14 +417,22 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                 closestBedRegion = 0
               }
             }
-            if (!finalIteration) {
-              if (i %% reduceOfSNVsSize != 0 & reduceOfSNVsSize != 1) next
-            }
-            altAlleleDepth <- as.numeric(bAlleleFreqsTumor[i,5])
-            overallDepth <- round(as.numeric(bAlleleFreqsTumor[i,6]))
+          }
+          bAlleleFreqsTumor = bAlleleFreqsTumor[which(closestBedRegions != 0),]
+          closestBedRegions = closestBedRegions[which(closestBedRegions != 0)]
+          if (!finalIteration) {
+            bAlleleFreqsTumorToy = bAlleleFreqsTumor[seq(from=1, to=nrow(bAlleleFreqsTumor), by=reduceOfSNVsSize),]
+            closestBedRegionsToy = closestBedRegions[seq(from=1, to=nrow(bAlleleFreqsTumor), by=reduceOfSNVsSize)]
+          } else {
+            bAlleleFreqsTumorToy = bAlleleFreqsTumor
+            closestBedRegionsToy = closestBedRegions
+          }
+          matrixOfBAFLikeliks = foreach (i = 1:nrow(bAlleleFreqsTumorToy), .combine='rbind') %dopar% {
+            altAlleleDepth <- as.numeric(bAlleleFreqsTumorToy[i,5])
+            overallDepth <- round(as.numeric(bAlleleFreqsTumorToy[i,6]))
             altAlleleDepth = round(altAlleleDepth * overallDepth)
             
-            if (length(closestBedRegion) == 1 & closestBedRegion != 0) {
+            if (closestBedRegionsToy[i] != 0) {
               numberOfAssignedPositions = numberOfAssignedPositions + 1
               
               pList = list()
@@ -445,10 +448,12 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                   pList = listOfLikelikAndPList[[3]]
                 vecOfLikeliks[j] = likelihood
               }
-              
-              oldLikeliks <- matrix_of_likeliks[i,] 
-              matrix_of_likeliks[closestBedRegion,] = matrix_of_likeliks[closestBedRegion,] + vecOfLikeliks
+              vecOfLikeliks
             }
+          }
+          for (i in 1:nrow(bAlleleFreqsTumor)) {
+            closestBedRegion = closestBedRegionsToy[i]
+            matrix_of_likeliks[closestBedRegion,] = matrix_of_likeliks[closestBedRegion,] + matrixOfBAFLikeliks[i,]
           }
           vectorsWithRegionCoordsFilled = T
         }
@@ -485,7 +490,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         globalSds <-  c(localSds, localSdsOff)[vecOfOrder]
         globalBed <- globalBed[vecOfOrder,]
       }
-      
+      print(paste("Block before CNV detection finished", Sys.time()))
       
       
       
@@ -499,7 +504,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         
         
         chrom = names(left_borders)[l]
-        
+        print(paste(chrom, Sys.time()))
         
         if (chrom == "chrY" & genderOfSamplesCohort[germline_sample_no] == "F") {
           next
@@ -532,6 +537,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             toyMatrixOfLikeliks = globalMatrOfLikeliks[which_to_allow,]
             toyLogFoldChange = globalLogFold[which_to_allow]
             
+
             found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1))
             
             toySds <- globalSds[which_to_allow]
@@ -578,8 +584,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             }
             likeliksFoundCNVsVsPuritiesGlobal = rbind(likeliksFoundCNVsVsPuritiesGlobal, likeliksFoundCNVsVsPurities)
           }
-          
-          
+
           if (opt$visulizationIGV) {
             ### IGV PLOTTING
             if(opt$debug) {
@@ -661,7 +666,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             found_CNVs_total_LOH = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) == 2 & found_CNVs_total[,5] == currentPurity),,drop=F]
             if (nrow(found_CNVs_total_LOH) > 1) {
               linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_LOH[, 3]) 
-                                      - as.numeric(found_CNVs_total_LOH[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_LOH) - 1)]
+                                          - as.numeric(found_CNVs_total_LOH[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_LOH) - 1)]
               for (height in linesToDepict)
                 segments(bp[1,z] - 0.4, height, bp[1,z] + 0.4, height, col="white", lwd=3)
             }
@@ -669,7 +674,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             found_CNVs_total_dup = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) > 2 & as.numeric(found_CNVs_total[,4]) < 5 & found_CNVs_total[,5] == currentPurity),,drop=F]
             if (nrow(found_CNVs_total_dup) > 1) {
               linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_dup[, 3]) 
-                                      - as.numeric(found_CNVs_total_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_dup) - 1)]
+                                          - as.numeric(found_CNVs_total_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_dup) - 1)]
               for (height in linesToDepict)
                 segments(bp[2,z] - 0.4, height, bp[2,z] + 0.4, height, col="white", lwd=3)
             }
@@ -677,7 +682,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             found_CNVs_total_high_dup = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) > 4 & found_CNVs_total[,5] == currentPurity),,drop=F]
             if (nrow(found_CNVs_total_high_dup) > 1) {
               linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_high_dup[, 3]) 
-                                   - as.numeric(found_CNVs_total_high_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_high_dup) - 1)]
+                                          - as.numeric(found_CNVs_total_high_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_high_dup) - 1)]
               for (height in linesToDepict)
                 segments(bp[3,z] - 0.4, height, bp[3,z] + 0.4, height, col="white", lwd=3)
             }
@@ -685,7 +690,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             found_CNVs_total_del = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) < 2 & found_CNVs_total[,5] == currentPurity),,drop=F]
             if (nrow(found_CNVs_total_del) > 1) {
               linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_del[, 3]) 
-                                   - as.numeric(found_CNVs_total_del[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_del) - 1)]
+                                          - as.numeric(found_CNVs_total_del[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_del) - 1)]
               for (height in linesToDepict)
                 segments(bp[4,z] - 0.4, height, bp[4,z] + 0.4, height, col="white", lwd=3)
             }
@@ -728,7 +733,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         
         
         # true clonal structure
-        maxNumOfClones <- min(6, length(uniqueLocalPurities))
+        maxNumOfClones <- min(5, length(uniqueLocalPurities))
         localPurityStates = 1:length(uniqueLocalPurities)
         resultBestCombination = 0
         minResult = 10**100
@@ -740,7 +745,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             minResultForCombination = as.numeric(opt$clonePenalty) * m
             for (r in 1:nrow(likeliksFoundCNVsVsPuritiesGlobal)) {
               minResultForCombination = minResultForCombination + min(
-              likeliksFoundCNVsVsPuritiesGlobal[r,combinationsOfPurities[,q]])
+                likeliksFoundCNVsVsPuritiesGlobal[r,combinationsOfPurities[,q]])
             }
             if (minResult > minResultForCombination) {
               bestCombination = q

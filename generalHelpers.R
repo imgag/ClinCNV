@@ -321,6 +321,10 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
   i = 1
   counter = 0
   while(i <= nrow(vector_of_regions)){
+    if (nrow(vector_of_regions) > 100) {
+      vector_of_regions = vector_of_regions[-c(1:99),]
+      i = i - 99
+    }
     current_region_to_look_for_CNVs = vector_of_regions[i,]
     start = current_region_to_look_for_CNVs[2]
     end = current_region_to_look_for_CNVs[3]
@@ -349,11 +353,7 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
       }
     } else if (found_CNV[4] != 0 & found_CNV[3] - found_CNV[2] < minimum_length_of_CNV) {
       # found CNV is too short!
-      evaluate_segment_further = T
-     
-        for (k in found_CNV[2]:found_CNV[3]) {
-          matrix_of_likeliks_local[k,] =  matrix_of_likeliks_local[k,] / 2
-        }
+      matrix_of_likeliks_local[found_CNV[2]:found_CNV[3],] = matrix_of_likeliks_local[found_CNV[2]:found_CNV[3],] / 2
 
       matrix_for_calculations <- -matrix_of_likeliks_local[start:end,] + matrix_of_likeliks_local[start:end, initial_state]
       if (!is.null(nrow(matrix_for_calculations))) {
@@ -362,8 +362,7 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
       determined_state <- which.max(matrix_for_calculations)
       BF <- max(matrix_for_calculations)
       current_region_to_look_for_CNVs <- c(BF, start, end, determined_state)
-      if (evaluate_segment_further)
-        vector_of_regions <- rbind(vector_of_regions, current_region_to_look_for_CNVs)
+      vector_of_regions <- rbind(vector_of_regions, current_region_to_look_for_CNVs)
     } else {
       # found CNV is significant and long
       start_of_CNV <- found_CNV[2]
