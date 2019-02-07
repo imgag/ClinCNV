@@ -107,7 +107,9 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
       }
     }
   }
-  shifts <- apply(matrixOfLogFold, 1, EstimateModeSimple)
+  #shifts <- apply(matrixOfLogFold, 1, EstimateModeSimple)
+
+  shifts <- apply(matrixOfLogFold[,sampleOfColumns], 1, EstimateModeSimple)
   matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
   return(list(matrixOfLogFold, listOfMatrOfLogFoldToTumor))
 }
@@ -266,9 +268,12 @@ return_likelik <- function(x) {
 }
 
 EstimateModeSimple <- function(x) {
-  values <- combn(x, 2) / 2
-  values <- values[which(values > -1 & values < 1)]
-  density_of_x <-  density(values, kernel="gaussian")
+  tmpx = x[which(x > -0.5 & x < 0.5)]
+  if (length(tmpx) < 10) {
+    tmpx = x
+  }
+  values <- apply(combn(tmpx, 2), 2, mean)
+  density_of_x <-  density(values, kernel="gaussian", bw="SJ")
   mu = density_of_x$x[which.max(density_of_x$y)]
   mu
 }

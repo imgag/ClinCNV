@@ -521,20 +521,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             toyMatrixOfLikeliks = globalMatrOfLikeliks[which_to_allow,]
             toyLogFoldChange = globalLogFold[which_to_allow]
             
-            blocked_states = c()
-            if (length(toyLogFoldChange) > opt$lengthS) {
-              arrayOfMediansOfToyLogFold <- sapply(1:(length(toyLogFoldChange) - opt$lengthS), function(i) {median(toyLogFoldChange[i:(i + opt$lengthS)])})
-              blocked_states = c(setdiff(c(1,2), initial_state),
-                                 which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
-            }
-            found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states))
-            
             toySds <- globalSds[which_to_allow]
-            
-            #if (pvalueForThisArmQC > 0) {
-            #pvalsForQC <- c(pvalsForQC, pvalueForThisArmQC)
-            #}
-            
             
             toySizesOfPointsFromLocalSds = c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[vecOfOrder]
             toySizesOfPointsFromLocalSds = toySizesOfPointsFromLocalSds[which_to_allow]
@@ -548,23 +535,18 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             toyBedFile = bedFile[which_to_allow,]
             toyLogFoldChange = matrixOfLogFold[which_to_allow, sam_no]
             
-            blocked_states = c()
-            if (length(toyLogFoldChange) > opt$lengthS) {
-              arrayOfMediansOfToyLogFold <- sapply(1:(length(toyLogFoldChange) - opt$lengthS), function(i) {median(toyLogFoldChange[i:(i + opt$lengthS)])})
-              blocked_states = c(setdiff(c(1,2), initial_state),
-                                 which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
-            }
-            found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states))
+
             toySds <- localSds[which_to_allow]
-            
-            
-            # if (pvalueForThisArmQC > 0) {
-            #pvalsForQC <- c(pvalsForQC, pvalueForThisArmQC)
-            #}
-            
             
             toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
           }
+          blocked_states = c()
+          if (length(toyLogFoldChange) > opt$lengthS) {
+            arrayOfMediansOfToyLogFold <- sapply(1:(length(toyLogFoldChange) - opt$lengthS), function(i) {median(toyLogFoldChange[i:(i + opt$lengthS)])})
+            blocked_states = c(setdiff(c(1,2), initial_state),
+                               which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
+          }
+          found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states))
           
           if (nrow(found_CNVs) > 0 & !chrom %in% c("chrX", "chrY", "X", "Y")) {
             likeliksFoundCNVsVsPurities <- matrix(nrow=nrow(found_CNVs), ncol=length(uniqueLocalPurities))
