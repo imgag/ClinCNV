@@ -20,5 +20,5 @@ before_script:
 
 script:
   - mkdir result
-  - travis_wait 30 Rscript clinCNV.R --normal ../samples/coverages_normal.cov --out $PWD/result --bed ../samples/bed_file.bed --folderWithScript $PWD
+  - travis_wait 30 Rscript clinCNV.R --normal $PWD/samples/coverages_normal.cov --out $PWD/result --bed $PWD/samples/bed_file.bed --folderWithScript $PWD
   - ls result
