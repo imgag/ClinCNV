@@ -109,7 +109,7 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
   }
   #shifts <- apply(matrixOfLogFold, 1, EstimateModeSimple)
 
-  shifts <- apply(matrixOfLogFold[,sampleOfColumns], 1, EstimateModeSimple)
+  shifts <- apply(matrixOfLogFold, 1, EstimateModeSimple)
   matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
   return(list(matrixOfLogFold, listOfMatrOfLogFoldToTumor))
 }
