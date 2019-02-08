@@ -1,5 +1,10 @@
 library(mclust)
 
+no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
+cl<-makeCluster(no_cores, type="FORK")
+registerDoParallel(cl)
+
+
 ### PROCESSING OF SOMATIC VARIANTS
 setwd(opt$folderWithScript)
 source(paste0(opt$folderWithScript, "/somatic/helpersSomatic.R"),local=TRUE)
@@ -21,9 +26,9 @@ sdsOfProbes <- matrixWithSdsList[[2]]
 
 
 if (frameworkOff == "offtarget") {
-  listOfValue <- formilngLogFoldChange(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff)
-  matrixOfLogFoldOff =  listOfValue[[1]]
-  dictFromColumnToTumorOff = listOfValue[[2]]
+  listOfValueOff <- formilngLogFoldChange(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff)
+  matrixOfLogFoldOff =  listOfValueOff[[1]]
+  dictFromColumnToTumorOff = listOfValueOff[[2]]
   bordersOfChroms <- getBordersOfChromosomes(bedFileOfftarget)
   matrixWithSdsOffList <- findSDsOfSamples(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileOfftarget, bordersOfChroms, genderOfSamples)
   matrixWithSdsOff = matrixWithSdsOffList[[1]]

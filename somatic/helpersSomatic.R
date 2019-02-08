@@ -107,9 +107,11 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
       }
     }
   }
-
+  ### THIS IS TOO SLOW! HAS TO BE RE-DONE
   shifts <- apply(matrixOfLogFold, 1, EstimateModeSimple)
-  matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
+  fit <- loess(shifts ~ c(1:length(shifts)), span=0.05)
+  predictions <- predict(fit, 1:length(shifts))
+  matrixOfLogFold <- sweep(matrixOfLogFold, 1, predictions)
   return(list(matrixOfLogFold, listOfMatrOfLogFoldToTumor))
 }
 
@@ -268,6 +270,13 @@ return_likelik <- function(x) {
 
 EstimateModeSimple <- function(x) {
   tmpx = x[which(x > -0.5 & x < 0.5)]
+  density_of_x <-  density(tmpx, kernel="gaussian", bw="ucv")
+  mu = density_of_x$x[which.max(density_of_x$y)]
+  mu
+}
+
+EstimateModeComplex <- function(x) {
+  tmpx = x[which(x > -0.5 & x < 0.5)]
   if (length(tmpx) < 10) {
     tmpx = x
   }
@@ -276,7 +285,6 @@ EstimateModeSimple <- function(x) {
   mu = density_of_x$x[which.max(density_of_x$y)]
   mu
 }
-
 
 
 
