@@ -109,8 +109,12 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
   }
   ### THIS IS TOO SLOW! HAS TO BE RE-DONE
   shifts <- apply(matrixOfLogFold, 1, EstimateModeSimple)
+  png(paste0(round(rnorm(1), digits=5), "plot_with_shifts.png"), width=2000, height=1000)
   fit <- loess(shifts ~ c(1:length(shifts)), span=0.05)
+  plot(shifts)
   predictions <- predict(fit, 1:length(shifts))
+  lines(predictions, col="red", lwd=3)
+  dev.off()
   matrixOfLogFold <- sweep(matrixOfLogFold, 1, predictions)
   return(list(matrixOfLogFold, listOfMatrOfLogFoldToTumor))
 }
