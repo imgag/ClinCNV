@@ -322,10 +322,6 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
   i = 1
   counter = 0
   while(i <= nrow(vector_of_regions)){
-    if (nrow(vector_of_regions) > 100) {
-      vector_of_regions = vector_of_regions[-c(1:99),]
-      i = i - 99
-    }
     current_region_to_look_for_CNVs = vector_of_regions[i,]
     start = current_region_to_look_for_CNVs[2]
     end = current_region_to_look_for_CNVs[3]
