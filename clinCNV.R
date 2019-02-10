@@ -125,6 +125,8 @@ opt = parse_args(opt_parser);
 opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
+
+
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -363,13 +365,18 @@ setwd(opt$folderWithScript)
 
 ### ON TARGET GC NORMALIZATION
 print(paste("Normalization with GC and length starts.", Sys.time()))
-if (max(bedFile[,3] - bedFile[,2]) / min(bedFile[,3] - bedFile[,2]) > 16)
+if (max(bedFile[,3] - bedFile[,2]) / min(bedFile[,3] - bedFile[,2]) > 16) {
+  lengthBasedNorm = T
   normal <- lengthBasedNormalization(normal, bedFile)
+} else {
+  lengthBasedNorm = F
+}
+  
 lst <- gc_and_sample_size_normalise(bedFile, normal)
 normal <- lst[[1]]
 if (framework == "somatic") {
   if (frameworkDataTypes == "covdepthBAF") {
-    if (max(bedFile[,3] - bedFile[,2]) / min(bedFile[,3] - bedFile[,2]) > 16)
+    if (lengthBasedNorm)
       tumor <- lengthBasedNormalization(tumor, bedFile, allowedChroms=allowedChromsBaf)
     lst <- gc_and_sample_size_normalise(bedFile, tumor, allowedChroms=allowedChromsBaf)
   } else {
@@ -394,8 +401,6 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
     } else {
       lst <- gc_and_sample_size_normalise(bedFileOfftarget, tumorOff)
     }
-  }
-  if (frameworkOff == "offtarget") {
     tumorOff <- lst[[1]]
   }
   bedFileOfftarget <- lst[[2]]
