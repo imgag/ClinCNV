@@ -118,12 +118,12 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   iterations = 0
   maxIteration = opt$maxNumIter
   vectorWithNumberOfOutliers <- c()
-  vectorOfZScores = rep(0, nrow(bedFile))
-  vectorOfZScores[which(!bedFile[,1] %in% c("chrX","chrY"))] <- (coverage.normalised[which(!bedFile[,1] %in% c("chrX","chrY")),sam_no] - 1) / localSds
+  vectorOfZScores = rep(0, nrow(bedFileFiltered))
+  vectorOfZScores[which(!bedFileFiltered[,1] %in% c("chrX","chrY"))] <- (coverage.normalised[which(!bedFileFiltered[,1] %in% c("chrX","chrY")),sam_no] - 1) / localSds
   if (genderOfSamples[sam_no] == "F") {
-    vectorOfZScores[which(bedFile[,1] %in% c("chrX"))] <- c(vectorOfZScores, (coverage.normalised[which(bedFile[,1] %in% c("chrX")),sam_no] - 1) / localSds)
+    vectorOfZScores[which(bedFileFiltered[,1] %in% c("chrX"))] <- c(vectorOfZScores, (coverage.normalised[which(bedFileFiltered[,1] %in% c("chrX")),sam_no] - 1) / localSds)
   } else {
-    vectorOfZScores[which(bedFile[,1] %in% c("chrX","chrY"))] <- c(vectorOfZScores, (coverage.normalised[which(bedFile[,1] %in% c("chrX","chrY")),sam_no] - sqrt(1/2)) / localSds)
+    vectorOfZScores[which(bedFileFiltered[,1] %in% c("chrX","chrY"))] <- c(vectorOfZScores, (coverage.normalised[which(bedFileFiltered[,1] %in% c("chrX","chrY")),sam_no] - sqrt(1/2)) / localSds)
   }
   while (!numberOfCNVsIsSufficientlySmall & iterations < maxIteration) {
     initial_state = main_initial_state
@@ -179,7 +179,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             
             valuesInsideBed = which(bedFileFiltered[,1] == chrom & bedFileFiltered[,2] >= startOfFoundCNV & bedFileFiltered[,3] <= endOfFoundCNV)
             if (length(valuesInsideBed) > 0) {
-              listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds[valuesInsideBed], coverage.normalised[valuesInsideBed,], sqrt(cn_states / 2), covarianceTree, bedFileFiltered[valuesInsideBed,], threshold)
+              listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds[valuesInsideBed], coverage.normalised[valuesInsideBed,,drop=F], sqrt(cn_states / 2), covarianceTree, bedFileFiltered[valuesInsideBed,], threshold)
               if (!is.null(listForLikeliks)) {
                 matrix_of_likeliks_with_covar_CNV <- listForLikeliks[[1]]
                 bedFileFilteredWithArtificialProbesCNV = listForLikeliks[[2]]

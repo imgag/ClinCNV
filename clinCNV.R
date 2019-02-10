@@ -125,8 +125,6 @@ opt = parse_args(opt_parser);
 opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
-
-
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -184,19 +182,27 @@ if (!startsWith(bedFile[,1], "chr"))
   bedFile[,1] <- paste0("chr", bedFile[,1])
 colnames(bedFile) <- c("chr.X", "start", "end", "gc")
 bedFile <- bedFile[order(bedFile$chr.X, as.numeric(bedFile$start)),]
-
+presentedChromsOn = unique(bedFile[,1])
+numberOfElemsInEachChromosome = sapply(1:length(presentedChromsOn), function(i) {
+   if (length(which(bedFile[,1] == presentedChromsOn[i])) > 10) {
+     return(T)
+   } else {
+     return(F)
+   }
+})
 
 for (i in 1:20) {
   tableOfValues <- table(round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i)
   if(sum(tableOfValues[which(tableOfValues > 100)]) / sum(tableOfValues) > 0.95) break 
 }
 bedFile[,4] <- round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i
-whichBedIsNA <- which(is.na(bedFile[,4]) | bedFile[,3] - bedFile[,2] < 80)
+whichBedIsNA <- which(is.na(bedFile[,4]) | bedFile[,3] - bedFile[,2] < 80 | which(!bedFile[,1] %in% presentedChromsOn[numberOfElemsInEachChromosome]))
 if (length(whichBedIsNA) > 0)
   bedFile = bedFile[-whichBedIsNA,]
 
 #normal <- read.table(opt$normal, header=T, stringsAsFactors = F, comment.char="&" )
 normal <- ReadFileFast(opt$normal, header=T)
+#colnames(normal) = c("chr","start","end", 1:(ncol(normal) - 3))
 normal = normal
 colnames(normal) = cutX(colnames(normal))
 if (!startsWith(normal[,1], "chr"))
@@ -234,10 +240,20 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
     if(sum(tableOfValues[which(tableOfValues > 100)]) / sum(tableOfValues) > 0.95) break 
   }
   bedFileOfftarget[,4] <- round(as.numeric(as.character(bedFileOfftarget[,4])) / i, digits = 2) * i
-  
+  presentedChromsOff = unique(bedFileOfftarget[,1])
+  numberOfElemsInEachChromosomeOff = sapply(1:length(presentedChromsOff), function(i) {
+    if (length(which(bedFileOfftarget[,1] == presentedChromsOff[i])) > 10) {
+      return(T)
+    } else {
+      return(F)
+    }
+  })
+  whichBedOffIsNA <- which(is.na(bedFileOfftarget[,4]) | (!bedFileOfftarget[,1] %in% presentedChromsOff[numberOfElemsInEachChromosomeOff]))
+  bedFileOfftarget = bedFileOfftarget[-whichBedOffIsNA,]
   
   #normalOff <- read.table(opt$normalOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
   normalOff <- ReadFileFast(opt$normalOfftarget, header=T)
+  #colnames(normalOff) = c("chr","start","end", 1:(ncol(normalOff) - 3))
   colnames(normalOff) = cutX(colnames(normalOff))
   if (!startsWith(normalOff[,1], "chr"))
     normalOff[,1] <- paste0("chr", normalOff[,1])
@@ -245,6 +261,7 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   normalOff <- as.matrix(normalOff[,opt$colNum:ncol(normalOff)])
   # remain only samples that are in Normal cohort 
   normalOff <- normalOff[,which(colnames(normalOff) %in% colnames(normal))]
+  normalOff <- normalOff[-whichBedOffIsNA,]
   
   #tumorOff <- read.table(opt$tumorOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
   if (frameworkOff == "offtarget") {
@@ -256,6 +273,7 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
     tumorOff <- as.matrix(tumorOff[,opt$colNum:ncol(tumorOff)])
     # remain only samples that are in Tumor cohort 
     tumorOff <- tumorOff[,which(colnames(tumorOff) %in% colnames(tumor))]
+    tumorOff <- tumorOff[-whichBedOffIsNA,]
   }
 }
 
@@ -522,6 +540,9 @@ if (framework == "germline") {
     print(paste("We start estimation of parameters of germline cohort. It may take some time. Cluster of samples being analysed:", cluster, Sys.time()))
     mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes)
     coverage.normalised = mediansAndSds[[1]]
+    
+
+    
     sdsOfProbes = trimValues(as.numeric(mediansAndSds[[2]][,2]), 0.01)
     sdsOfGermlineSamples = mediansAndSds[[3]]
     filterOutRegionsWithSmallMedians <- which(mediansAndSds[[2]][,1] > 0.3)
@@ -532,6 +553,7 @@ if (framework == "germline") {
     
     if (frameworkOff == "offtargetGermline") {
       
+      autosomesOff = which(!bedFileOfftarget[,1] %in% c("chrX", "chrY"))
       mediansAndSdsOff = calculateLocationAndScale(bedFileOfftarget, coverageOff, genderOfSamplesOff, autosomesOff)
       coverage.normalised.off = mediansAndSdsOff[[1]]
       sdsOfProbesOff = trimValues(as.numeric(mediansAndSdsOff[[2]][,2]), 0.01)

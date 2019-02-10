@@ -435,14 +435,14 @@ returnClustering <- function(minNumOfElemsInCluster) {
   
   if (ncol(normal) < 3 * minNumOfElemsInCluster) {
     print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
-    fit <- cmdscale(dist(t(sqrt(normal[-union(potentiallyPolymorphicRegions, which(bedFile[,1] %in% c("chrX","chrY"))),]))),eig=TRUE, k=2) # k is the number of dim
+    fit <- isoMDS(dist(t(sqrt(normal[-union(potentiallyPolymorphicRegions, which(bedFile[,1] %in% c("chrX","chrY"))),]))), k=2) # k is the number of dim
     x <- fit$points[,1]
     y <- fit$points[,2]
     setwd(opt$out)
     png(filename="clusteringSolution.png", width=2048, height=2048)
     plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
          main="Metric MDS", type="n")
-    text(x, y, labels = row.names(normal), cex=.7, col=clustering + 1)
+    text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
     dev.off()
     return(list(clustering, outliersFromClustering))
   }
@@ -518,7 +518,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
     clustering[-samplesActuallyPlayingRole] = -1
   }
   
-  fit <- cmdscale(dist(t(sqrt(normal[-union(potentiallyPolymorphicRegions, which(bedFile[,1] %in% c("chrX","chrY"))),]))),eig=TRUE, k=2) # k is the number of dim
+  fit <- isoMDS(dist(t(sqrt(normal[-union(potentiallyPolymorphicRegions, which(bedFile[,1] %in% c("chrX","chrY"))),]))), k=2) # k is the number of dim
 
   # plot solution 
   x <- fit$points[,1]
@@ -601,7 +601,6 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
   
   datasetToPredice <- as.data.frame(cbind(distancesToPredict, sumLengths, minLengths, maxLengths))
   colnames(datasetToPredice) <- c("distnacesClose", "sumOfLengths", "minLength", "maxLength")
-  
   
   vector_of_values <- resid[,k]
   
