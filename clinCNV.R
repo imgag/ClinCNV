@@ -63,7 +63,7 @@ option_list = list(
   make_option(c("-r", "--reanalyseCohort"), action="store_false", 
               help="if specified, reanalyses whole cohort [default= %default]"),
   
-  make_option(c("-sg", "--scoreG"), type="double", default="40", 
+  make_option(c("-sg", "--scoreG"), type="double", default="20", 
               help="minimum threshold for significance germline variants", metavar="number"),
   
   make_option(c("-lg", "--lengthG"), type="integer", default="2", 
