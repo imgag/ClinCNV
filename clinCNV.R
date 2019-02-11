@@ -620,4 +620,4 @@ for (cluster in unique(clustering)) {
     source(paste0(opt$folderWithScript, "/somatic/somaticSolver.R"),local=TRUE)
 }
 
-stopCluster(cl)
+
