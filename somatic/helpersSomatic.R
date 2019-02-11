@@ -273,8 +273,8 @@ return_likelik <- function(x) {
 }
 
 EstimateModeSimple <- function(x) {
-  tmpx = x[which(x > -0.5 & x < 0.5)]
-  density_of_x <-  density(tmpx, kernel="gaussian", bw="ucv")
+  tmpx = x #[which(x > -0.5 & x < 0.5)]
+  density_of_x <-  density(tmpx, kernel="gaussian", bw="SJ")
   mu = density_of_x$x[which.max(density_of_x$y)]
   mu
 }

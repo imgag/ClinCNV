@@ -1,14 +1,12 @@
 
-EstimateModeComplex <- function(x) {
-  tmpx = x[which(x > 0.35)]
+EstimateModeSimple <- function(x) {
+  tmpx = x[which(x > 0.3)]
   if (length(tmpx) < 10) {
-    tmpx = x
+    return(0)
   }
-  matrOfValume <- matrix(rep(tmpx, length(tmpx)), nrow=length(tmpx), byrow=T)
-  matrOfValume = sweep(matrOfValume, 1, tmpx, FUN="+") / 2
-  values <- apply(combn(tmpx, 2), 2, mean)
   
-  density_of_x <-  density(values, kernel="gaussian", bw="SJ")
+  density_of_x <-  density(tmpx, kernel="gaussian", bw="SJ")
   mu = density_of_x$x[which.max(density_of_x$y)]
-  mu
+  distToMode <- abs(tmpx - mu)
+  median(tmpx[which(distToMode < quantile(distToMode, 0.2))])
 }

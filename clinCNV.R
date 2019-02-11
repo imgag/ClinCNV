@@ -546,6 +546,8 @@ if (framework == "germline") {
     mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes)
     coverage.normalised = mediansAndSds[[1]]
     
+    ### HERE THE POLYMORPHIC REGIONS DETECTION GOES
+    
 
     
     sdsOfProbes = trimValues(as.numeric(mediansAndSds[[2]][,2]), 0.01)

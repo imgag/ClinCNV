@@ -670,6 +670,15 @@ remapVariants <- function(found_CNVs, toyBedFileAfterCovariance, toyBedFile) {
   return(found_CNVs_local)
 }
 
+
+medianWithoutHomozygous <- function(x) {
+  if (length(which(x > 0.3) > 10)) {
+    return(median(x[which(x > 0.3)]))
+  } else {
+    return(0)
+  }
+}
+
 calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autosomes) {
   whichSamplesUsed = 1:ncol(coverage)
   mediansResult = c()
@@ -692,7 +701,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
       }
       whichSamplesUsed = which(genderOfSamples == "M")
     }
-    medians <- parApply(cl=cl,coveragesToDealWith[,whichSamplesUsed], 1, median)
+    medians <- parApply(cl=cl,coveragesToDealWith[,whichSamplesUsed], 1, medianWithoutHomozygous)
     if (chrom == "chrX" & length(which(genderOfSamples == "F")) <= 0.5 * length(which(genderOfSamples == "M"))) {
       medians = sqrt(2) * medians
     }
