@@ -621,3 +621,39 @@ trimValues <- function(values, perc) {
   values[which(values < quantile(values, perc))] = quantile(values, perc)
   return(values)
 }
+
+
+checkForDuplicatesAndRemove <- function(matr, sampleNameToRemain=NULL) {
+  summaries <- apply(matr, 2, summary)
+  indicesToRemove = c()
+  for (i in 1:ncol(summaries)) {
+    for (j in 1:ncol(summaries)) {
+      if (i != j & identical(summaries[,i], summaries[,j])) {
+        if (!is.null(sampleNameToRemain)) {
+          if (colnames(matr)[i] == sampleNameToRemain & !colnames(matr)[j] == sampleNameToRemain) {
+            indicesToRemove = c(indicesToRemove, j)
+          }
+          if (colnames(matr)[j] == sampleNameToRemain & !colnames(matr)[i] == sampleNameToRemain) {
+            indicesToRemove = c(indicesToRemove, i)
+          }
+          if  (!colnames(matr)[j] == sampleNameToRemain & !colnames(matr)[i] == sampleNameToRemain) {
+            if (j > i) {
+              indicesToRemove = c(indicesToRemove, j)
+            }
+          }
+        } else {
+          if (j > i) {
+            indicesToRemove = c(indicesToRemove, j)
+          }
+        }
+      }
+    }
+  }
+  if (length(indicesToRemove) > 0) {
+    print("Attention - duplicates in your dataset!")
+    print(paste("We removed duplicates with names", paste(colnames(matr)[unique(indicesToRemove)], collapse = ", ")))
+    return(matr[,-indicesToRemove])
+  }
+ return(matr)
+}
+

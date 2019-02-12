@@ -127,6 +127,7 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
+
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -178,7 +179,6 @@ registerDoParallel(cl)
 ### READING DATA
 print(paste("We are started with reading the coverage files and bed files",Sys.time()))
 setwd(opt$folderWithScript)
-#bedFile <- read.table(opt$bed, stringsAsFactors = F, sep="\t", comment.char="&", header=F)
 bedFile <- ReadFileFast(opt$bed, header=F)
 if (!startsWith(bedFile[,1], "chr"))
   bedFile[,1] <- paste0("chr", bedFile[,1])
@@ -202,35 +202,32 @@ whichBedIsNA <- which(is.na(bedFile[,4]) | bedFile[,3] - bedFile[,2] < 80 | whic
 if (length(whichBedIsNA) > 0)
   bedFile = bedFile[-whichBedIsNA,]
 
-#normal <- read.table(opt$normal, header=T, stringsAsFactors = F, comment.char="&" )
 normal <- ReadFileFast(opt$normal, header=T)
 #colnames(normal) = c("chr","start","end", 1:(ncol(normal) - 3))
-normal = normal
 colnames(normal) = cutX(colnames(normal))
 if (!startsWith(normal[,1], "chr"))
   normal[,1] <- paste0("chr", normal[,1])
 normal <- normal[order(normal[,1], as.numeric(normal[,2])),]
 normal <- as.matrix(normal[,opt$colNum:ncol(normal)])
+normal = checkForDuplicatesAndRemove(normal, opt$normalSample)
 if (length(whichBedIsNA) > 0)
   normal = normal[-whichBedIsNA,]
 
 numberOfRowsBeforeAllTheFiltrationNormal = nrow(normal)
 
 if (framework == "somatic") {
-  #tumor <- read.table(opt$tumor, header=T, stringsAsFactors = F, comment.char="&" )
   tumor <- ReadFileFast(opt$tumor, header=T)
-  tumor = tumor
   colnames(tumor) = cutX(colnames(tumor))
   if (!startsWith(tumor[,1], "chr"))
     tumor[,1] <- paste0("chr", tumor[,1])
   tumor <- tumor[order(tumor[,1], as.numeric(tumor[,2])),]
   tumor <- as.matrix(tumor[,opt$colNum:ncol(tumor)])
+  tumor = checkForDuplicatesAndRemove(tumor, opt$tumorSample)
   if (length(whichBedIsNA) > 0)
     tumor = tumor[-whichBedIsNA,]
 }
 
 if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
-  #bedFileOfftarget <- read.table(opt$bedOfftarget, stringsAsFactors = F, sep="\t")
   bedFileOfftarget <- ReadFileFast(opt$bedOfftarget, header=F)
   if (!startsWith(bedFileOfftarget[,1], "chr"))
     bedFileOfftarget[,1] <- paste0("chr", bedFileOfftarget[,1])
@@ -253,19 +250,18 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   whichBedOffIsNA <- which(is.na(bedFileOfftarget[,4]) | (!bedFileOfftarget[,1] %in% presentedChromsOff[numberOfElemsInEachChromosomeOff]))
   bedFileOfftarget = bedFileOfftarget[-whichBedOffIsNA,]
   
-  #normalOff <- read.table(opt$normalOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
   normalOff <- ReadFileFast(opt$normalOfftarget, header=T)
-  #colnames(normalOff) = c("chr","start","end", 1:(ncol(normalOff) - 3))
   colnames(normalOff) = cutX(colnames(normalOff))
   if (!startsWith(normalOff[,1], "chr"))
     normalOff[,1] <- paste0("chr", normalOff[,1])
+  
   normalOff <- normalOff[order(normalOff[,1], as.numeric(normalOff[,2])),]
   normalOff <- as.matrix(normalOff[,opt$colNum:ncol(normalOff)])
   # remain only samples that are in Normal cohort 
   normalOff <- normalOff[,which(colnames(normalOff) %in% colnames(normal))]
+  normalOff <- checkForDuplicatesAndRemove(normalOff, opt$normalSample)
   normalOff <- normalOff[-whichBedOffIsNA,]
   
-  #tumorOff <- read.table(opt$tumorOfftarget, header=T, stringsAsFactors = F, comment.char="&" )
   if (frameworkOff == "offtarget") {
     tumorOff <- ReadFileFast(opt$tumorOfftarget, header=T) 
     colnames(tumorOff) = cutX(colnames(tumorOff))
@@ -275,6 +271,7 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
     tumorOff <- as.matrix(tumorOff[,opt$colNum:ncol(tumorOff)])
     # remain only samples that are in Tumor cohort 
     tumorOff <- tumorOff[,which(colnames(tumorOff) %in% colnames(tumor))]
+    tumorOff <- checkForDuplicatesAndRemove(tumorOff, opt$tumorSample)
     tumorOff <- tumorOff[-whichBedOffIsNA,]
   }
 }
@@ -536,6 +533,7 @@ if (framework == "germline") {
     #clusterExport(cl, c('EstimateModeSimple', 'bedFile', 'genderOfSamples', "lehmanHodges", 'Qn'))
     
     
+    ### HERE THE POLYMORPHIC REGIONS DETECTION GOES
     
     
     
@@ -546,7 +544,6 @@ if (framework == "germline") {
     mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes)
     coverage.normalised = mediansAndSds[[1]]
     
-    ### HERE THE POLYMORPHIC REGIONS DETECTION GOES
     
 
     

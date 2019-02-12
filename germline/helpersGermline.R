@@ -679,9 +679,10 @@ medianWithoutHomozygous <- function(x) {
   }
 }
 
-calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autosomes) {
+calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autosomes, polymorphic = F) {
   whichSamplesUsed = 1:ncol(coverage)
-  mediansResult = c()
+  mediansResult = rep(0, nrow(coverage))
+  coverage.normalised = coverage
   # WE ASSUME THERE ARE ENOUGH SAMPLES OF BOTH GENDERS
   for (chrom in unique(bedFile[,1])) {
     whichSamplesUsed = 1:ncol(coverage)
@@ -701,17 +702,22 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
       }
       whichSamplesUsed = which(genderOfSamples == "M")
     }
-    medians <- parApply(cl=cl,coveragesToDealWith[,whichSamplesUsed], 1, medianWithoutHomozygous)
+    if (!polymorphic) {
+      medians <- parApply(cl=cl,coveragesToDealWith[,whichSamplesUsed], 1, medianWithoutHomozygous)
+    } else {
+      medians <- parApply(cl=cl,coveragesToDealWith[,whichSamplesUsed], 1, EstimateModeSimple)
+    }
     if (chrom == "chrX" & length(which(genderOfSamples == "F")) <= 0.5 * length(which(genderOfSamples == "M"))) {
       medians = sqrt(2) * medians
     }
     if (chrom == "chrY" & length(which(genderOfSamples == "M")) > 2) {
       medians = sqrt(2) * medians
     }
-    mediansResult = c(mediansResult, medians) 
+    coverage.normalised[which(bedFile[,1] == chrom),] =  sweep(coverage[which(bedFile[,1] == chrom),], 1, medians + 10**-40, FUN="/")
+    mediansResult[which(bedFile[,1] == chrom)] = medians
   }
-  
-  coverage.normalised = sweep(coverage, 1, mediansResult, FUN="/") - 1
+
+  coverage.normalised = coverage.normalised - 1
   sdsOfGermlineSamplesTmp = apply(coverage.normalised[autosomes,], 2, Qn)
   sdsResults = c()
   for (chrom in unique(bedFile[,1])) {
