@@ -431,7 +431,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
 
   coverageForClustering = sqrt(normal[which(!bedFile[,1] %in% c("chrX","chrY")),])
   sdsOfRegions <- apply(coverageForClustering, 1, mad)
-  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.9) | sdsOfRegions == 0)
+  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.8) | sdsOfRegions == 0)
   
   if (ncol(normal) < 3 * minNumOfElemsInCluster) {
     print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))

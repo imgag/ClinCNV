@@ -180,7 +180,11 @@ setwd(opt$folderWithScript)
 bedFile <- ReadFileFast(opt$bed, header=F)
 if (!startsWith(bedFile[,1], "chr"))
   bedFile[,1] <- paste0("chr", bedFile[,1])
-colnames(bedFile) <- c("chr.X", "start", "end", "gc")
+if (ncol(bedFile)  == 4) {
+  bedFile <- cbind(bedFile, rep(0, nrow(bedFile)))
+  colnames(bedFile) <- colnames(bedFile)
+}
+colnames(bedFile) <- c("chr.X", "start", "end", "gc", "genes")
 bedFile <- bedFile[order(bedFile$chr.X, as.numeric(bedFile$start)),]
 presentedChromsOn = unique(bedFile[,1])
 numberOfElemsInEachChromosome = sapply(1:length(presentedChromsOn), function(i) {
@@ -232,7 +236,15 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   bedFileOfftarget <- ReadFileFast(opt$bedOfftarget, header=F)
   if (!startsWith(bedFileOfftarget[,1], "chr"))
     bedFileOfftarget[,1] <- paste0("chr", bedFileOfftarget[,1])
-  colnames(bedFileOfftarget) <- c("chr.X", "start", "end", "gc")
+  ### BED FILE OFFTARGET MAY NOT CONTAIN COLUMN WITH GENES
+  
+  if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
+    if (ncol(bedFileOfftarget)  == 4) {
+      bedFileOfftarget <- cbind(bedFileOfftarget, rep(0, nrow(bedFileOfftarget)))
+      colnames(bedFileOfftarget) <- colnames(bedFile)
+    }
+  }
+  colnames(bedFileOfftarget) <- c("chr.X", "start", "end", "gc", "genes")
   bedFileOfftarget <- bedFileOfftarget[order(bedFileOfftarget[,1], as.numeric(bedFileOfftarget[,2])),]
   
   for (i in 1:20) {
@@ -406,17 +418,7 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
 
 print(paste("Amount of regions after GC-extreme filtering", round(100 * nrow(normal) / numberOfRowsBeforeAllTheFiltrationNormal, digits = 3) ) )
 
-### BED FILE OFFTARGET MAY NOT CONTAIN COLUMN WITH GENES
-if (ncol(bedFile)  == 4) {
-  bedFile <- cbind(bedFile, rep(0, nrow(bedFile)))
-  colnames(bedFile) <- colnames(bedFile)
-}
-if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
-  if (ncol(bedFileOfftarget)  == 4) {
-    bedFileOfftarget <- cbind(bedFileOfftarget, rep(0, nrow(bedFileOfftarget)))
-    colnames(bedFileOfftarget) <- colnames(bedFile)
-  }
-}
+
 
 # FILTER LOW COVERED REGIONS
 if (framework == "somatic") {
