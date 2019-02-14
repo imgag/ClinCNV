@@ -145,9 +145,6 @@ for (sam_no in 1:ncol(coverage.normalised)) {
       start = left_borders[[l]]
       end = right_borders[[l]]
       for (k in 1:2) {
-        if (nrow(found_CNVs_total) > opt$maxNumGermCNVs) {
-          break
-        }
         output_of_plots <-  paste0(folder_name, sample_name)
         which_to_allow <- "NA"
         which_to_allow_ontarget <- "NA"
@@ -167,16 +164,10 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         
         # Due to inroduction of covariances intermediate probes we need to remap our variants back to the original bedFileFiltered
         if (covar & nrow(found_CNVs) > 0) {
-          #print("")
-          #for (y in 1:nrow(found_CNVs)) {
-          #  print(toybedFileFilteredAfterCovariance[found_CNVs[y,2]:found_CNVs[y,3],])
-          #}
-          #found_CNVs_for_covariance_correction <- remapVariants(found_CNVs, toybedFileFilteredAfterCovariance, toybedFileFiltered)
           for (z in 1:nrow(found_CNVs)) {
             startOfFoundCNV = as.numeric(toybedFileFiltered[found_CNVs[z,2], 2])
             endOfFoundCNV = as.numeric(toybedFileFiltered[found_CNVs[z,3], 3])
-            #valuesInside = which(as.numeric(toybedFileFilteredAfterCovariance[,2]) > startOfFoundCNV & as.numeric(toybedFileFilteredAfterCovariance[,3]) < endOfFoundCNV)
-            
+
             valuesInsideBed = which(bedFileFiltered[,1] == chrom & bedFileFiltered[,2] >= startOfFoundCNV & bedFileFiltered[,3] <= endOfFoundCNV)
             if (length(valuesInsideBed) > 0) {
               listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds[valuesInsideBed], coverage.normalised[valuesInsideBed,,drop=F], sqrt(cn_states / 2), covarianceTree, bedFileFiltered[valuesInsideBed,], threshold)
@@ -189,12 +180,9 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             }
             
           }
-          #for (y in 1:nrow(found_CNVs)) {
-          #  print(toybedFileFiltered[found_CNVs[y,2]:found_CNVs[y,3],])
-          #}
+
         }
-        #found_CNVs = found_CNVs[which(-1 * found_CNVs[,1] > threshold),,drop=F]
-        
+
         toyCoverageGermline = coverage.normalised[which_to_allow_ontarget,sam_no]
         toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
         
