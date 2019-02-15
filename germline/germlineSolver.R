@@ -246,9 +246,6 @@ for (sam_no in 1:ncol(coverage.normalised)) {
                                           toySizesOfPointsFromLocalSds,alleleFrequency, plottingOfPNGs)
           if (found_CNVs[1,1] != -1000) {
             found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
-            if (nrow(found_CNVs_total) > opt$maxNumGermCNVs) {
-              break
-            }
           }
           for (i in 1:nrow(found_CNVs)) {
             
