@@ -87,6 +87,14 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   
   
   matrix_of_likeliks_for_FDR <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2))
+  if (!is.null(polymorphicRegions)) {
+    for (i in 1:nrow(polymorphicRegions)) {
+      whichInsideVariant <- which(bedFileFiltered[,1] == polymorphicRegions[i,1] & 
+                                    as.numeric(bedFileFiltered[,2]) >= as.numeric(polymorphicRegions[i,2]) - 500 & as.numeric(bedFileFiltered[,3]) <= as.numeric(polymorphicRegions[i,3]) + 500)
+      matrix_of_likeliks_for_FDR[whichInsideVariant,] = 0
+      matrix_of_likeliks_for_FDR[whichInsideVariant,main_initial_state] = 0
+    }
+  }
   matrix_of_likeliks <- matrix_of_likeliks_for_FDR
   
   #if (covar) {
@@ -131,7 +139,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "no_of_regions", "length_KB", "potential_AF", "genes")
 
     iterations = iterations + 1
-    for (l in 1:length(left_borders)) {
+    for (l in 1:2){#length(left_borders)) {
       chrom = names(left_borders)[l]
       if (chrom == "chrX" & genderOfSamples[sam_no] == "M") {
         initial_state <- 2

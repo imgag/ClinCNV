@@ -117,6 +117,9 @@ option_list = list(
   make_option(c("-dfStudent", "--degreesOfFreedomStudent"), type="integer", default=1000, 
               help="number of degrees of freedom of Student's distribution for somatic analysis (a lot of outliers => reduce the default value of 1000 to e.g. 10)", metavar="number"),  
   
+  make_option(c("-polymC", "--polymorphicCalling"), type="character", default="NO", 
+              help="should calling of polymorphic regions be performed, YES = calling is performed, NO = no polymorphic calling (default), any other string = mCNVs taken from the file with that path"),  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
@@ -536,8 +539,19 @@ if (framework == "germline") {
     #clusterExport(cl, c('EstimateModeSimple', 'bedFile', 'genderOfSamples', "lehmanHodges", 'Qn'))
     
     
+    polymorphicRegions = NULL
     ### HERE THE POLYMORPHIC REGIONS DETECTION GOES
-    
+    if (opt$polymorphicCalling == "YES") {
+      source(paste0(opt$folderWithScript, "/germline/mCNVsDetection.R"),local=TRUE)
+      if (nrow(copyNumberForReporting) > 0)
+      polymorphicRegions = copyNumberForReporting
+    }
+    if (opt$polymorphicCalling != "YES" & opt$polymorphicCalling != "NO") {
+      print("Since polymorphicCalling option was not YES or NO, we interpret the value as a path to file")
+      print(opt$polymorphicCalling)
+      print("If ClinCNV fails now, then check the path to the file! It should have at least 3 columns: chrom, start, end.")
+      polymorphicRegions = read.table(opt$polymorphicCalling, header=T)
+    }
     
     
     autosomes <- which(!bedFile[,1] %in% c("chrX", "chrY", "X", "Y"))

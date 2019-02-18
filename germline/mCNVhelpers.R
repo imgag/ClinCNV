@@ -118,9 +118,17 @@ checkConnectivity = function(covOne, covTwo) {
 }
 
 
-findFinalState <- function(coverageNeededToCheck, medianOfCoverage, sdNormalised, multipliersSamples) {
+findFinalState <- function(coverageNeededToCheck, medianOfCoverage, sdNormalised, toyBedFilePolymorphCurrent, multipliersSamples) {
+  startOfmCNV = 2
+  endOfmCNV = (nrow(coverageNeededToCheck) - 1)
+  if (toyBedFilePolymorphCurrent[1,3] - toyBedFilePolymorphCurrent[1,2] < 250) {
+    startOfmCNV = 1
+  }
+  if (toyBedFilePolymorphCurrent[nrow(coverageNeededToCheck),3] - toyBedFilePolymorphCurrent[nrow(coverageNeededToCheck),2] < 250) {
+    endOfmCNV = nrow(coverageNeededToCheck)
+  }
   if (nrow(coverageNeededToCheck) > 2) {
-    coverageSummarised = apply(coverageNeededToCheck[2:(nrow(coverageNeededToCheck) - 1),,drop=F], 2, median)
+    coverageSummarised = apply(coverageNeededToCheck[startOfmCNV:endOfmCNV,,drop=F], 2, median)
   }
 
   notHomozygousDeletions = which(coverageSummarised >= 0.5)
@@ -140,8 +148,9 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, sdNormalised
   bestLikelik = -2 * likelikAndWeights[[1]]
   bestSD = sdNormalised
   bestDivisor = 2
+  bestWeight = c(1)
   possibleLocations = round(medianOfCoverage ** 2 * 2)
-  possibleLocations = c(possibleLocations, possibleLocations + -1:1)
+  possibleLocations = c(possibleLocations, possibleLocations + -2:2)
   for (j in 1:length(locations)) {
     if (!j %in% possibleLocations) next
     vecOfMeans = locations[[j]]
@@ -160,6 +169,11 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, sdNormalised
     #normalmixEM(coverageSummarised[notHomozygousDeletions], mu=vecOfMeans)
     #print(tmpLikelik)
     #print(j)
+    bestWeightCheckForEvenDominance = c(length(coverageSummarised) - length(notHomozygousDeletions), likelikAndWeights[[2]] * length(notHomozygousDeletions)) + 0.1
+    bestWeightCheckForEvenDominance = bestWeightCheckForEvenDominance / sum(bestWeightCheckForEvenDominance)
+    bestLocEvenDominance = c(0, vecOfMeans)
+    bestLocEvenDominance = bestLocEvenDominance ** 2 * j
+    if (sum(bestWeightCheckForEvenDominance[which(bestLocEvenDominance %% 2 == 2)]) < 0.4) next
 
     if (tmpLikelik < bestLikelik) {
       bestLikelik= tmpLikelik
@@ -173,6 +187,9 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, sdNormalised
   bestWeight = c(length(coverageSummarised) - length(notHomozygousDeletions), bestWeight * length(notHomozygousDeletions)) + 1
   bestWeight = bestWeight / sum(bestWeight)
   
+  rep.row<-function(x,n){
+    matrix(rep(x,each=n),nrow=n)
+  }
   copy_number_likeliks <- abs(sweep(rep.row(coverageSummarised, length(bestLoc)), 1, bestLoc, FUN="-"))
   copy_number_likeliks <- t(apply(copy_number_likeliks, 1, function(x){dnorm(x, sd = bestSD * multipliersSamples)}))
   copy_number_likeliks <- sweep(copy_number_likeliks, 1, bestWeight, FUN="*")
@@ -180,6 +197,7 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, sdNormalised
   copy_number = as.integer(copy_number ** 2 * bestDivisor)
   coloursP = colors()[c(30, 114, 518, 148, 93, 456, 459, 552, 256, 652, 373, 68, 6, 600, 414, 337)]
   coloursP = c(coloursP, coloursP)
-  plot(coverageSummarised, col="black", pch=21,bg=coloursP[(copy_number + 1)])
+  #plot(coverageSummarised, col="black", pch=21,bg=coloursP[(copy_number + 1)])
+  #plot(density(coverageSummarised, bw='SJ'))
   return(copy_number)
 }

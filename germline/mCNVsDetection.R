@@ -1,7 +1,6 @@
 setwd(opt$folderWithScript)
 source(paste0(opt$folderWithScript, "/germline/mCNVhelpers.R"))
 
-load("/Users/gdemidov/Downloads/prepared-2.RData")
 
 
 # signalToNoise = mediansAndSds[[2]][which(!bedFile[,1] %in% c("chrX", "chrY")),1] / (mediansAndSds[[2]][which(!bedFile[,1] %in% c("chrX", "chrY")),2])
@@ -31,7 +30,7 @@ if (length(regionsToRemove) > 0) {
   mediansOfPolymorphic = mediansOfPolymorphic[-regionsToRemove]
 }
 
-QnSample <- apply(coverage.normalised.polymorph, 2, Qn)
+QnSample <- apply(coverage.normalised.polymorph[which(!bedFilePolymorph[,1] %in% c("chrX","chrY")),], 2, Qn)
 matrixOfMultipliers <- matrix(0, nrow=1000, ncol=ncol(coverage.normalised.polymorph))
 for (i in 1:nrow(matrixOfMultipliers)) {
   vec <- rnorm(ncol(coverage.normalised.polymorph), sd=QnSample)
@@ -41,7 +40,7 @@ for (i in 1:nrow(matrixOfMultipliers)) {
 
 multipliersSamples <- apply(matrixOfMultipliers, 2, median)
 sdsOfProbes <- apply(coverage.normalised.polymorph, 1, Qn)
-bandwidths <- apply(coverage.normalised.polymorph, 1, bw.SJ)
+bandwidths <- parApply(cl=cl, coverage.normalised.polymorph, 1, bw.SJ)
 dataToTrain = data.frame(cbind(sdsOfProbes, bandwidths))
 newlm <- rlm(sdsOfProbes ~ bandwidths, data=dataToTrain)
 predictedVariances = predict(newlm, dataToTrain, interval="prediction", level=0.999)
@@ -56,8 +55,11 @@ initial_state = 1
 price_per_tile = 5
 resultingMCNVs <- matrix(0, nrow=0, ncol=11)
 copyNumberForReporting = matrix(0, nrow=0, ncol=3 + ncol(coverage))
+colnames(copyNumberForReporting) = c("chr", "start", "end", colnames(coverage))
 for (l in 1:length(left_borders)) {
   chrom = names(left_borders)[l]
+  if (chrom == "chrX") next
+  if (chrom == "chrY") next
   for (k in 1:2) {
     which_to_allow <- "NA"
     which_to_allow_ontarget <- "NA"
@@ -74,6 +76,7 @@ for (l in 1:length(left_borders)) {
     mediansOfPolymorphicLocal = mediansOfPolymorphic[which_to_allow]
     localSdsOfProbes <- sdsOfProbesCorrected[which_to_allow]
     toyBedFilePolymorph = bedFilePolymorph[which_to_allow,]
+    locations = list()
     for (i in 1:16) {
       locations[[i]] = sqrt(1:20/i)[sqrt(1:20/i) > 0.4]
     }
@@ -158,14 +161,55 @@ for (l in 1:length(left_borders)) {
     
 
     for (i in 1:nrow(finalMCNVs)) {
-      mcnvCopyNumber <- findFinalState(coverage[finalMCNVs[i,2]:finalMCNVs[i,3],], 
+      
+      mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],], 
                      median(mediansOfPolymorphicLocal[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)]), 
                      median(localSdsOfProbes[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)]) / sqrt(finalMCNVs[i,3] - finalMCNVs[i,2] - 1),
+                     toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
                      multipliersSamples)
+      if (length(which(mcnvCopyNumber != 2)) < 0.05 * ncol(coverageToWorkWith)) {
+        print(i)
+        next
+      }
+      coverageNeededToCheck = coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],]
+      medianOfCoverage = median(mediansOfPolymorphicLocal[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)])
+      sdNormalised = median(localSdsOfProbes[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)]) / sqrt(finalMCNVs[i,3] - finalMCNVs[i,2] - 1)
+      toyBedFilePolymorphCurrent = toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],]
       copyNumberForReporting = rbind(copyNumberForReporting, c(toyBedFilePolymorph[finalMCNVs[i,2],1], 
                                                                toyBedFilePolymorph[finalMCNVs[i,2],2],
-                                                               toyBedFilePolymorph[finalMCNVs[i,2],3],
+                                                               toyBedFilePolymorph[finalMCNVs[i,3],3],
                                                                mcnvCopyNumber))
     }
+  }
+}
+
+folder_name <- paste0(opt$out, "/normal/")
+write.table(copyNumberForReporting, file=paste0(opt$out, "/normal/","mCNVs.txt"), quote = F)
+if (!dir.exists(folder_name)) {
+  dir.create(folder_name)
+}
+for (sam_no in 4:ncol(copyNumberForReporting)) {
+  sample_name <- colnames(copyNumberForReporting)[sam_no]
+  print(paste("Working with germline sample", sample_name, Sys.time()))
+  if (!dir.exists(paste0(folder_name, sample_name))) {
+    dir.create(paste0(folder_name, sample_name))
+  }
+  makeTrackAnnotation <- function(fileName) {
+    if (!file.exists(fileName)) {
+      file.create(fileName)
+      fileConn<-file(fileName)
+      writeLines(c("#type=GENE_EXPRESSION",
+                   paste0("#track graphtype=points name=\"", sample_name, "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:6 yLineMark=2 yLineOnOff=on"),
+                   paste("ID", "chr", "start", "end", "CN", "loglik", "value", sep="\t")), fileConn)
+      
+      close(fileConn)
+    }
+  }
+  fileToOut <- paste0(folder_name, sample_name, paste0("/", sample_name, "_mcnvs.seg"))
+  makeTrackAnnotation(fileToOut)
+  for (i in 1:nrow(copyNumberForReporting)) {
+    detectedCN = as.numeric(copyNumberForReporting[i,sam_no])
+    copyNumberSegment = matrix(c(sample_name, copyNumberForReporting[i,1], copyNumberForReporting[i,2], copyNumberForReporting[i,3], detectedCN, 1000, detectedCN), nrow=1, ncol=7)
+    write(paste(copyNumberSegment[1,], collapse="\t"), file=fileToOut, append=TRUE)
   }
 }
