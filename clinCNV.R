@@ -117,7 +117,7 @@ option_list = list(
   make_option(c("-dfStudent", "--degreesOfFreedomStudent"), type="integer", default=1000, 
               help="number of degrees of freedom of Student's distribution for somatic analysis (a lot of outliers => reduce the default value of 1000 to e.g. 10)"),  
   
-  make_option(c("-polymC", "--polymorphicCalling"), type="character", default="N", 
+  make_option(c("-polymC", "--polymorphicCalling"), type="character", default="NO", 
               help="should calling of polymorphic regions be performed, YES = calling is performed, NO = no polymorphic calling (default), any other string = mCNVs taken from the file with that path"),  
   
   make_option(c("-mosaic", "--mosaicism"), action="store_true", default=F, 
@@ -170,7 +170,7 @@ if (!is.null(opt$bafFolder)) {
   frameworkDataTypes = "covdepthBAF"
 }
 
-if (opt$polymorphicCalling) {
+if (opt$polymorphicCalling == "YES") {
   print("You've choosen to detect polymorphic regions with the help of our tool - great choice!")
 }
 
