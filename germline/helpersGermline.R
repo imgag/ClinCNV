@@ -433,11 +433,15 @@ returnClustering <- function(minNumOfElemsInCluster) {
   sdsOfRegions <- apply(coverageForClustering, 1, mad)
   potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.8) | sdsOfRegions == 0)
   
+  coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
+  
   if (ncol(normal) < 3 * minNumOfElemsInCluster) {
     print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
-    fit <- isoMDS(dist(t(sqrt(normal[-union(potentiallyPolymorphicRegions, which(bedFile[,1] %in% c("chrX","chrY"))),]))), k=2) # k is the number of dim
-    x <- fit$points[,1]
-    y <- fit$points[,2]
+    n = 3
+    coverageForClustering = (apply(coverageForClustering, 2, function(x) tapply(x, ceiling(seq_along(x) / n), median)))
+    fit <- isoMDS(dist(t(coverageForClustering), method="manhattan"), k=2) # k is the number of dim
+    x <- trimValues(fit$points[,1], 0.01)
+    y <- trimValues(fit$points[,2], 0.01)
     setwd(opt$out)
     png(filename="clusteringSolution.png", width=2048, height=2048)
     plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
@@ -446,8 +450,6 @@ returnClustering <- function(minNumOfElemsInCluster) {
     dev.off()
     return(list(clustering, outliersFromClustering))
   }
-  
-  coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
   if (!is.null(opt$triosFile)) {
     samplesActuallyPlayingRole = c()
@@ -518,11 +520,11 @@ returnClustering <- function(minNumOfElemsInCluster) {
     clustering[-samplesActuallyPlayingRole] = -1
   }
   
-  fit <- isoMDS(dist(t(sqrt(normal[-union(potentiallyPolymorphicRegions, which(bedFile[,1] %in% c("chrX","chrY"))),]))), k=2) # k is the number of dim
+  fit <- isoMDS(dist(t(coverageForClustering), method="manhattan"), k=2) # k is the number of dim
 
   # plot solution 
-  x <- fit$points[,1]
-  y <- fit$points[,2]
+  x <- trimValues(fit$points[,1], 0.01)
+  y <- trimValues(fit$points[,2], 0.01)
   setwd(opt$out)
   png(filename="clusteringSolution.png", width=2048, height=2048)
   plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
