@@ -109,19 +109,19 @@ option_list = list(
               help="if you dont need IGV tracks as output, specify this flag (as printing out IGV tracks slows down the program)"),  
   
   make_option(c("-cloneP", "--clonePenalty"), type="integer", default=200, 
-              help="penalty for each additional clone (if you feel that you have some false positive clones, increase this value from default 200)", metavar="number"),  
+              help="penalty for each additional clone (if you feel that you have some false positive clones, increase this value from default 200)"),  
   
   make_option(c("-purityS", "--purityStep"), type="double", default=2.5, 
               help="step of purity we investigate (from 5% to 100% with the step you specify, default=2.5)", metavar="number"),  
   
   make_option(c("-dfStudent", "--degreesOfFreedomStudent"), type="integer", default=1000, 
-              help="number of degrees of freedom of Student's distribution for somatic analysis (a lot of outliers => reduce the default value of 1000 to e.g. 10)", metavar="number"),  
+              help="number of degrees of freedom of Student's distribution for somatic analysis (a lot of outliers => reduce the default value of 1000 to e.g. 10)"),  
   
-  make_option(c("-polymC", "--polymorphicCalling"), type="character", default="NO", 
+  make_option(c("-polymC", "--polymorphicCalling"), type="character", default="N", 
               help="should calling of polymorphic regions be performed, YES = calling is performed, NO = no polymorphic calling (default), any other string = mCNVs taken from the file with that path"),  
   
-  make_option(c("-mosaic", "--mosaicism"), type="store_true", default=F, 
-              help="should mosaic calling be performed"),  
+  make_option(c("-mosaic", "--mosaicism"), action="store_true", default=F, 
+              help="if mosaic calling should be performed"),  
   
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
@@ -175,7 +175,7 @@ if (opt$polymorphicCalling) {
 }
 
 if (opt$mosaicism) {
-  print("You suspect your samples to be mosaic - hmmm, we will check this out...(but the mosaic CN change should not be > 1 copy different from default state)")
+  print("You suspect your samples to be mosaic - hmmm, we will check this out...(but the mosaic CN change should not be > 1 copy different from default")
 }
 
 
