@@ -450,7 +450,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         print(Sys.time())
       }
       # Reduce probability of unrealistic state = only super strong evidence is required to go for them
-      fine_for_unrealistic_state = 0.5
+      fine_for_unrealistic_state = 1
       set_of_unrealistic_states = c("LOHDup", "CNVboth", "CNVcomplex")
       whichAreUnrealistic <- which(local_cnv_states %in% set_of_unrealistic_states)
       matrix_of_likeliks[,whichAreUnrealistic] = matrix_of_likeliks[,whichAreUnrealistic] + fine_for_unrealistic_state

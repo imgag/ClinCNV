@@ -15,7 +15,8 @@ source(paste0(opt$folderWithScript, "/germline/mCNVhelpers.R"))
 # potentiallyPolymorphic = potentiallyPolymorphic[which(potentiallyPolymorphic > 0 & potentiallyPolymorphic < nrow(coverage.normalised))]
 # 
 # potentiallyPolymorphicCoverageNormalised = coverage.normalised[potentiallyPolymorphic,]
-
+vect_of_norm_likeliks = fast_dt_list(10)
+  
 autosomes = which(!bedFile[,1] %in% c("chrX", "chrY"))
 mediansAndSdsPolymorphic = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes, T)
 coverage.normalised.polymorph = mediansAndSdsPolymorphic[[1]]
@@ -82,7 +83,9 @@ for (l in 1:length(left_borders)) {
     }
     matrixOfLikeliksLocal = matrix(threshold, nrow= nrow(coverageToWorkWith), ncol=2)
     matrixOfLikeliksLocal[,1] = 0
-    correlations <- sapply(2:nrow(coverageToWorkWith), function(i) {cor(coverageToWorkWith[i,], coverageToWorkWith[i-1,])})
+    correlations <- sapply(2:nrow(coverageToWorkWith), function(i) {
+      moreThanZero = which(coverageToWorkWith[i,] > 0.25 & coverageToWorkWith[i-1,] > 0.25) ; 
+      cor(coverageToWorkWith[i,moreThanZero], coverageToWorkWith[i-1,moreThanZero])})
     for (i in 1:nrow(coverageToWorkWith)) {
       correlationsAround = c(correlations[i - 1])
       if (i < nrow(coverageToWorkWith) - 1) {
@@ -141,6 +144,11 @@ for (l in 1:length(left_borders)) {
           wasDivided = F
           for (j in (regionsToLookForMCNVs[counter,2] + 1):(regionsToLookForMCNVs[counter,3] - 2)) {
             if (!checkConnectivity(coverageToWorkWith[j,], coverageToWorkWith[j + 1,])) {
+              if (j + 2 <= nrow(coverageToWorkWith)) {
+                if (checkConnectivity(coverageToWorkWith[j,], coverageToWorkWith[j + 2,])) {
+                  next
+                }
+              }
               leftVar = regionsToLookForMCNVs[counter,]
               leftVar[3] = j
               rightVar = regionsToLookForMCNVs[counter,]
@@ -158,13 +166,12 @@ for (l in 1:length(left_borders)) {
         counter = counter + 1
       }
     }
+    finalMCNVs = rbind(finalMCNVs, smallRegions)
     
-
+    if (nrow(finalMCNVs) > 0)
     for (i in 1:nrow(finalMCNVs)) {
-      
       mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],], 
                      median(mediansOfPolymorphicLocal[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)]), 
-                     median(localSdsOfProbes[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)]) / sqrt(finalMCNVs[i,3] - finalMCNVs[i,2] - 1),
                      toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
                      multipliersSamples)
       if (length(which(mcnvCopyNumber != 2)) < 0.05 * ncol(coverageToWorkWith)) {
@@ -173,7 +180,7 @@ for (l in 1:length(left_borders)) {
       }
       coverageNeededToCheck = coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],]
       medianOfCoverage = median(mediansOfPolymorphicLocal[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)])
-      sdNormalised = median(localSdsOfProbes[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)]) / sqrt(finalMCNVs[i,3] - finalMCNVs[i,2] - 1)
+      sdNormalised = median(localSdsOfProbes[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)])
       toyBedFilePolymorphCurrent = toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],]
       copyNumberForReporting = rbind(copyNumberForReporting, c(toyBedFilePolymorph[finalMCNVs[i,2],1], 
                                                                toyBedFilePolymorph[finalMCNVs[i,2],2],
@@ -184,7 +191,7 @@ for (l in 1:length(left_borders)) {
 }
 
 folder_name <- paste0(opt$out, "/normal/")
-write.table(copyNumberForReporting, file=paste0(opt$out, "/normal/","mCNVs.txt"), quote = F)
+write.table(copyNumberForReporting, file=paste0(opt$out, "/normal/", cluster, "mCNVs.txt"), quote = F, row.names = F)
 if (!dir.exists(folder_name)) {
   dir.create(folder_name)
 }
@@ -199,7 +206,7 @@ for (sam_no in 4:ncol(copyNumberForReporting)) {
       file.create(fileName)
       fileConn<-file(fileName)
       writeLines(c("#type=GENE_EXPRESSION",
-                   paste0("#track graphtype=points name=\"", sample_name, "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:6 yLineMark=2 yLineOnOff=on"),
+                   paste0("#track graphtype=points name=\"", paste(sample_name, "polymorphic"), "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:6 yLineMark=2 yLineOnOff=on"),
                    paste("ID", "chr", "start", "end", "CN", "loglik", "value", sep="\t")), fileConn)
       
       close(fileConn)

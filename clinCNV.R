@@ -120,6 +120,9 @@ option_list = list(
   make_option(c("-polymC", "--polymorphicCalling"), type="character", default="NO", 
               help="should calling of polymorphic regions be performed, YES = calling is performed, NO = no polymorphic calling (default), any other string = mCNVs taken from the file with that path"),  
   
+  make_option(c("-mosaic", "--mosaicism"), type="store_true", default=F, 
+              help="should mosaic calling be performed"),  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
@@ -167,7 +170,13 @@ if (!is.null(opt$bafFolder)) {
   frameworkDataTypes = "covdepthBAF"
 }
 
+if (opt$polymorphicCalling) {
+  print("You've choosen to detect polymorphic regions with the help of our tool - great choice!")
+}
 
+if (opt$mosaicism) {
+  print("You suspect your samples to be mosaic - hmmm, we will check this out...(but the mosaic CN change should not be > 1 copy different from default state)")
+}
 
 
 

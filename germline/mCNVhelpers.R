@@ -17,9 +17,6 @@ EstimateModeSimple <- function(x) {
 }
 
 
-createMatrixOfLikeliksCoverage <- function(x) {
-  
-}
 
 likelihoodOfGaussianMixture <- function(location, value , sd_to_start, robustPercentage, minSizeOfCluster, esimtatedVarianceFromSampleNoise, lowerBoundSD) {
   if (length(location) == 1) {
@@ -118,18 +115,18 @@ checkConnectivity = function(covOne, covTwo) {
 }
 
 
-findFinalState <- function(coverageNeededToCheck, medianOfCoverage, sdNormalised, toyBedFilePolymorphCurrent, multipliersSamples) {
+findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePolymorphCurrent, multipliersSamples) {
   startOfmCNV = 2
   endOfmCNV = (nrow(coverageNeededToCheck) - 1)
-  if (toyBedFilePolymorphCurrent[1,3] - toyBedFilePolymorphCurrent[1,2] < 250) {
+  if (toyBedFilePolymorphCurrent[1,3] - toyBedFilePolymorphCurrent[1,2] < 250 | nrow(coverageNeededToCheck) < 3) {
     startOfmCNV = 1
   }
-  if (toyBedFilePolymorphCurrent[nrow(coverageNeededToCheck),3] - toyBedFilePolymorphCurrent[nrow(coverageNeededToCheck),2] < 250) {
+  if (toyBedFilePolymorphCurrent[nrow(coverageNeededToCheck),3] - toyBedFilePolymorphCurrent[nrow(coverageNeededToCheck),2] < 250 | nrow(coverageNeededToCheck) < 3) {
     endOfmCNV = nrow(coverageNeededToCheck)
   }
-  if (nrow(coverageNeededToCheck) > 2) {
+  #if (nrow(coverageNeededToCheck) > 2) {
     coverageSummarised = apply(coverageNeededToCheck[startOfmCNV:endOfmCNV,,drop=F], 2, median)
-  }
+  #}
 
   notHomozygousDeletions = which(coverageSummarised >= 0.5)
   if (length(which(coverageSummarised <= 0.25)) > 0) {
@@ -142,6 +139,7 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, sdNormalised
   modeOfCovSummarised = EstimateModeSimple(coverageSummarised[notHomozygousDeletions])
   coverageSummarised = coverageSummarised / modeOfCovSummarised
   bestLoc = sqrt(0:20/2)
+  sdNormalised = Qn(coverageSummarised[which(coverageSummarised > sqrt(1/2) & coverageSummarised < sqrt(3/2))])
   likelikAndWeights = likelihoodOfGaussianMixture(1, coverageSummarised[notHomozygousDeletions], sdNormalised, 
                                                   0.05 * (length(notHomozygousDeletions)) / length(coverageSummarised), 0.1, 
                                                   multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)

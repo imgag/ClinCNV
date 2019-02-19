@@ -5,6 +5,10 @@ cl<-makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
 
 cn_states <- 0:8
+if (opt$mosaicism) {
+  cn_states <- c(cn_states, seq(from=1.1,to=2.9,by=0.05))
+}
+
 
 #load("/Users/gdemidov/Downloads/prepared.RData")
 #opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/"
@@ -95,7 +99,12 @@ for (sam_no in 1:ncol(coverage.normalised)) {
       matrix_of_likeliks_for_FDR[whichInsideVariant,main_initial_state] = 0
     }
   }
+  if (opt$mosaicism) {
+    fineForMosaicism = 1
+    matrix_of_likeliks_for_FDR[,which(cn_states %% 1 != 0)] = matrix_of_likeliks_for_FDR[,which(cn_states %% 1 != 0)] + fineForMosaicism
+  }
   matrix_of_likeliks <- matrix_of_likeliks_for_FDR
+
   
   #if (covar) {
   #  listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2), covarianceTree, bedFileFiltered, threshold)
@@ -139,7 +148,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "no_of_regions", "length_KB", "potential_AF", "genes")
 
     iterations = iterations + 1
-    for (l in 1:2){#length(left_borders)) {
+    for (l in 1:length(left_borders)) {
       chrom = names(left_borders)[l]
       if (chrom == "chrX" & genderOfSamples[sam_no] == "M") {
         initial_state <- 2
