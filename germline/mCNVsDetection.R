@@ -23,7 +23,7 @@ coverage.normalised.polymorph = mediansAndSdsPolymorphic[[1]]
 
 
 mediansOfPolymorphic = mediansAndSdsPolymorphic[[2]][,1]
-regionsToRemove <- which(mediansOfPolymorphic <= 0.1 | mediansOfPolymorphic >= sqrt(16/2))
+regionsToRemove <- which(mediansOfPolymorphic <= 0.25 | mediansOfPolymorphic >= sqrt(16/2))
 regionsToRemove = unique(c(regionsToRemove, regionsToRemove + 1, regionsToRemove - 1))
 if (length(regionsToRemove) > 0) {
   bedFilePolymorph = bedFile[-regionsToRemove,]
@@ -62,6 +62,7 @@ for (l in 1:length(left_borders)) {
   if (chrom == "chrX") next
   if (chrom == "chrY") next
   for (k in 1:2) {
+    print(paste("Polymorphic calling at chrom", chrom, "and arm", k, "started"))
     which_to_allow <- "NA"
     which_to_allow_ontarget <- "NA"
     if (k == 1) {
@@ -91,7 +92,7 @@ for (l in 1:length(left_borders)) {
       if (i < nrow(coverageToWorkWith) - 1) {
         correlationsAround = c(correlationsAround, correlations[i])
       }
-      if (i %% 100 == 0) print(i)
+      if (i %% 1000 == 0) print(i)
       coverageOfProbe = coverageToWorkWith[i,]
       if (max(correlationsAround) > quantile(correlations, 0.9)) {
         notHomozygousDeletions = which(coverageOfProbe > 0.25)

@@ -118,7 +118,7 @@ option_list = list(
               help="number of degrees of freedom of Student's distribution for somatic analysis (a lot of outliers => reduce the default value of 1000 to e.g. 10)"),  
   
   make_option(c("-polymC", "--polymorphicCalling"), type="character", default="NO", 
-              help="should calling of polymorphic regions be performed, YES = calling is performed, NO = no polymorphic calling (default), any other string = mCNVs taken from the file with that path"),  
+              help="should calling of polymorphic regions be performed, YES = calling is performed, NO = no polymorphic calling (default), any other string = mCNVs taken from the file with that path (it must have at least 3 columns chrom-start-end)"),  
   
   make_option(c("-mosaic", "--mosaicism"), action="store_true", default=F, 
               help="if mosaic calling should be performed"),  
@@ -493,26 +493,29 @@ clusteringList <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
 clustering = clusteringList[[1]]
 outliersByClusteringCohort = clusteringList[[2]]
 
-print(paste("Processing of germline variants started (we need to do it as an additional step for Saomtic calling since we need to know at least genders).", Sys.time()))
-
-orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
-bedFile = bedFile[orderOfBedFile,]
-normal = normal[orderOfBedFile,]
-coverageAllSamples <- sqrt(as.matrix(normal))
-
-if (frameworkOff == "offtargetGermline") {
-  orderOfBedFileOff <- order(bedFileOfftarget[,1], as.numeric(bedFileOfftarget[,2]))
-  bedFileOfftarget = bedFileOfftarget[orderOfBedFileOff,]
-  normalOff = normalOff[orderOfBedFileOff,]
-  coverageAllSamplesOff <- sqrt(as.matrix(normalOff))
-}
-
-print(paste("Gender estimation started", Sys.time()))
-genderOfSamplesCohort <- Determine.gender(sqrt(coverageAllSamples), bedFile)
-print(genderOfSamplesCohort)
-print(paste("Gender succesfully determined. Plot is written in your results directory:", opt$out, Sys.time()))
   
 if (framework == "germline") {
+  gc()
+  print(paste("Processing of germline variants started (we need to do it as an additional step for Saomtic calling since we need to know at least genders).", Sys.time()))
+  
+  orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
+  bedFile = bedFile[orderOfBedFile,]
+  normal = normal[orderOfBedFile,]
+  coverageAllSamples <- sqrt(as.matrix(normal))
+  
+  if (frameworkOff == "offtargetGermline") {
+    orderOfBedFileOff <- order(bedFileOfftarget[,1], as.numeric(bedFileOfftarget[,2]))
+    bedFileOfftarget = bedFileOfftarget[orderOfBedFileOff,]
+    normalOff = normalOff[orderOfBedFileOff,]
+    coverageAllSamplesOff <- sqrt(as.matrix(normalOff))
+  }
+  
+  
+  print(paste("Gender estimation started", Sys.time()))
+  genderOfSamplesCohort <- Determine.gender(coverageAllSamples, bedFile)
+  print(genderOfSamplesCohort)
+  print(paste("Gender succesfully determined. Plot is written in your results directory:", opt$out, Sys.time()))
+  
   for (cluster in unique(clustering)) {
     if (cluster == -1) {
       print(paste("Samples from trio mode that are presented in trios.txt but do not have a full family in file", opt$normal , "will be excluded."))

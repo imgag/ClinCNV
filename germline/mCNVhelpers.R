@@ -159,8 +159,8 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
                                                     multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)
     firstSignifCluster = which.min(likelikAndWeights[[2]] > 1 / length(notHomozygousDeletions)) + 1
     lastSignifCluster = which.max(likelikAndWeights[[2]] > 1 / length(notHomozygousDeletions)) - 1
-    if (firstSignifCluster < lastSignifCluster)
-      if (min(likelikAndWeights[[2]][firstSignifCluster:lastSignifCluster]) < 5 / length(notHomozygousDeletions)) next
+    if (firstSignifCluster < lastSignifCluster - 1)
+      if (min(likelikAndWeights[[2]][(firstSignifCluster + 1):(lastSignifCluster - 1)]) < 5 / length(notHomozygousDeletions)) next
     tmpLikelik =  (
       -2 * likelikAndWeights[[1]] + (length(which(likelikAndWeights[[2]] > 0.1 / length(notHomozygousDeletions)))  + 1) * log(length(notHomozygousDeletions))
     )
@@ -195,7 +195,14 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
   copy_number = as.integer(copy_number ** 2 * bestDivisor)
   coloursP = colors()[c(30, 114, 518, 148, 93, 456, 459, 552, 256, 652, 373, 68, 6, 600, 414, 337)]
   coloursP = c(coloursP, coloursP)
-  #plot(coverageSummarised, col="black", pch=21,bg=coloursP[(copy_number + 1)])
+  diagnosticPlot = T
+  if (diagnosticPlot == T) {
+    fileName = paste(toyBedFilePolymorphCurrent[1,1], toyBedFilePolymorphCurrent[1,2], toyBedFilePolymorphCurrent[nrow(toyBedFilePolymorphCurrent),3], sep="_")
+    png(paste0(fileName, ".png"), width=length(copy_number) * 3, height=800)
+    plot(coverageSummarised, col="black", pch=21,bg=coloursP[(copy_number + 1)])
+    abline(h=bestLoc)
+    dev.off()
+  }
   #plot(density(coverageSummarised, bw='SJ'))
   return(copy_number)
 }

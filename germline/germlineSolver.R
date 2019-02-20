@@ -36,9 +36,12 @@ covar = T
 
 print(paste("We start to estimate covariances between neighboring regions in germline data - may take some time", Sys.time()))
 setwd(opt$out)
-covarianceTree = returnTreeForCorrelation(coverage.normalised, 
-                                          sdsOfGermlineSamples, sdsOfProbes, 
-                                          bedFileFiltered)
+covarianceTree = NULL
+if (covar == T) {
+  covarianceTree = returnTreeForCorrelation(coverage.normalised, 
+                                            sdsOfGermlineSamples, sdsOfProbes, 
+                                            bedFileFiltered)
+}
 if (is.null(covarianceTree)) {
   covar = F
 }
@@ -51,7 +54,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   sample_name <- colnames(coverage.normalised)[sam_no]
   if (frameworkOff == "offtargetGermline") { 
     if (sample_name %in% colnames(coverage.normalised.off)) {
-    sam_no_off = which(colnames(coverage.normalised.off) == sample_name)
+      sam_no_off = which(colnames(coverage.normalised.off) == sample_name)
     } else {
       sam_no_off = F
     }
@@ -104,7 +107,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     matrix_of_likeliks_for_FDR[,which(cn_states %% 1 != 0)] = matrix_of_likeliks_for_FDR[,which(cn_states %% 1 != 0)] + fineForMosaicism
   }
   matrix_of_likeliks <- matrix_of_likeliks_for_FDR
-
+  
   
   #if (covar) {
   #  listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2), covarianceTree, bedFileFiltered, threshold)
@@ -126,7 +129,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     globalBed = bedFileFiltered
     globalMatrixOfLikeliks = matrix_of_likeliks
   }
-
+  
   sizesOfPointsFromLocalSds <- 0.1 / localSds 
   
   
@@ -146,7 +149,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     initial_state = main_initial_state
     found_CNVs_total <- matrix(0, nrow=0, ncol=9)
     colnames(found_CNVs_total) <- c("#chr", "start", "end", "CN_change", "loglikelihood", "no_of_regions", "length_KB", "potential_AF", "genes")
-
+    
     iterations = iterations + 1
     for (l in 1:length(left_borders)) {
       chrom = names(left_borders)[l]
@@ -184,7 +187,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           for (z in 1:nrow(found_CNVs)) {
             startOfFoundCNV = as.numeric(toybedFileFiltered[found_CNVs[z,2], 2])
             endOfFoundCNV = as.numeric(toybedFileFiltered[found_CNVs[z,3], 3])
-
+            
             valuesInsideBed = which(bedFileFiltered[,1] == chrom & bedFileFiltered[,2] >= startOfFoundCNV & bedFileFiltered[,3] <= endOfFoundCNV)
             if (length(valuesInsideBed) > 0) {
               listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds[valuesInsideBed], coverage.normalised[valuesInsideBed,,drop=F], sqrt(cn_states / 2), covarianceTree, bedFileFiltered[valuesInsideBed,], threshold)
@@ -197,30 +200,30 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             }
             
           }
-
+          
         }
-
+        
         toyCoverageGermline = coverage.normalised[which_to_allow_ontarget,sam_no]
         toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
         
         toyCoverageGermlineCohort = coverage.normalised[which_to_allow_ontarget,]
-
+        
         
         if (nrow(found_CNVs) > 0) {
           alleleFrequency = rep(1 / ncol(coverage.normalised), nrow(found_CNVs))
           for (i in 1:nrow(found_CNVs)) {
             whichOnTarget = which(as.numeric(bedFileFiltered[which_to_allow_ontarget,2]) >= as.numeric(toybedFileFiltered[found_CNVs[i,2],2]) &
-                                      as.numeric(bedFileFiltered[which_to_allow_ontarget,3]) <= as.numeric(toybedFileFiltered[found_CNVs[i,3],3])
-                                      )
+                                    as.numeric(bedFileFiltered[which_to_allow_ontarget,3]) <= as.numeric(toybedFileFiltered[found_CNVs[i,3],3])
+            )
             cnState = cn_states[found_CNVs[i,4]]
             if (length(whichOnTarget) > 0) {
-            mediansOfCoveragesInsideTheCohort <- apply(toyCoverageGermlineCohort[whichOnTarget,,drop=F], 2, median)
-            if (cnState < 2) {
-              alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort < (1 - (1 - sqrt(1/2)) / 2))) / ncol(coverage.normalised)
-            }
-            if (cnState > 2) {
-              alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort > (1 + (sqrt(3/2) - 1) / 2))) / ncol(coverage.normalised)
-            }
+              mediansOfCoveragesInsideTheCohort <- apply(toyCoverageGermlineCohort[whichOnTarget,,drop=F], 2, median)
+              if (cnState < 2) {
+                alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort < (1 - (1 - sqrt(1/2)) / 2))) / ncol(coverage.normalised)
+              }
+              if (cnState > 2) {
+                alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort > (1 + (sqrt(3/2) - 1) / 2))) / ncol(coverage.normalised)
+              }
             } else {
               alleleFrequency[i] = -1.0
             }
@@ -231,8 +234,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           vectorOfZScoresLocaL = vectorOfZScores[which_to_allow]
           if (length(vectorOfZScoresLocaL) > 10)
             vectorWithNumberOfOutliers = c(vectorWithNumberOfOutliers, 
-                                         length(which(vectorOfZScoresLocaL > qnorm(0.975) | vectorOfZScoresLocaL < qnorm(0.025))) / length(vectorOfZScoresLocaL))
-           }
+                                           length(which(vectorOfZScoresLocaL > qnorm(0.975) | vectorOfZScoresLocaL < qnorm(0.025))) / length(vectorOfZScoresLocaL))
+        }
         
         ### IGV PLOTTING
         if (opt$visulizationIGV) {
@@ -306,7 +309,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     for (z in 1:nrow(found_CNVs_total)) {
       if (as.numeric(found_CNVs_total[z,5] > 200)) {
         positionsToExclude = c(positionsToExclude, which(bedFileFiltered[,1] == found_CNVs_total[z,1] & as.numeric(bedFileFiltered[,2]) >= as.numeric(found_CNVs_total[z,2])
-                                                                                                                                      & as.numeric(bedFileFiltered[,3]) <= as.numeric(found_CNVs_total[z,3])))
+                                                         & as.numeric(bedFileFiltered[,3]) <= as.numeric(found_CNVs_total[z,3])))
       }
     }
     matrix_of_likeliks_for_FDR = matrix_of_likeliks_for_FDR[-union( which(bedFileFiltered[,1] %in% c("chrX", "chrY")) ,  positionsToExclude),]

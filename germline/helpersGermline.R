@@ -526,7 +526,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
   x <- trimValues(fit$points[,1], 0.01)
   y <- trimValues(fit$points[,2], 0.01)
   setwd(opt$out)
-  png(filename="clusteringSolution.png", width=2048, height=2048)
+  png(filename="clusteringSolution.png", width=1024, height=1024)
   plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
        main="Metric MDS", type="n")
   text(x, y, labels = row.names(distMatrix), cex=.7, col=clustering + 1)
