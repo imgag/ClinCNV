@@ -73,7 +73,7 @@ for (l in 1:length(left_borders)) {
     matrixOfLikeliksLocal = matrix(threshold, nrow= nrow(coverageToWorkWith), ncol=2)
     matrixOfLikeliksLocal[,1] = 0
     correlations <- sapply(2:nrow(coverageToWorkWith), function(i) {
-      moreThanZero = which(coverageToWorkWith[i,] > 0.25 & coverageToWorkWith[i-1,] > 0.25) ; 
+      moreThanZero = which(coverageToWorkWith[i,] > 0.5 & coverageToWorkWith[i-1,] > 0.5) ; 
       cor(coverageToWorkWith[i,moreThanZero], coverageToWorkWith[i-1,moreThanZero])})
     for (i in 1:nrow(coverageToWorkWith)) {
       correlationsAround = c(correlations[i - 1])
@@ -163,7 +163,7 @@ for (l in 1:length(left_borders)) {
                      median(mediansOfPolymorphicLocal[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)]), 
                      toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
                      multipliersSamples)
-      if (length(which(mcnvCopyNumber != 2)) < 0.05 * ncol(coverageToWorkWith)) {
+      if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < 0.05 * ncol(coverageToWorkWith)) {
         print(i)
         next
       }
