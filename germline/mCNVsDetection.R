@@ -3,19 +3,7 @@ source(paste0(opt$folderWithScript, "/germline/mCNVhelpers.R"))
 
 
 
-# signalToNoise = mediansAndSds[[2]][which(!bedFile[,1] %in% c("chrX", "chrY")),1] / (mediansAndSds[[2]][which(!bedFile[,1] %in% c("chrX", "chrY")),2])
-# signalToNoiseSex = mediansAndSds[[2]][which(bedFile[,1] %in% c("chrX", "chrY")),1] / (mediansAndSds[[2]][which(bedFile[,1] %in% c("chrX", "chrY")),2])
-# signalToNoiseAll = mediansAndSds[[2]][,1] / mediansAndSds[[2]][,2]
-# potentiallyPolymorphic <- which(mediansAndSds[[2]][,1] > sqrt(4/2) | 
-#                                   (signalToNoiseAll < quantile(signalToNoise, 0.05) & !(bedFile[,1] %in% c("chrX", "chrY"))) |
-#                                   (signalToNoiseAll < quantile(signalToNoiseSex, 0.05) & bedFile[,1] %in% c("chrX", "chrY"))
-#                                   )
-# 
-# potentiallyPolymorphic = unique(union(potentiallyPolymorphic, c(potentiallyPolymorphic + 1, potentiallyPolymorphic - 1)))
-# potentiallyPolymorphic = potentiallyPolymorphic[which(potentiallyPolymorphic > 0 & potentiallyPolymorphic < nrow(coverage.normalised))]
-# 
-# potentiallyPolymorphicCoverageNormalised = coverage.normalised[potentiallyPolymorphic,]
-vect_of_norm_likeliks = fast_dt_list(10)
+vect_of_norm_likeliks = fast_dt_list(100)
   
 autosomes = which(!bedFile[,1] %in% c("chrX", "chrY"))
 mediansAndSdsPolymorphic = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes, T)
@@ -188,7 +176,7 @@ for (l in 1:length(left_borders)) {
                                                                toyBedFilePolymorph[finalMCNVs[i,3],3],
                                                                mcnvCopyNumber))
     }
-  }
+   }
 }
 
 folder_name <- paste0(opt$out, "/normal/")

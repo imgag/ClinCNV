@@ -140,27 +140,31 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
   coverageSummarised = coverageSummarised / modeOfCovSummarised
   bestLoc = sqrt(0:20/2)
   sdNormalised = Qn(coverageSummarised[which(coverageSummarised > sqrt(1/2) & coverageSummarised < sqrt(3/2))])
-  likelikAndWeights = likelihoodOfGaussianMixture(1, coverageSummarised[notHomozygousDeletions], sdNormalised, 
-                                                  0.05 * (length(notHomozygousDeletions)) / length(coverageSummarised), 0.1, 
-                                                  multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)
-  bestLikelik = -2 * likelikAndWeights[[1]]
-  bestSD = sdNormalised
+  #likelikAndWeights = likelihoodOfGaussianMixture(1, coverageSummarised[notHomozygousDeletions], sdNormalised, 
+  #                                                0.05 * (length(notHomozygousDeletions)) / length(coverageSummarised), 0.1, 
+  #                                                multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)
+  bestLikelik = 10**100
+  bestSD = NULL
   bestDivisor = 2
   bestWeight = c(1)
+  bestLoc = c(1)
   possibleLocations = round(medianOfCoverage ** 2 * 2)
-  possibleLocations = c(possibleLocations, possibleLocations + -2:2)
+  possibleLocations = unique(c(possibleLocations, possibleLocations + -3:3))
   for (j in 1:length(locations)) {
     if (!j %in% possibleLocations) next
     vecOfMeans = locations[[j]]
-    vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageSummarised[notHomozygousDeletions]) & vecOfMeans < max(coverageSummarised[notHomozygousDeletions]))]
+    vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageSummarised[notHomozygousDeletions]) - 0.25 & vecOfMeans < max(coverageSummarised[notHomozygousDeletions]) + 0.25)]
     if (length(vecOfMeans) == 1) next
     likelikAndWeights = likelihoodOfGaussianMixture(vecOfMeans, coverageSummarised[notHomozygousDeletions], sdNormalised, 
                                                     0.05 * (length(notHomozygousDeletions)) / length(coverageSummarised), 0.1, 
                                                     multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)
-    firstSignifCluster = which.min(likelikAndWeights[[2]] > 1 / length(notHomozygousDeletions)) + 1
-    lastSignifCluster = which.max(likelikAndWeights[[2]] > 1 / length(notHomozygousDeletions)) - 1
+    firstSignifCluster = which.min(likelikAndWeights[[2]] > 5 / length(notHomozygousDeletions))
+    if (length(notHomozygousDeletions) < length(coverageSummarised)) {
+      firstSignifCluster = 1
+    }
+    lastSignifCluster = which.max(likelikAndWeights[[2]] > 5 / length(notHomozygousDeletions))
     if (firstSignifCluster < lastSignifCluster - 1)
-      if (min(likelikAndWeights[[2]][(firstSignifCluster + 1):(lastSignifCluster - 1)]) < 5 / length(notHomozygousDeletions)) next
+      if (min(likelikAndWeights[[2]][(firstSignifCluster + 1):(lastSignifCluster - 1)]) < 1 / length(notHomozygousDeletions)) next
     tmpLikelik =  (
       -2 * likelikAndWeights[[1]] + (length(which(likelikAndWeights[[2]] > 0.1 / length(notHomozygousDeletions)))  + 1) * log(length(notHomozygousDeletions))
     )
@@ -171,17 +175,19 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
     bestWeightCheckForEvenDominance = bestWeightCheckForEvenDominance / sum(bestWeightCheckForEvenDominance)
     bestLocEvenDominance = c(0, vecOfMeans)
     bestLocEvenDominance = bestLocEvenDominance ** 2 * j
-    if (sum(bestWeightCheckForEvenDominance[which(bestLocEvenDominance %% 2 == 2)]) < 0.4) next
+    if (sum(bestWeightCheckForEvenDominance[which(bestLocEvenDominance %% 2 == 0)]) < 0.4) next
 
-    if (tmpLikelik < bestLikelik) {
-      bestLikelik= tmpLikelik
-      bestLoc = vecOfMeans
-      bestSD = likelikAndWeights[[3]]
-      bestWeight = likelikAndWeights[[2]]
-      bestDivisor = j
+    if (tmpLikelik < bestLikelik | is.null(bestSD)) {
+      if (likelikAndWeights[[3]] < 1 - sqrt((j-1)/j)) {
+        bestLikelik= tmpLikelik
+        bestLoc = vecOfMeans
+        bestSD = likelikAndWeights[[3]]
+        bestWeight = likelikAndWeights[[2]]
+        bestDivisor = j
+      }
     }
   }
-  bestLoc = c(0, bestLoc)
+  bestLoc = unique(c(0, bestLoc))
   bestWeight = c(length(coverageSummarised) - length(notHomozygousDeletions), bestWeight * length(notHomozygousDeletions)) + 1
   bestWeight = bestWeight / sum(bestWeight)
   
@@ -192,10 +198,10 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
   copy_number_likeliks <- t(apply(copy_number_likeliks, 1, function(x){dnorm(x, sd = bestSD * multipliersSamples)}))
   copy_number_likeliks <- sweep(copy_number_likeliks, 1, bestWeight, FUN="*")
   copy_number <- bestLoc[apply(copy_number_likeliks, 2, which.max)]
-  copy_number = as.integer(copy_number ** 2 * bestDivisor)
+  copy_number = round(copy_number ** 2 * bestDivisor)
   coloursP = colors()[c(30, 114, 518, 148, 93, 456, 459, 552, 256, 652, 373, 68, 6, 600, 414, 337)]
   coloursP = c(coloursP, coloursP)
-  diagnosticPlot = T
+  diagnosticPlot = (length(which(copy_number != 2)) > 0.05 * length(copy_number))
   if (diagnosticPlot == T) {
     fileName = paste(toyBedFilePolymorphCurrent[1,1], toyBedFilePolymorphCurrent[1,2], toyBedFilePolymorphCurrent[nrow(toyBedFilePolymorphCurrent),3], sep="_")
     png(paste0(fileName, ".png"), width=length(copy_number) * 3, height=800)
