@@ -104,10 +104,12 @@ likelihoodOfGaussianMixture <- function(location, value , sd_to_start, robustPer
 }
 
 checkConnectivity = function(covOne, covTwo) {
-  whichBothNonHomo = which(covOne > 0.25 & covTwo > 0.25)
-  newlm = rlm(covOne[whichBothNonHomo], covTwo[whichBothNonHomo])
-  QnResid = Qn(newlm$residuals)
-  if (length(which(newlm$residuals > 2.5 * QnResid)) < 0.05 * length(whichBothNonHomo)) {
+  whichBothNonHomo = which(covOne > 0.5 & covTwo > 0.5)
+  newlm1 = rlm(covOne[whichBothNonHomo], covTwo[whichBothNonHomo])
+  newlm2 = rlm(covTwo[whichBothNonHomo], covOne[whichBothNonHomo])
+  QnResid1 = Qn(newlm1$residuals)
+  QnResid2 = Qn(newlm2$residuals)
+  if (length(which(newlm1$residuals > 2.5 * QnResid1)) < 0.05 * length(whichBothNonHomo) & length(which(newlm2$residuals > 2.5 * QnResid2)) < 0.05 * length(whichBothNonHomo)) {
     return(T)
   }
   plot(covOne ~ covTwo)
@@ -188,6 +190,7 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
     }
   }
   bestLoc = unique(c(0, bestLoc))
+  bestLoc[which(bestLoc ==0)] = median(coverageSummarised[which(coverageSummarised <= 0.25)])
   bestWeight = c(length(coverageSummarised) - length(notHomozygousDeletions), bestWeight * length(notHomozygousDeletions)) + 1
   bestWeight = bestWeight / sum(bestWeight)
   
