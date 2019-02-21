@@ -168,7 +168,7 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
     if (firstSignifCluster < lastSignifCluster - 1)
       if (min(likelikAndWeights[[2]][(firstSignifCluster + 1):(lastSignifCluster - 1)]) < 1 / length(notHomozygousDeletions)) next
     tmpLikelik =  (
-      -2 * likelikAndWeights[[1]] + (length(which(likelikAndWeights[[2]] > 0.1 / length(notHomozygousDeletions)))  + 1) * log(length(notHomozygousDeletions))
+      -2 * likelikAndWeights[[1]] + (lastSignifCluster - firstSignifCluster  + 1) * log(length(notHomozygousDeletions))
     )
     #normalmixEM(coverageSummarised[notHomozygousDeletions], mu=vecOfMeans)
     #print(tmpLikelik)
@@ -177,7 +177,7 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
     bestWeightCheckForEvenDominance = bestWeightCheckForEvenDominance / sum(bestWeightCheckForEvenDominance)
     bestLocEvenDominance = c(0, vecOfMeans)
     bestLocEvenDominance = bestLocEvenDominance ** 2 * j
-    if (sum(bestWeightCheckForEvenDominance[which(bestLocEvenDominance %% 2 == 0)]) < 0.4) next
+    if (sum(bestWeightCheckForEvenDominance[which(bestLocEvenDominance %% 2 == 0)]) + length(which(coverageSummarised < 0.5) ) / length(notHomozygousDeletions) < 0.4) next
 
     if (tmpLikelik < bestLikelik | is.null(bestSD)) {
       if (likelikAndWeights[[3]] < 1 - sqrt((j-1)/j)) {
@@ -190,7 +190,9 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
     }
   }
   bestLoc = unique(c(0, bestLoc))
-  bestLoc[which(bestLoc ==0)] = median(coverageSummarised[which(coverageSummarised <= 0.25)])
+  if (length(which(coverageSummarised <= 0.25)) > 0) {
+    bestLoc[which(bestLoc ==0)] = median(coverageSummarised[which(coverageSummarised <= 0.25)])
+  }
   bestWeight = c(length(coverageSummarised) - length(notHomozygousDeletions), bestWeight * length(notHomozygousDeletions)) + 1
   bestWeight = bestWeight / sum(bestWeight)
   
