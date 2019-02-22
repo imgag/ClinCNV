@@ -19,6 +19,7 @@ EstimateModeSimple <- function(x) {
 
 
 likelihoodOfGaussianMixture <- function(location, value , sd_to_start, robustPercentage, minSizeOfCluster, esimtatedVarianceFromSampleNoise, lowerBoundSD) {
+  initLocation = location
   if (length(location) == 1) {
     cluster_weights = rep(1/ length(location), length(location))
     points_likeliks <- log(sapply(1:length(location), 
@@ -55,8 +56,10 @@ likelihoodOfGaussianMixture <- function(location, value , sd_to_start, robustPer
       for (l in 1:length(locationTmp)) {
         locationTmp[l] = sum(weights[,l] * value) / cluster_weights[l]
       }
-      multiplierForLocation = median(locationTmp / location)
-      location = location * multiplierForLocation
+      multiplierForLocation = locationTmp[which.max(cluster_weights[l])] / location[which.max(cluster_weights[l])]
+      if (abs(log2(initLocation / (location * multiplierForLocation))) < 0.1) {
+        location = location * multiplierForLocation
+      } 
       sd_counter_tmp = sqrt(sum(sapply(1:length(location), 
                                        function(i) {
                                          weights[,i] * (value - location[i])^2
@@ -109,15 +112,42 @@ checkConnectivity = function(covOne, covTwo) {
   newlm2 = rlm(covTwo[whichBothNonHomo], covOne[whichBothNonHomo])
   QnResid1 = Qn(newlm1$residuals)
   QnResid2 = Qn(newlm2$residuals)
-  if (length(which(newlm1$residuals > 2.5 * QnResid1)) < 0.05 * length(whichBothNonHomo) & length(which(newlm2$residuals > 2.5 * QnResid2)) < 0.05 * length(whichBothNonHomo)) {
+  if (length(which(newlm1$residuals > 2.5 * QnResid1)) < 0.05 * length(whichBothNonHomo) | length(which(newlm2$residuals > 2.5 * QnResid2)) < 0.05 * length(whichBothNonHomo)) {
     return(T)
   }
-  plot(covOne ~ covTwo)
+  plot(covOne ~ covTwo, main="CHECKED")
   return(F)
 }
 
+checkConnectivityComplex = function(j) {
+  sdFirst=localSdsOfProbes[j]
+  sdSecond = localSdsOfProbes[j+1]
+  locations1 = bestLocations[[j]]
+  locations2 = bestLocations[[j+1]]
+  weightsOne = bestWeights[[j]]
+  weightsTwo = bestWeights[[j+1]]
+  if (is.null(weightsOne) | is.null(weightsTwo)) {
+    return(F)
+  }
+  sdsMultipliers = multipliersSamples
+  dataOne = coverageToWorkWith[j,]
+  dataTwo = coverageToWorkWith[j+1,]
+  minSizeOfCluster = 0.001
+  resultList = likelihoodForTwoNeighbors(sdFirst, sdSecond, locations1, locations2, weightsOne, weightsTwo, sdsMultipliers, dataOne, dataTwo, minSizeOfCluster)
+  if (length(resultList) == 1) {
+    return(F)
+  }
+  clusterWeights = resultList[[2]]
+  if (sum(diag(clusterWeights)) + max(sum(diag(clusterWeights[,-1])), sum(diag(clusterWeights[-1,]))) > 0.95) {
+    return(T)
+  } else {
+    plot(dataOne ~ dataTwo)
+    return(F)
+  }
+}
 
-findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePolymorphCurrent, multipliersSamples) {
+
+findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePolymorphCurrent, multipliersSamples,index) {
   startOfmCNV = 2
   endOfmCNV = (nrow(coverageNeededToCheck) - 1)
   if (toyBedFilePolymorphCurrent[1,3] - toyBedFilePolymorphCurrent[1,2] < 250 | nrow(coverageNeededToCheck) < 3) {
@@ -129,7 +159,7 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
   #if (nrow(coverageNeededToCheck) > 2) {
     coverageSummarised = apply(coverageNeededToCheck[startOfmCNV:endOfmCNV,,drop=F], 2, median)
   #}
-
+    coverageSummarised = coverageSummarised / quantile(coverageSummarised, 0.8)
   notHomozygousDeletions = which(coverageSummarised >= 0.5)
   if (length(which(coverageSummarised <= 0.25)) > 0) {
     homozygousDelShit = median(coverageSummarised[which(coverageSummarised <= 0.25)]) ** 2
@@ -140,6 +170,7 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
   }
   modeOfCovSummarised = EstimateModeSimple(coverageSummarised[notHomozygousDeletions])
   coverageSummarised = coverageSummarised / modeOfCovSummarised
+  notHomozygousDeletions = which(coverageSummarised >= 0.5)
   bestLoc = sqrt(0:20/2)
   sdNormalised = Qn(coverageSummarised[which(coverageSummarised > sqrt(1/2) & coverageSummarised < sqrt(3/2))])
   #likelikAndWeights = likelihoodOfGaussianMixture(1, coverageSummarised[notHomozygousDeletions], sdNormalised, 
@@ -150,37 +181,46 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
   bestDivisor = 2
   bestWeight = c(1)
   bestLoc = c(1)
-  possibleLocations = round(medianOfCoverage ** 2 * 2)
-  possibleLocations = unique(c(possibleLocations, possibleLocations + -3:3))
+  #possibleLocations = round(medianOfCoverage ** 2 * 2)
+  #possibleLocations = unique(c(possibleLocations, possibleLocations + -5:5))
   for (j in 1:length(locations)) {
-    if (!j %in% possibleLocations) next
+    #if (!j %in% possibleLocations) next
     vecOfMeans = locations[[j]]
-    vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageSummarised[notHomozygousDeletions]) - 0.1 & vecOfMeans < max(coverageSummarised[notHomozygousDeletions]) + 0.1)]
+    vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageSummarised[notHomozygousDeletions]) - 0.2 & vecOfMeans < max(coverageSummarised[notHomozygousDeletions]) + 0.2)]
+    if (length(which(coverageSummarised <= 0.25)) / length(coverageSummarised) > 0.01) {
+      vecOfMeans = unique(c(vecOfMeans, 1 / sqrt(j)))
+    }
     if (length(vecOfMeans) == 1) next
     likelikAndWeights = likelihoodOfGaussianMixture(vecOfMeans, coverageSummarised[notHomozygousDeletions], sdNormalised, 
                                                     0.05 * (length(notHomozygousDeletions)) / length(coverageSummarised), 0.1, 
                                                     multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)
-    firstSignifCluster = which.min(likelikAndWeights[[2]] > 5 / length(notHomozygousDeletions))
+    firstSignifCluster = min(which(likelikAndWeights[[2]] > 0.025))
     if (length(notHomozygousDeletions) < length(coverageSummarised)) {
       firstSignifCluster = 1
     }
-    lastSignifCluster = which.max(likelikAndWeights[[2]] > 5 / length(notHomozygousDeletions))
+    lastSignifCluster = max(which(likelikAndWeights[[2]] > 0.025))
     if (firstSignifCluster < lastSignifCluster - 1)
-      if (min(likelikAndWeights[[2]][(firstSignifCluster + 1):(lastSignifCluster - 1)]) < 1 / length(notHomozygousDeletions)) next
+      if (min(likelikAndWeights[[2]][(firstSignifCluster + 1):(lastSignifCluster - 1)]) < 0.01) next
+    if (length(which(coverageSummarised <= 0.25)) / length(coverageSummarised) > 0.01) {
+      whichHomoDel = which.min(vecOfMeans - 1/sqrt(j))
+      if (likelikAndWeights[[2]][whichHomoDel] < 0.01) {
+        next
+      }
+    }
     tmpLikelik =  (
       -2 * likelikAndWeights[[1]] + (lastSignifCluster - firstSignifCluster  + 1) * log(length(notHomozygousDeletions))
     )
     #normalmixEM(coverageSummarised[notHomozygousDeletions], mu=vecOfMeans)
     #print(tmpLikelik)
     #print(j)
-    bestWeightCheckForEvenDominance = c(length(coverageSummarised) - length(notHomozygousDeletions), likelikAndWeights[[2]] * length(notHomozygousDeletions)) + 0.1
+    bestWeightCheckForEvenDominance = c(likelikAndWeights[[2]] * length(notHomozygousDeletions)) + 0.1
     bestWeightCheckForEvenDominance = bestWeightCheckForEvenDominance / sum(bestWeightCheckForEvenDominance)
-    bestLocEvenDominance = c(0, vecOfMeans)
-    bestLocEvenDominance = bestLocEvenDominance ** 2 * j
-    if (sum(bestWeightCheckForEvenDominance[which(bestLocEvenDominance %% 2 == 0)]) + length(which(coverageSummarised < 0.5) ) / length(notHomozygousDeletions) < 0.4) next
+    bestLocEvenDominance = c(vecOfMeans)
+    bestLocEvenDominance = round(bestLocEvenDominance ** 2 * j)
+    if ((sum(bestWeightCheckForEvenDominance[which(bestLocEvenDominance %% 2 == 0)]) * length(notHomozygousDeletions) + length(which(coverageSummarised < 0.5))) / length(coverageSummarised) < 0.4) next
 
     if (tmpLikelik < bestLikelik | is.null(bestSD)) {
-      if (likelikAndWeights[[3]] < 1 - sqrt((j-1)/j)) {
+      if (3 * likelikAndWeights[[3]] < 1 - sqrt((j-1)/j)) {
         bestLikelik= tmpLikelik
         bestLoc = vecOfMeans
         bestSD = likelikAndWeights[[3]]
@@ -196,7 +236,7 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
   if (length(which(coverageSummarised <= 0.25)) > 0) {
     bestLoc[which(bestLoc ==0)] = median(coverageSummarised[which(coverageSummarised <= 0.25)])
   }
-  bestWeight = c(length(coverageSummarised) - length(notHomozygousDeletions), bestWeight * length(notHomozygousDeletions)) + 1
+  bestWeight = c(length(coverageSummarised) - length(notHomozygousDeletions), bestWeight * length(notHomozygousDeletions)) + 0.1
   bestWeight = bestWeight / sum(bestWeight)
   
   rep.row<-function(x,n){
@@ -211,7 +251,7 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
   coloursP = c(coloursP, coloursP)
   diagnosticPlot = (length(which(copy_number != as.numeric(names(sort(table(copy_number),decreasing=TRUE)[1])))) >= 0.05 * length(copy_number))
   if (diagnosticPlot == T) {
-    fileName = paste(toyBedFilePolymorphCurrent[1,1], toyBedFilePolymorphCurrent[1,2], toyBedFilePolymorphCurrent[nrow(toyBedFilePolymorphCurrent),3], sep="_")
+    fileName = paste(index, toyBedFilePolymorphCurrent[1,1], toyBedFilePolymorphCurrent[1,2], toyBedFilePolymorphCurrent[nrow(toyBedFilePolymorphCurrent),3], sep="_")
     png(paste0(fileName, ".png"), width=length(copy_number) * 3, height=800)
     plot(coverageSummarised ** 2 * bestDivisor, col="black", pch=21,bg=coloursP[(copy_number + 1)])
     abline(h=bestLoc ** 2 * bestDivisor)
@@ -220,3 +260,173 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
   #plot(density(coverageSummarised, bw='SJ'))
   return(copy_number)
 }
+
+
+
+
+
+likelihoodForTwoNeighbors = function(sdFirst, sdSecond, locations1, locations2, weightsOne, weightsTwo, sdsMultipliers, dataOne, dataTwo, minSizeOfCluster) {
+  covarianceMatrix = matrix(c(sdFirst**2, 0, 0, sdSecond**2 ), nrow=2)
+  matrixOfLikeliks = array(0, c(length(dataOne), length(locations1), length(locations2)))
+  for (k in 1:length(dataOne)) {
+    for (i in 1:length(locations1)) {
+      for (j in 1:length(locations2)) {
+        matrixOfLikeliks[k, i, j] = exp( -0.5 * 
+                                           (
+                                             log( covarianceMatrix[1,1] * (sdsMultipliers[k] ** 4) * covarianceMatrix[2,2] ) + 
+                                               ((dataOne[k] - locations1[i]) ** 2 * 1 / ((sdsMultipliers[k]) ** 2 * covarianceMatrix[1,1])) + 
+                                               ((dataTwo[k] - locations2[j]) ** 2 * 1 / ((sdsMultipliers[k]) ** 2 * covarianceMatrix[2,2])) +
+                                               2 * log( 2 * pi)
+                                           )
+        )
+        if (is.na(matrixOfLikeliks[k, i, j])) matrixOfLikeliks[k, i, j] = 0
+      }
+    }
+  }
+  
+  
+  clusterWeights <- diag(1 / length(locations1), nrow=length(locations1), ncol=length(locations2))
+  for (i in 1:length(locations1)) {
+    for (j in 1:length(locations2)) {
+      clusterWeights[i,j] = weightsOne[i] * weightsTwo[j]
+    }
+  }
+  clusterWeights = clusterWeights + 1/(10**10 * (length(locations1) ** 2))
+  clusterWeights = clusterWeights / sum(clusterWeights)
+  
+  
+  gammaNK = array(0, c(length(dataOne), length(locations1), length(locations2)))
+  for (k in 1:length(dataOne)) {
+    gammaNK[k,,] = clusterWeights * matrixOfLikeliks[k,,]
+  }
+  
+  eachPointLoglik = rep(0, length(dataOne))
+  for (k in 1:length(dataOne)) {
+    eachPointLoglik[k] = log(sum(clusterWeights * matrixOfLikeliks[k,,]))
+    if (is.na(eachPointLoglik[k])) eachPointLoglik[k] = -10**100
+  }
+  previousLoglik = sum(eachPointLoglik)
+  
+  epsilon = 0.1
+  deltaLoglik = 2 * epsilon
+  counter = 1
+  while (epsilon < deltaLoglik) {
+    print(paste("Iteration number", counter))
+    counter = counter + 1
+    print(paste("Change in likelihood", deltaLoglik))
+    for (k in 1:length(dataOne)) {
+      clusterWeightIJ = sum(gammaNK[k,,])
+      if (is.nan(clusterWeightIJ)) {
+        return(F)
+        stop("Numerical error of EM algorithm")
+      }
+      if (!is.na(clusterWeightIJ) | clusterWeightIJ > 0) {
+        gammaNK[k,,] = gammaNK[k,,] / (clusterWeightIJ)
+      } else {
+        print("THIS IS THERO! FUCK")
+      }
+    }
+    for (i in 1:length(locations1)) {
+      for (j in 1:length(locations2)) {
+        clusterWeights[i,j] = sum(gammaNK[,i,j])
+      }
+    }
+    clusterWeights = clusterWeights / length(dataOne)
+    
+    
+    eachPointLoglik = rep(0, length(dataOne))
+    for (k in 1:length(dataOne)) {
+      eachPointLoglik[k] = log(sum(clusterWeights * matrixOfLikeliks[k,,]))
+      if (is.na(eachPointLoglik[k])) eachPointLoglik[k] = -10**100
+    }
+    currentLoglik = sum(eachPointLoglik)
+    deltaLoglik = currentLoglik - previousLoglik
+    previousLoglik = currentLoglik
+    if (deltaLoglik > epsilon) {
+      gammaNK = array(0, c(length(dataOne), length(locations1), length(locations2)))
+      for (k in 1:length(dataOne)) {
+        gammaNK[k, , ] = clusterWeights * matrixOfLikeliks[k, , ]
+      }
+    } else {
+      #return(list(clusterWeights, currentLoglik))
+      clustersToExclude <- which(clusterWeights < minSizeOfCluster / length(dataOne))
+      clusterWeights[clustersToExclude] = 0
+      gammaNK = array(0, c(length(dataOne), length(locations1), length(locations2)))
+      for (k in 1:length(dataOne)) {
+        gammaNK[k, , ] = clusterWeights * matrixOfLikeliks[k, , ]
+      }
+      for (k in 1:length(dataOne)) {
+        clusterWeightIJ = sum(gammaNK[k,,]) 
+        if (!is.na(clusterWeightIJ) | clusterWeightIJ > 0) {
+          gammaNK[k,,] = gammaNK[k,,] / (clusterWeightIJ)
+        } else {
+          print("THIS IS THERO! FUCK")
+        }
+      }
+      for (i in 1:length(locations1)) {
+        for (j in 1:length(locations2)) {
+          clusterWeights[i,j] = sum(gammaNK[,i,j])
+        }
+      }
+      clusterWeights = clusterWeights / length(dataOne)
+      eachPointLoglik = rep(0, length(dataOne))
+      for (k in 1:length(dataOne)) {
+        eachPointLoglik[k] = log(sum(clusterWeights * matrixOfLikeliks[k,,]))
+        if (is.na(eachPointLoglik[k])) eachPointLoglik[k] = -10**100
+      }
+      currentLoglik = sum(eachPointLoglik)
+      #return(list(clusterWeights, currentLoglik))
+      
+      oldBIC = -2 * currentLoglik + log(length(dataOne)) * length(which(clusterWeights != 0))
+      #print(oldBIC)
+      while (length(which(clusterWeights != 0)) > 0) {
+        #print(paste("BIC iteration, BIC is equal to", oldBIC))
+        print(paste("Number of non zero clusters", length(which(clusterWeights > 0))))
+        if (length(which(clusterWeights > 0)) <= 1){
+          print(length(which(clusterWeights > 0)) <= 1)
+          return(list(100, matrix(c(0,0,0,1),nrow=2)))
+        }
+        
+        tmpClusterWeights = clusterWeights
+        minClusterWeight = min(tmpClusterWeights[which(tmpClusterWeights > 0)])
+        tmpClusterWeights[which(tmpClusterWeights <= minClusterWeight)] = 0
+        gammaNK = array(0, c(length(dataOne), length(locations1), length(locations2)))
+        for (k in 1:length(dataOne)) {
+          gammaNK[k, , ] = tmpClusterWeights * matrixOfLikeliks[k, , ]
+        }
+        for (k in 1:length(dataOne)) {
+          clusterWeightIJ = sum(gammaNK[k,,]) 
+          if (!is.na(clusterWeightIJ) | clusterWeightIJ > 0) {
+            gammaNK[k,,] = gammaNK[k,,] / (clusterWeightIJ)
+          } else {
+            print("THIS IS THERO! FUCK")
+          }
+        }
+        for (i in 1:length(locations1)) {
+          for (j in 1:length(locations2)) {
+            tmpClusterWeights[i,j] = sum(gammaNK[,i,j])
+          }
+        }
+        tmpClusterWeights = tmpClusterWeights / length(dataOne)
+        eachPointLoglik = rep(0, length(dataOne))
+        for (k in 1:length(dataOne)) {
+          eachPointLoglik[k] = log(sum(tmpClusterWeights * matrixOfLikeliks[k,,]))
+          if (is.na(eachPointLoglik[k])){eachPointLoglik[k] = -10**100}
+        }
+        
+        tmpCurrentLoglik = sum(eachPointLoglik)
+        BIC = -2 * tmpCurrentLoglik + log(length(dataOne)) * length(which(tmpClusterWeights != 0))
+        if (BIC < oldBIC) {
+          currentLoglik = tmpCurrentLoglik
+          clusterWeights = tmpClusterWeights
+          oldBIC = BIC
+        } else {
+          break
+        }
+      }
+      
+      return(list(currentLoglik, clusterWeights))
+    }
+  }
+}
+

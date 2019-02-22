@@ -75,6 +75,9 @@ for (l in 1:length(left_borders)) {
     correlations <- sapply(2:nrow(coverageToWorkWith), function(i) {
       moreThanZero = which(coverageToWorkWith[i,] > 0.5 & coverageToWorkWith[i-1,] > 0.5) ; 
       cor(coverageToWorkWith[i,moreThanZero], coverageToWorkWith[i-1,moreThanZero])})
+    bestWeights = list()
+    bestDivisors = list()
+    bestLocations = list()
     for (i in 1:nrow(coverageToWorkWith)) {
       correlationsAround = c(correlations[i - 1])
       if (i < nrow(coverageToWorkWith) - 1) {
@@ -82,7 +85,7 @@ for (l in 1:length(left_borders)) {
       }
       if (i %% 1000 == 0) print(i)
       coverageOfProbe = coverageToWorkWith[i,]
-      if (max(correlationsAround) > quantile(correlations, 0.9)) {
+      if (max(correlationsAround) > quantile(correlations, 0.75)) {
         notHomozygousDeletions = which(coverageOfProbe > 0.25)
         if (length(notHomozygousDeletions) < length(coverageOfProbe)) {
           homozygousDelShit = median(coverageOfProbe[which(coverageOfProbe < 0.25)]) ** 2
@@ -92,6 +95,9 @@ for (l in 1:length(left_borders)) {
         matrixOfLikeliksLocal[i,1] = -2 * likelihoodOfGaussianMixture(c(1), coverageOfProbe[notHomozygousDeletions], sdNormalised , 
                                                                  0.05 * (length(notHomozygousDeletions)) / ncol(coverageToWorkWith), 0.1, 
                                                                  multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)
+        bestWeights[[i]] = c(1)
+        bestDivisors[[i]] = 2
+        bestLocations[[i]] = 1
         for (j in 1:length(locations)) {
           if (mediansOfPolymorphicLocal[i] < sqrt(1/2) & j >= 3) next
           if (mediansOfPolymorphicLocal[i] < sqrt(3/2) & j >= 6) next
@@ -107,9 +113,17 @@ for (l in 1:length(left_borders)) {
           tmpLikelik =  (
             -2 * likelikAndWeights[[1]] + (length(which(likelikAndWeights[[2]] > 0.1 / length(notHomozygousDeletions)))  + 1) * log(length(notHomozygousDeletions))
                            )
-          if (tmpLikelik < matrixOfLikeliksLocal[i,2] & tmpLikelik < matrixOfLikeliksLocal[i,1]) {
+          if (tmpLikelik < matrixOfLikeliksLocal[i,2]) {
             matrixOfLikeliksLocal[i,2] = tmpLikelik
             localSdsOfProbes[i] = likelikAndWeights[[3]]
+            bestLocations[[i]] = locations[[j]]
+            bestWeights[[i]] = rep(0.000001, length(bestLocations[[i]]))
+            for (l in 1:length(vecOfMeans)) {
+              bestWeights[[which.min(abs(bestLocations[[i]] - vecOfMeans[l]))]] = bestWeights[[which.min(abs(bestLocations[[i]] - vecOfMeans[l]))]] + likelikAndWeights[[2]][l]
+            }
+            
+            bestDivisors[[i]] = j
+            
           }
         }
       } else {
@@ -133,11 +147,14 @@ for (l in 1:length(left_borders)) {
           wasDivided = F
           for (j in (regionsToLookForMCNVs[counter,2] + 1):(regionsToLookForMCNVs[counter,3] - 2)) {
             if (!checkConnectivity(coverageToWorkWith[j,], coverageToWorkWith[j + 1,])) {
-              if (j + 2 <= nrow(coverageToWorkWith)) {
-                if (checkConnectivity(coverageToWorkWith[j,], coverageToWorkWith[j + 2,])) {
-                  next
-                }
-              }
+              print(j)
+            }
+             if (!checkConnectivityComplex(j)) {
+              #if (j + 2 <= nrow(coverageToWorkWith)) {
+                #if (checkConnectivity(coverageToWorkWith[j,], coverageToWorkWith[j + 2,])) {
+                #  next
+                #}
+              #}
               leftVar = regionsToLookForMCNVs[counter,]
               leftVar[3] = j
               rightVar = regionsToLookForMCNVs[counter,]
@@ -162,7 +179,7 @@ for (l in 1:length(left_borders)) {
       mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],], 
                      median(mediansOfPolymorphicLocal[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)]), 
                      toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                     multipliersSamples)
+                     multipliersSamples, i)
       if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < 0.05 * ncol(coverageToWorkWith)) {
         print(i)
         next
