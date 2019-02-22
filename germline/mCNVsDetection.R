@@ -119,7 +119,7 @@ for (l in 1:length(left_borders)) {
             bestLocations[[i]] = locations[[j]]
             bestWeights[[i]] = rep(0.000001, length(bestLocations[[i]]))
             for (l in 1:length(vecOfMeans)) {
-              bestWeights[[which.min(abs(bestLocations[[i]] - vecOfMeans[l]))]] = bestWeights[[which.min(abs(bestLocations[[i]] - vecOfMeans[l]))]] + likelikAndWeights[[2]][l]
+              bestWeights[[i]][which.min(abs(bestLocations[[i]] - vecOfMeans[l]))] = bestWeights[[i]][which.min(abs(bestLocations[[i]] - vecOfMeans[l]))] + likelikAndWeights[[2]][l]
             }
             
             bestDivisors[[i]] = j
