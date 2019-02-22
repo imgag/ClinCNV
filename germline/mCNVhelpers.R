@@ -155,7 +155,7 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
   for (j in 1:length(locations)) {
     if (!j %in% possibleLocations) next
     vecOfMeans = locations[[j]]
-    vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageSummarised[notHomozygousDeletions]) - 0.25 & vecOfMeans < max(coverageSummarised[notHomozygousDeletions]) + 0.25)]
+    vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageSummarised[notHomozygousDeletions]) - 0.1 & vecOfMeans < max(coverageSummarised[notHomozygousDeletions]) + 0.1)]
     if (length(vecOfMeans) == 1) next
     likelikAndWeights = likelihoodOfGaussianMixture(vecOfMeans, coverageSummarised[notHomozygousDeletions], sdNormalised, 
                                                     0.05 * (length(notHomozygousDeletions)) / length(coverageSummarised), 0.1, 
@@ -188,6 +188,9 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
         bestDivisor = j
       }
     }
+  }
+  if (is.null(bestSD)) {
+    bestSD = sdNormalised
   }
   bestLoc = unique(c(0, bestLoc))
   if (length(which(coverageSummarised <= 0.25)) > 0) {

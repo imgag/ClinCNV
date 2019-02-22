@@ -99,8 +99,8 @@ for (l in 1:length(left_borders)) {
           if (mediansOfPolymorphicLocal[i] > sqrt(8/2) & j <= 4) next
           sdNormalised = localSdsOfProbes[i]
           vecOfMeans = locations[[j]]
-          vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageOfProbe[notHomozygousDeletions]) & vecOfMeans < max(coverageOfProbe[notHomozygousDeletions]))]
-          if (length(vecOfMeans) == 1) next
+          vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageOfProbe[notHomozygousDeletions]) - 0.1 & vecOfMeans < max(coverageOfProbe[notHomozygousDeletions]) + 0.1)]
+          if (length(vecOfMeans) <= 1) next
           likelikAndWeights = likelihoodOfGaussianMixture(vecOfMeans, coverageOfProbe[notHomozygousDeletions], sdNormalised, 
                                                           0.05 * (length(notHomozygousDeletions)) / ncol(coverageToWorkWith), 0.1, 
                                                           multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)

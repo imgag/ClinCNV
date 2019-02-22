@@ -48,6 +48,17 @@ if (is.null(covarianceTree)) {
 setwd(opt$folderWithScript)
 print(paste("Tree of covariances (using 2 predictors - sum of regions' lengths and log2 of distance between regions) plotted in", opt$out, Sys.time()))
 
+positionsInPolymorphic = c()
+if (!is.null(polymorphicRegions)) {
+  for (chrom in unique(bedFileFiltered[,1])) {
+    chromInBed = which(bedFileFiltered[,1] == chrom)
+    polymorphicInsideChrom = polymorphicRegions[which(polymorphicRegions[,1] == chrom),]
+    for (i in 1:nrow(polymorphicInsideChrom)) {
+      whichInsideVariant <- which(as.numeric(bedFileFiltered[chromInBed,2]) >= as.numeric(polymorphicInsideChrom[i,2]) - 500 & as.numeric(bedFileFiltered[chromInBed,3]) <= as.numeric(polymorphicInsideChrom[i,3]) + 500)
+      positionsInPolymorphic = c(positionsInPolymorphic, chromInBed[whichInsideVariant])
+    }
+  }
+}
 
 print(paste("Calling started", Sys.time()))
 for (sam_no in 1:ncol(coverage.normalised)) {
@@ -95,12 +106,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   
   matrix_of_likeliks_for_FDR <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised), sam_no, localSds, coverage.normalised, sqrt(cn_states / 2))
   if (!is.null(polymorphicRegions)) {
-    for (i in 1:nrow(polymorphicRegions)) {
-      whichInsideVariant <- which(bedFileFiltered[,1] == polymorphicRegions[i,1] & 
-                                    as.numeric(bedFileFiltered[,2]) >= as.numeric(polymorphicRegions[i,2]) - 500 & as.numeric(bedFileFiltered[,3]) <= as.numeric(polymorphicRegions[i,3]) + 500)
-      matrix_of_likeliks_for_FDR[whichInsideVariant,] = 0
-      matrix_of_likeliks_for_FDR[whichInsideVariant,main_initial_state] = 0
-    }
+    matrix_of_likeliks_for_FDR[positionsInPolymorphic,] = 0
+    matrix_of_likeliks_for_FDR[positionsInPolymorphic,main_initial_state] = 0
   }
   if (opt$mosaicism) {
     fineForMosaicism = 1
