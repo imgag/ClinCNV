@@ -109,7 +109,7 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
   }
   ### THIS IS TOO SLOW! HAS TO BE RE-DONE
   shifts <- apply(matrixOfLogFold, 1, EstimateModeSimple)
-  png(paste0(round(rnorm(1), digits=5), "plot_with_shifts.png"), width=2000, height=1000)
+  png(paste0("plot_with_shifts.png"), width=2000, height=1000)
   fit <- loess(shifts ~ c(1:length(shifts)), span=0.05)
   plot(shifts)
   predictions <- predict(fit, 1:length(shifts))
@@ -327,6 +327,8 @@ qcControl <- function(sam_no, toyMatrixOfLogFold, toyLocalSds, toyMultipliersDue
 
 
 returnMultiplierDueToLog <- function(cnNorm, cnTum, sdNorm, sdTum, covNT) {
+  cnNorm = 2
+  cnTum = 2
   resSd = (cnNorm/2)**2 * sdNorm + (cnTum/2)**2 * sdTum - 2 * (cnTum/2) * (cnNorm/2) * covNT
   if (cnTum < 0.2) {
     resSd = 2 * resSd

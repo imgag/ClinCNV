@@ -494,14 +494,23 @@ clustering = clusteringList[[1]]
 outliersByClusteringCohort = clusteringList[[2]]
 
   
+orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
+bedFile = bedFile[orderOfBedFile,]
+normal = normal[orderOfBedFile,]
+coverageAllSamples <- sqrt(as.matrix(normal))
+
+
+
+print(paste("Gender estimation started", Sys.time()))
+genderOfSamplesCohort <- Determine.gender(coverageAllSamples, bedFile)
+print(genderOfSamplesCohort)
+print(paste("Gender succesfully determined. Plot is written in your results directory:", opt$out, Sys.time()))
+
 if (framework == "germline") {
   gc()
   print(paste("Processing of germline variants started (we need to do it as an additional step for Saomtic calling since we need to know at least genders).", Sys.time()))
   
-  orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
-  bedFile = bedFile[orderOfBedFile,]
-  normal = normal[orderOfBedFile,]
-  coverageAllSamples <- sqrt(as.matrix(normal))
+
   
   if (frameworkOff == "offtargetGermline") {
     orderOfBedFileOff <- order(bedFileOfftarget[,1], as.numeric(bedFileOfftarget[,2]))
@@ -509,12 +518,6 @@ if (framework == "germline") {
     normalOff = normalOff[orderOfBedFileOff,]
     coverageAllSamplesOff <- sqrt(as.matrix(normalOff))
   }
-  
-  
-  print(paste("Gender estimation started", Sys.time()))
-  genderOfSamplesCohort <- Determine.gender(coverageAllSamples, bedFile)
-  print(genderOfSamplesCohort)
-  print(paste("Gender succesfully determined. Plot is written in your results directory:", opt$out, Sys.time()))
   
   for (cluster in unique(clustering)) {
     if (cluster == -1) {

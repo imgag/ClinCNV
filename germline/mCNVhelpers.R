@@ -188,7 +188,8 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
     vecOfMeans = locations[[j]]
     vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageSummarised[notHomozygousDeletions]) - 0.2 & vecOfMeans < max(coverageSummarised[notHomozygousDeletions]) + 0.2)]
     if (length(which(coverageSummarised <= 0.25)) / length(coverageSummarised) > 0.01) {
-      vecOfMeans = unique(c(vecOfMeans, 1 / sqrt(j)))
+      vecOfMeans = unique(round(c(vecOfMeans, 1 / sqrt(j)) * 100000))
+      vecOfMeans = vecOfMeans / 100000
     }
     if (length(vecOfMeans) == 1) next
     likelikAndWeights = likelihoodOfGaussianMixture(vecOfMeans, coverageSummarised[notHomozygousDeletions], sdNormalised, 

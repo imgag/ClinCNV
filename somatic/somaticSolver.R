@@ -551,7 +551,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             blocked_states = c(setdiff(c(1,2), initial_state),
                                which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
           }
-          found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states))
+          penalties = penaltyForHigherCN * abs(2 - local_copy_numbers_used)
+          found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states, penalties))
           
           if (nrow(found_CNVs) > 0 & !chrom %in% c("chrX", "chrY", "X", "Y")) {
             likeliksFoundCNVsVsPurities <- matrix(nrow=nrow(found_CNVs), ncol=length(uniqueLocalPurities))
@@ -561,8 +562,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                 startOfCNV <- found_CNVs[q,2]
                 endOfCNV <- found_CNVs[q,3]
                 if (endOfCNV - startOfCNV > 3) { 
-                  penalty = penaltyForHigherCN * abs(2 - local_copy_numbers_used[which(local_purities == localPurityCurrent)])
-                  likeliksFoundCNVsVsPurities[q, m] = min(apply(toyMatrixOfLikeliks[(startOfCNV + 1):(endOfCNV - 1),which(local_purities == localPurityCurrent)], 2, sum) + penalty)
+                  #penalty = penaltyForHigherCN * abs(2 - local_copy_numbers_used[which(local_purities == localPurityCurrent)])
+                  likeliksFoundCNVsVsPurities[q, m] = min(apply(toyMatrixOfLikeliks[(startOfCNV + 1):(endOfCNV - 1),which(local_purities == localPurityCurrent)], 2, sum)) # + penalty)
                 }
               }
             }

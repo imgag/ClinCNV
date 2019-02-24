@@ -234,10 +234,13 @@ esimtateVarianceFromSampleNoise <- function(vecOfSDsParam, numberOfRepetitions) 
 
 
 
-find_final_state <- function(start, end, initial_state, matrix_of_likeliks_local, blocked_states) {
+find_final_state <- function(start, end, initial_state, matrix_of_likeliks_local, blocked_states, penalties) {
   super_small_likelik = -10^20
   sweeped_matrix <- sweep(matrix_of_likeliks_local[(start + 1):(end - 1),,drop=F], 1, matrix_of_likeliks_local[(start + 1):(end - 1),initial_state])
   res_within <- apply(sweeped_matrix, 2, sum)
+  if (length(penalties) == ncol(sweeped_matrix)) {
+    res_within = res_within + penalties
+  }
   res_within[blocked_states] = max(res_within) + 1
   cn_state_by_central_points <- which.min(res_within)
   
@@ -316,7 +319,7 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, 
 }
 
 
-find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, initial_state, matrix_of_likeliks_local, very_initial_state, blocked_states=c()) {
+find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, initial_state, matrix_of_likeliks_local, very_initial_state, blocked_states=c(), penalties=c()) {
   vector_of_regions <- matrix(c(-10, 1, nrow(matrix_of_likeliks_local), initial_state), nrow=1, ncol=4)
   found_CNVs <- matrix(nrow=0, ncol=11)
   i = 1
@@ -338,7 +341,7 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
       # if we do not segment further we add CNV to the list - found CNV is not significant or 
       result_CNV <- current_region_to_look_for_CNVs
       if (current_region_to_look_for_CNVs[4] != initial_state & end - start >= minimum_length_of_CNV){
-        bf_and_state <- find_final_state(start, end, very_initial_state, matrix_of_likeliks_local, blocked_states)
+        bf_and_state <- find_final_state(start, end, very_initial_state, matrix_of_likeliks_local, blocked_states, penalties)
         result_CNV[1] = bf_and_state[1]
         result_CNV[4] = bf_and_state[2]
         likelik_score_read_depth_only <- bf_and_state[3]
