@@ -162,8 +162,14 @@ if (!dir.exists(folder_name)) {
 allPotentialPurities <- unique(purities)
 penaltyForHigherCN = 20
 print(paste("Work on actual calling started.", Sys.time()))
+sampleLevelOfNoise = apply(matrixOfLogFold[which(!bedFile[,1] %in% c("chrX","chrY")),], 2, Qn)
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
+  if (sampleLevelOfNoise[i] > 0.7) {
+    print("Sample don't pass our QC - too noisy!")
+    print(sample_name)
+    next
+  }
   germline_sample_no = which(colnames(normal) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])
   if (germline_sample_no == "F") next
   print(genderOfSamplesCohort[germline_sample_no])
@@ -441,6 +447,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
           for (i in 1:nrow(bAlleleFreqsTumor)) {
             closestBedRegion = closestBedRegionsToy[i]
+            if (!is.na(closestBedRegion))
             if (closestBedRegion != 0)
             matrix_of_likeliks[closestBedRegion,] = matrix_of_likeliks[closestBedRegion,] + matrixOfBAFLikeliks[i,]
           }
