@@ -306,6 +306,7 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, 
   detectedCNVs <- foreach (i=sequence_for_iteration, .combine=rbind) %dopar% {
     maxSubArraySum(matrix_of_BFs[,i])
   }
+  detectedCNVs = matrix(detectedCNVs, ncol=3)
   resultCNV = detectedCNVs[which.max(detectedCNVs[,1]),]
   if (resultCNV[1] > threshold) {
     resultCNV[2] = j + resultCNV[2] - 1

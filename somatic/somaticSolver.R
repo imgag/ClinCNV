@@ -448,8 +448,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           for (i in 1:nrow(bAlleleFreqsTumor)) {
             closestBedRegion = closestBedRegionsToy[i]
             if (!is.na(closestBedRegion))
-            if (closestBedRegion != 0)
-            matrix_of_likeliks[closestBedRegion,] = matrix_of_likeliks[closestBedRegion,] + matrixOfBAFLikeliks[i,]
+              if (closestBedRegion != 0)
+                matrix_of_likeliks[closestBedRegion,] = matrix_of_likeliks[closestBedRegion,] + matrixOfBAFLikeliks[i,]
           }
           vectorsWithRegionCoordsFilled = T
         }
