@@ -113,6 +113,7 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
   fit <- loess(shifts ~ c(1:length(shifts)), span=0.05)
   plot(shifts)
   predictions <- predict(fit, 1:length(shifts))
+  predictions[which(predictions > -0.25 | predictions < 0.25)] = 0
   lines(predictions, col="red", lwd=3)
   dev.off()
   matrixOfLogFold <- sweep(matrixOfLogFold, 1, predictions)
