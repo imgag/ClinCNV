@@ -13,11 +13,20 @@ vect_of_norm_likeliks <- fast_dt_list(as.numeric(opt$degreesOfFreedomStudent))
 
 print(paste("Work on data preparation for somatic samples started (log-fold change matrices plus parameters estimation)", Sys.time()))
 
-listOfValue <- formilngLogFoldChange(pairs, tmpNormal, tumor)
+listOfValue <- formilngLogFoldChange(pairs, tmpNormal, tumor, bedFile, genderOfSamples)
 matrixOfLogFold <- listOfValue[[1]]
 dictFromColumnToTumor <- listOfValue[[2]]
 
-bordersOfChroms <- getBordersOfChromosomes(bedFile)
+# QC control
+sampleLevelOfNoise = apply(matrixOfLogFold[which(!bedFile[,1] %in% c("chrX","chrY")),], 2, Qn)
+samplesNotPassedQC = colnames(matrixOfLogFold)[which(sampleLevelOfNoise > 1.0)]
+if (length(samplesNotPassedQC) > 0) {
+  print("Samples don't pass our QC - too noisy!")
+  print(samplesNotPassedQC)
+  matrixOfLogFold = matrixOfLogFold[,-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
+}
+
+
 matrixWithSdsList <- findSDsOfSamples(pairs, tmpNormal, tumor, bedFile, bordersOfChroms, genderOfSamples)
 matrixWithSds = matrixWithSdsList[[1]]
 sdsOfSomaticSamples <- matrixWithSds[4,]
@@ -26,9 +35,16 @@ sdsOfProbes <- matrixWithSdsList[[2]]
 
 
 if (frameworkOff == "offtarget") {
-  listOfValueOff <- formilngLogFoldChange(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff)
+  listOfValueOff <- formilngLogFoldChange(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileOfftarget, genderOfSamples)
   matrixOfLogFoldOff =  listOfValueOff[[1]]
   dictFromColumnToTumorOff = listOfValueOff[[2]]
+  
+  if (length(samplesNotPassedQC) > 0) {
+    if (length(which(colnames(matrixOfLogFoldOff) %in% samplesNotPassedQC)) > 0) {
+      matrixOfLogFoldOff = matrixOfLogFoldOff[,-which(colnames(matrixOfLogFoldOff) %in% samplesNotPassedQC)]
+    }
+  }
+  
   bordersOfChroms <- getBordersOfChromosomes(bedFileOfftarget)
   matrixWithSdsOffList <- findSDsOfSamples(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileOfftarget, bordersOfChroms, genderOfSamples)
   matrixWithSdsOff = matrixWithSdsOffList[[1]]
@@ -162,14 +178,10 @@ if (!dir.exists(folder_name)) {
 allPotentialPurities <- unique(purities)
 penaltyForHigherCN = 20
 print(paste("Work on actual calling started.", Sys.time()))
-sampleLevelOfNoise = apply(matrixOfLogFold[which(!bedFile[,1] %in% c("chrX","chrY")),], 2, Qn)
+
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
-  if (sampleLevelOfNoise[sam_no] > 1.0) {
-    print("Sample don't pass our QC - too noisy!")
-    print(sample_name)
-    next
-  }
+
   germline_sample_no = which(colnames(normal) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])
   if (germline_sample_no == "F") next
   print(genderOfSamplesCohort[germline_sample_no])

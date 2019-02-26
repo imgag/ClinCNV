@@ -90,7 +90,7 @@ findSDsOfSamples <- function(pairs, normalCov, tumorCov, bedFileForCalc, borders
 # QnsR <- apply(matrixOfLogFold, 1, Qn)
 # summary(QnsFake / QnsR)
 
-formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
+formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, genderOfSamplesInCluster) {
   matrixOfLogFold <- matrix(0, nrow=nrow(normalCov), ncol=0)
   listOfMatrOfLogFoldToTumor <- list()
   counter = 0
@@ -108,15 +108,32 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov) {
     }
   }
   ### THIS IS TOO SLOW! HAS TO BE RE-DONE
-  shifts <- apply(matrixOfLogFold, 1, EstimateModeSimple)
+  uniqueChroms = unique(currentBedFile[,1])
+  shifts = rep(0, nrow(matrixOfLogFold))
+  for (i in 1:length(uniqueChroms)) {
+    whichChrom = which(currentBedFile[,] == uniqueChroms[i])
+    matrixOfLogFoldToCheck = matrixOfLogFold[whichChrom,]
+    if (uniqueChroms == "chrX") {
+      if (length(which(genderOfSamplesInCluster == "F")) > 10)
+        matrixOfLogFoldToCheck = matrixOfLogFoldToCheck[which(genderOfSamplesInCluster == "F")]
+      else next
+    }
+    if (uniqueChroms == "chrY") {
+      if (length(which(genderOfSamplesInCluster == "M")) > 10)
+        matrixOfLogFoldToCheck = matrixOfLogFoldToCheck[which(genderOfSamplesInCluster == "M")]
+      else next
+    }
+    shiftsChrom <- apply(matrixOfLogFoldToCheck, 1, EstimateModeSimple)
+    fit <- loess(shiftsChrom ~ c(1:length(shiftsChrom)), span=0.8)
+    predictions <- predict(fit, 1:length(shiftsChrom))
+    shifts[whichChrom] = predictions
+  }
+  shiftsAll <- apply(matrixOfLogFold, 1, EstimateModeSimple)
   png(paste0("plot_with_shifts.png"), width=2000, height=1000)
-  fit <- loess(shifts ~ c(1:length(shifts)), span=0.05)
-  plot(shifts)
-  predictions <- predict(fit, 1:length(shifts))
-  predictions[which(predictions > -0.25 | predictions < 0.25)] = 0
-  lines(predictions, col="red", lwd=3)
+  plot(shiftsAll)
+  lines(shifts, col="red", lwd=3)
   dev.off()
-  matrixOfLogFold <- sweep(matrixOfLogFold, 1, predictions)
+  matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
   return(list(matrixOfLogFold, listOfMatrOfLogFoldToTumor))
 }
 
