@@ -165,7 +165,7 @@ print(paste("Work on actual calling started.", Sys.time()))
 sampleLevelOfNoise = apply(matrixOfLogFold[which(!bedFile[,1] %in% c("chrX","chrY")),], 2, Qn)
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
-  if (sampleLevelOfNoise[i] > 0.7) {
+  if (sampleLevelOfNoise[sam_no] > 1.0) {
     print("Sample don't pass our QC - too noisy!")
     print(sample_name)
     next

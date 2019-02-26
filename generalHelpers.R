@@ -303,15 +303,18 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, 
   value <- threshold
   sequence_for_iteration = seq(1:ncol(matrix_of_BFs))
   sequence_for_iteration = setdiff(sequence_for_iteration, c(blocked_states, main_state))
-  for (i in sequence_for_iteration) {
-    res <- maxSubArraySum(matrix_of_BFs[,i])
-    res[2] <- j + res[2] - 1
-    res[3] <- j + res[3] - 1
-    if (res[1] > max(value, best_bf)) {
-      best_bf <- res[1]
-      coords_of_CNVs <- c(res, i)
-    }
+  detectedCNVs <- foreach (i=sequence_for_iteration, .combine=rbind) %dopar% {
+    maxSubArraySum(matrix_of_BFs[,i])
   }
+  resultCNV = detectedCNVs[which.max(detectedCNVs[,1]),]
+  if (resultCNV[1] > threshold) {
+    resultCNV[2] = j + resultCNV[2] - 1
+    resultCNV[3] = j + resultCNV[3] - 1
+    resultCNV <- c(resultCNV, sequence_for_iteration[which.max(detectedCNVs[,1])])
+  } else {
+    resultCNV = coords_of_CNVs
+  }
+  coords_of_CNVs = unname(resultCNV)
   if (coords_of_CNVs != c(0,0,0,0)) {
     return(coords_of_CNVs)
   }
