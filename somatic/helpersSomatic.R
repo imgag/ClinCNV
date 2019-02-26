@@ -92,21 +92,37 @@ findSDsOfSamples <- function(pairs, normalCov, tumorCov, bedFileForCalc, borders
 
 formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, genderOfSamplesInCluster) {
   matrixOfLogFold <- matrix(0, nrow=nrow(normalCov), ncol=0)
-  listOfMatrOfLogFoldToTumor <- list()
-  counter = 0
+  matrixOfLogFold <- foreach(i=1:ncol(normalCov), .combine="cbind") %dopar% {
+    matrixOfLogFoldTmp <- matrix(0, nrow=nrow(normalCov), ncol=0)
+    sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
+    for (sampleName1 in sampleNames1) {
+      sampleName2 <- which(colnames(tumorCov) == pairs[sampleName1,1])
+      new_name <- (paste(colnames(tumorCov)[sampleName2], "-",  colnames(normalCov)[i], sep=""))
+      if (length(sampleName2) > 0) {
+        matrixOfLogFoldTmp <- cbind(matrixOfLogFoldTmp, matrix(log2(tumorCov[,sampleName2]/normalCov[,i]), nrow=nrow(normalCov), ncol=1))
+      }
+    }
+    if (ncol(matrixOfLogFoldTmp) > 0) {
+      matrixOfLogFoldTmp
+    } else {
+      NULL
+    }
+  }
+  counter = 1
+  colnamesForMatrix <- rep(0, ncol(matrixOfLogFold))
   for (i in 1:ncol(normalCov)) {
     sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
     for (sampleName1 in sampleNames1) {
       sampleName2 <- which(colnames(tumorCov) == pairs[sampleName1,1])
       new_name <- (paste(colnames(tumorCov)[sampleName2], "-",  colnames(normalCov)[i], sep=""))
       if (length(sampleName2) > 0) {
+        colnamesForMatrix[counter] <- new_name
         counter = counter + 1
-        matrixOfLogFold <- cbind(matrixOfLogFold, matrix(log2(tumorCov[,sampleName2]/normalCov[,i]), nrow=nrow(normalCov), ncol=1))
-        colnames(matrixOfLogFold)[ncol(matrixOfLogFold)] <- new_name
-        listOfMatrOfLogFoldToTumor[[counter]] = sampleName2
       }
     }
   }
+  colnames(matrixOfLogFold) = colnamesForMatrix
+  
   ### THIS IS TOO SLOW! HAS TO BE RE-DONE
   uniqueChroms = unique(currentBedFile[,1])
   shifts = rep(0, nrow(matrixOfLogFold))
@@ -134,7 +150,7 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
   lines(shifts, col="red", lwd=3)
   dev.off()
   matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
-  return(list(matrixOfLogFold, listOfMatrOfLogFoldToTumor))
+  return(list(matrixOfLogFold))
 }
 
 
@@ -291,7 +307,7 @@ return_likelik <- function(x) {
 }
 
 EstimateModeSimple <- function(x) {
-  tmpx = x[which(x > -0.5 & x < 0.5)]
+  tmpx = x[which(x > -0.25 & x < 0.25)]
   if (length(tmpx) < 10) {
     return(0)
   }

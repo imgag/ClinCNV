@@ -15,7 +15,6 @@ print(paste("Work on data preparation for somatic samples started (log-fold chan
 
 listOfValue <- formilngLogFoldChange(pairs, tmpNormal, tumor, bedFile, genderOfSamples)
 matrixOfLogFold <- listOfValue[[1]]
-dictFromColumnToTumor <- listOfValue[[2]]
 
 # QC control
 sampleLevelOfNoise = apply(matrixOfLogFold[which(!bedFile[,1] %in% c("chrX","chrY")),], 2, Qn)
@@ -37,8 +36,7 @@ sdsOfProbes <- matrixWithSdsList[[2]]
 if (frameworkOff == "offtarget") {
   listOfValueOff <- formilngLogFoldChange(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileOfftarget, genderOfSamples)
   matrixOfLogFoldOff =  listOfValueOff[[1]]
-  dictFromColumnToTumorOff = listOfValueOff[[2]]
-  
+
   if (length(samplesNotPassedQC) > 0) {
     if (length(which(colnames(matrixOfLogFoldOff) %in% samplesNotPassedQC)) > 0) {
       matrixOfLogFoldOff = matrixOfLogFoldOff[,-which(colnames(matrixOfLogFoldOff) %in% samplesNotPassedQC)]
@@ -743,9 +741,17 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         minResult = 10**100
         for (m in 1:maxNumOfClones) {
           combinationsOfPurities <- combn(localPurityStates, m)
+
           bestCombination = 1
           
           for (q in 1:ncol(combinationsOfPurities)) {
+            if (length(combinationsOfPurities[,q]) > 1) {
+              combinationOfDifferences = combn(combinationsOfPurities[,q], 2)
+              allDiffs <- abs(combinationOfDifferences[1,] - combinationOfDifferences[2,])
+              if (min(allDiffs) < 0.0499) {
+                next
+              }
+            }
             minResultForCombination = as.numeric(opt$clonePenalty) * m
             for (r in 1:nrow(likeliksFoundCNVsVsPuritiesGlobal)) {
               minResultForCombination = minResultForCombination + min(
