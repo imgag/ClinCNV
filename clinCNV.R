@@ -123,6 +123,9 @@ option_list = list(
   make_option(c("-mosaic", "--mosaicism"), action="store_true", default=F, 
               help="if mosaic calling should be performed"),  
   
+  make_option(c("-minPurity", "--minimumPurity"), type="double", default=20, 
+              help="minimum purity for somatic samples (set below 20 only if you have expectation that your sample has low purity)"),  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 

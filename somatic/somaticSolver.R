@@ -65,7 +65,7 @@ vect_of_t_likeliks <- fast_dt_list(ncol(matrixOfLogFold) - 1)
 
 cn_states <- c()
 copy_numbers = 0:15
-purity <- seq(from=5, to=100.1, by=opt$purityStep) / 100
+purity <- seq(from=opt$minimumPurity, to=100.1, by=opt$purityStep) / 100
 purities <- c()
 copy_numbers_used <- c()
 statesUsed <- c()
@@ -180,10 +180,13 @@ print(paste("Work on actual calling started.", Sys.time()))
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
 
-  germline_sample_no = which(colnames(normal) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])
+  germline_sample_no = which(colnames(tmpNormal) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])
+  tumor_sample_no = which(colnames(tumor) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1])
+  if (strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] %in% colnames(tumorOff)) {
+    tumor_sample_no_off = which(colnames(tumorOff) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1])
+  }
   if (germline_sample_no == "F") next
-  print(genderOfSamplesCohort[germline_sample_no])
-  
+
   if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
     if (!sample_name == paste(opt$tumorSample, opt$normalSample, sep="-")) {
       next
@@ -313,7 +316,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                                                                                                  bedFile[,3] <= endOfArm))
               }
             }
-            lengthOfRolling = 20
+            lengthOfRolling = 30
             smoothedLogFold <- rep(0, length(allowedChromosomesAutosomesOnly) - lengthOfRolling)
             matrixOfLogFoldAllowedChrom = matrixOfLogFold[allowedChromosomesAutosomesOnly, sam_no]
             for (i in lengthOfRolling:length(allowedChromosomesAutosomesOnly)) {
@@ -343,7 +346,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                                                                                                  globalBed[,3] <= endOfArm))
               }
             }
-            lengthOfRolling = 20
+            lengthOfRolling = 30
             smoothedLogFold <- rep(0, length(allowedChromosomesAutosomesOnly) - lengthOfRolling)
             globalLogFoldAllowedChroms = globalLogFold[allowedChromosomesAutosomesOnly]
             for (i in lengthOfRolling:length(allowedChromosomesAutosomesOnly)) {
@@ -372,7 +375,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2), local_multipliersDueToLog)
       
-      if (genderOfSamplesCohort[germline_sample_no] == "M") {
+      if (genderOfSamples[germline_sample_no] == "M") {
         if (length(which(bedFile[,1] %in% c("chrX","chrY"))) > 0)
           matrix_of_likeliks[which(bedFile[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
             1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[which(bedFile[,1] %in% c("chrX","chrY")),sam_no], 
@@ -381,6 +384,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       
       ### ADD LIKELIHOODS
+      bAlleleFreqsTumor = NULL
+      bAlleleFreqsNormal = NULL
       if (frameworkDataTypes == "covdepthBAF") {
         print("Started BAF calculation")
         print(Sys.time())
@@ -478,7 +483,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues < log2(min(local_cn_states) / 2))] = log2(min(local_cn_states) / 2)
         matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
         matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[,sam_no_off], localSdsOff, log2(local_cn_states/2), local_multipliersDueToLogOff)
-        if (genderOfSamplesCohort[germline_sample_no] == "M") {
+        if (genderOfSamples[germline_sample_no] == "M") {
           matrix_of_likeliks_off[which(bedFileOfftarget[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
             1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileOfftarget[,1] %in% c("chrX","chrY")),sam_no_off], 
             localSdsOff[which(bedFileOfftarget[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
@@ -512,9 +517,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         chrom = names(left_borders)[l]
         print(paste(chrom, Sys.time()))
         
-        if (chrom == "chrY" & genderOfSamplesCohort[germline_sample_no] == "F") {
+        if (chrom == "chrY" & genderOfSamples[germline_sample_no] == "F") {
           next
-        } else if (genderOfSamplesCohort[germline_sample_no] == "M") {
+        } else if (genderOfSamples[germline_sample_no] == "M") {
           if (chrom %in% c("chrY","chrX")) {
             initial_state = 2
           } else {
@@ -568,8 +573,14 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             blocked_states = c(setdiff(c(1,2), initial_state),
                                which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
           }
-          penalties = penaltyForHigherCN * abs(2 - local_copy_numbers_used)
+          copy_numbers_for_penalties = 4 - local_copy_numbers_used
+          copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
+          penalties = penaltyForHigherCN * abs(copy_numbers_for_penalties)
+          if (length(local_cn_states) - length(blocked_states) > 1) {
           found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states, penalties))
+          } else {
+            next
+          }
           
           if (nrow(found_CNVs) > 0 & !chrom %in% c("chrX", "chrY", "X", "Y")) {
             likeliksFoundCNVsVsPurities <- matrix(nrow=nrow(found_CNVs), ncol=length(uniqueLocalPurities))
@@ -595,7 +606,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             if (finalIteration) {
               outputFileNameCNVs <- paste0(folder_name, sample_name, "/", sample_name, "_cnvs.seg")
               outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
-              if (genderOfSamplesCohort[germline_sample_no] == "M") {
+              if (genderOfSamples[germline_sample_no] == "M") {
                 reverseFunctionUsedToTransform = function(x, chroms) {return((2 ** (x + ifelse(chrom %in% c("chrX", "chrY"), 0, 1))))}
               } else {
                 reverseFunctionUsedToTransform = function(x, chroms) {return(2 ** (x + 1))}
@@ -776,6 +787,99 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       finalIteration = T
     }
     
+    ### STAT TESTS
+    CIsOnTarget = matrix(NA, nrow=nrow(found_CNVs_total), ncol=3)
+    CIsOnTargetOff = matrix(NA, nrow=nrow(found_CNVs_total), ncol=3)
+    BAFsignature = matrix(NA, nrow=nrow(found_CNVs_total), ncol=3)
+    overallPvalues = matrix(NA, nrow=nrow(found_CNVs_total), ncol=1)
+    for (i in 1:nrow(found_CNVs_total)) {
+      defaultCN = 2
+      if (found_CNVs_total[i,1] %in% c("chrX", "chrY") & genderOfSamples[germline_sample_no] == "M") {
+        defaultCN = 1
+      }
+      pvalsSeparateTests = c(NA, NA, NA)
+      onTargetCoords <- which(bedFile[,1] == found_CNVs_total[i,1] & as.numeric(bedFile[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFile[,3]) <= as.numeric(found_CNVs_total[i,3]))
+      if (length(onTargetCoords) > 1) {
+        tumorValue <- median(log2(tumor[onTargetCoords, tumor_sample_no]))
+        if (found_CNVs_total[i,1] %in% c("chrX", "chrY")) {
+          samplesToUse = which(genderOfSamples == genderOfSamples[germline_sample_no])
+        } else {
+          samplesToUse = 1:ncol(tmpNormal)
+        }
+        if (length(samplesToUse) > 2) {
+        normalValues <- apply(log2(tmpNormal[onTargetCoords,samplesToUse, drop=F]), 2, median)
+        sdOfNormals <- sd(normalValues) * sqrt(matrixWithSds[1, sam_no] / median(matrixWithSds[2, ]))
+        currentCI = c((tumorValue), (tumorValue + qnorm(0.99) * sdOfNormals), (tumorValue + qnorm(0.01) * sdOfNormals))
+        currentCI = 2 ** (currentCI - median(log2(tmpNormal[onTargetCoords, germline_sample_no])))
+        CIsOnTarget[i,] = round(currentCI * defaultCN, 2)
+        }
+        pvalsSeparateTests[1] = 2 * pt(-abs(   
+          tumorValue - median(log2(tmpNormal[onTargetCoords, germline_sample_no]))
+          ) / sdOfNormals, df=length(samplesToUse)) 
+      }
+      if (sampleInOfftarget) {
+        offTargetCoords <- which(bedFileOfftarget[,1] == found_CNVs_total[i,1] & as.numeric(bedFileOfftarget[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileOfftarget[,3]) <= as.numeric(found_CNVs_total[i,3]))
+        if (length(offTargetCoords) > 1) {
+          tumorValueOff <- median(log2(tumorOff[offTargetCoords, tumor_sample_no_off]))
+          if (found_CNVs_total[i,1] %in% c("chrX", "chrY")) {
+            samplesToUseOn = which(genderOfSamples == genderOfSamples[germline_sample_no])
+            samplesToUseOff = which(colnames(normalOff) %in% names(samplesToUseOn))
+          } else {
+            samplesToUseOff = 1:ncol(normalOff)
+          }
+          if (length(samplesToUseOff) > 2) {
+          normalValuesOff <- apply(log2(normalOff[offTargetCoords,samplesToUseOff, drop=F]), 2, median)
+          sdOfNormalsOff <- sd(normalValuesOff) * sqrt(matrixWithSdsOff[1, sam_no_off] / median(matrixWithSdsOff[2, ]))
+          currentCIOff = c((tumorValueOff), (tumorValueOff + qnorm(0.99) * sdOfNormalsOff), (tumorValueOff + qnorm(0.01) * sdOfNormalsOff))
+          currentCIOff = 2 ** (currentCIOff - median(log2(normalOff[offTargetCoords, which(colnames(normalOff) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])])))
+          CIsOnTargetOff[i,] = round(currentCIOff * defaultCN, 2)
+          }
+          pvalsSeparateTests[2] = 2 * pt( -abs(
+            tumorValueOff - median(log2(normalOff[offTargetCoords, which(colnames(normalOff) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])])))
+            / sdOfNormalsOff, 
+            df=length(samplesToUseOff)) 
+        }
+      }
+      if (!is.null(bAlleleFreqsTumor) & !is.null(bAlleleFreqsNormal)) {
+        BAFcoords <- which(bAlleleFreqsNormal[,1] == found_CNVs_total[i,1] & as.numeric(bAlleleFreqsNormal[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bAlleleFreqsNormal[,2]) <= as.numeric(found_CNVs_total[i,3]))
+        particularAlleleBalance = median(as.numeric(bAlleleFreqsNormal[,5]))
+        if (length(BAFcoords) > 0) {
+          depthNormal = sum(as.numeric(bAlleleFreqsNormal[BAFcoords,6]))
+          normalReversedValues = as.numeric(bAlleleFreqsNormal[BAFcoords,5])
+          centralLocation = median(normalReversedValues)
+          diffs = abs(normalReversedValues - centralLocation)
+          normalReversedValues = centralLocation + diffs
+          #normalReversedValues[which(normalReversedValues > particularAlleleBalance)] = max(0, 2 * particularAlleleBalance - normalReversedValues[which(normalReversedValues > particularAlleleBalance)])
+          medianAFNormal = median(normalReversedValues)
+          normalDepthRefAllele = round(medianAFNormal * depthNormal)
+          
+          depthTumor = sum(as.numeric(bAlleleFreqsTumor[BAFcoords,6]))
+          tumorReversedValues = as.numeric(bAlleleFreqsTumor[BAFcoords,5])
+          diffs = abs(tumorReversedValues - centralLocation)
+          tumorReversedValues = centralLocation + diffs
+          #tumorReversedValues[which(tumorReversedValues > particularAlleleBalance)] = max(0, 2 * particularAlleleBalance - tumorReversedValues[which(tumorReversedValues > particularAlleleBalance)])
+          medianAFTumor = median(tumorReversedValues)
+          tumorDepthRefAllele = round(medianAFTumor * depthTumor)
+          
+          BAFsignature[i,1] = paste(normalDepthRefAllele, "/", depthNormal)
+          BAFsignature[i,2] = paste(tumorDepthRefAllele, "/", depthTumor)
+          
+          BAFsignature[i,3] = (fisher.test(matrix(c(normalDepthRefAllele, depthNormal - normalDepthRefAllele, tumorDepthRefAllele, depthTumor - tumorDepthRefAllele), nrow=2))$p.value)
+          pvalsSeparateTests[3] = BAFsignature[i,3]
+        }
+                          
+      }
+      pvalsSeparateTests = as.numeric(na.omit((pvalsSeparateTests)))
+      overallPvalues[i] = pchisq((sum(log(min(1, pvalsSeparateTests + 10**-10)))*-2), df=length(pvalsSeparateTests)*2, lower.tail=F)
+    }
+    overallPvalues = p.adjust(overallPvalues, method="fdr")
+    BAFsignature[,3] = p.adjust(as.numeric(BAFsignature[,3]), method="fdr")
+    BAFsignature[,3] = format(round(as.numeric(BAFsignature[,3]), 4), scientific = F)
+    colnamesForFutureMatrix <- colnames(found_CNVs_total)
+    found_CNVs_total = cbind(found_CNVs_total, CIsOnTarget[,3:2], CIsOnTargetOff[,3:2], BAFsignature, format(round(overallPvalues,5), scientific = F))
+    #colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD", "Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "BAF_Normal", "BAF_tumor", "BAF_pval"))
+    colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "BAF_Normal", "BAF_tumor", "BAF_qval_fdr", "Overall_qvalue"))
+    
     if (length(pvalsForQC > 1)) {
       finalPValue <- 0
     } else {
@@ -783,7 +887,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     }
     fileToOut <- paste0(folder_name, sample_name, paste0("/CNAs_", sample_name, ".txt"))
     fileConn<-file(fileToOut)
-    writeLines(c(paste("##"," QC ", 0, ", gender of sample:", genderOfSamplesCohort[germline_sample_no], "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
+    writeLines(c(paste("##"," QC ", 0, ", gender of sample:", genderOfSamples[germline_sample_no], "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
     close(fileConn)
     if(opt$debug) {
       print(found_CNVs_total)

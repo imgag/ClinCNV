@@ -67,7 +67,7 @@ getCytobands <- function(fileName) {
 
 
 EstimateModeSimple <- function(x) {
-  density_of_x <-  density(x, kernel="gaussian")
+  density_of_x <-  density(x, kernel="gaussian", bw="SJ")
   mu = density_of_x$x[which.max(density_of_x$y)]
   mu
 }

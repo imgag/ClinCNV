@@ -139,12 +139,12 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
         matrixOfLogFoldToCheck = matrixOfLogFoldToCheck[which(genderOfSamplesInCluster == "M")]
       else next
     }
-    shiftsChrom <- apply(matrixOfLogFoldToCheck, 1, EstimateModeSimple)
+    shiftsChrom <- apply(matrixOfLogFoldToCheck, 1, EstimateModeForNormalization)
     fit <- loess(shiftsChrom ~ c(1:length(shiftsChrom)), span=0.8)
     predictions <- predict(fit, 1:length(shiftsChrom))
     shifts[whichChrom] = predictions
   }
-  shiftsAll <- apply(matrixOfLogFold, 1, EstimateModeSimple)
+  shiftsAll <- apply(matrixOfLogFold, 1, EstimateModeForNormalization)
   png(paste0("plot_with_shifts.png"), width=2000, height=1000)
   plot(shiftsAll)
   lines(shifts, col="red", lwd=3)
@@ -306,7 +306,7 @@ return_likelik <- function(x) {
   return(vect_of_t_likeliks[x])
 }
 
-EstimateModeSimple <- function(x) {
+EstimateModeForNormalization <- function(x) {
   tmpx = x[which(x > -0.25 & x < 0.25)]
   if (length(tmpx) < 10) {
     return(0)
