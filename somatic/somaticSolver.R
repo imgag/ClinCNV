@@ -1,4 +1,3 @@
-library(mclust)
 
 no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 cl<-makeCluster(no_cores, type="FORK")
@@ -299,7 +298,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       #### CORRECTION - IF THE SAMPLE HAS TOO MANY CNAS, WE EXPECT SOME SHIFT THERE
       if (frameworkDataTypes == "covdepthBAF") {
         sampleName2 <- strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1]
-        position <- which(substring(names(allowedChromsBaf), 1, nchar(sampleName2)) == sampleName2)
+        tumorNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][1]})
+        position <- which(tumorNames == sampleName2)
         if (length(position) == 1) {
           allowedChromsBafSample <- allowedChromsBaf[[position]]
           
@@ -317,11 +317,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               }
             }
             lengthOfRolling = 30
-            smoothedLogFold <- rep(0, length(allowedChromosomesAutosomesOnly) - lengthOfRolling)
             matrixOfLogFoldAllowedChrom = matrixOfLogFold[allowedChromosomesAutosomesOnly, sam_no]
-            for (i in lengthOfRolling:length(allowedChromosomesAutosomesOnly)) {
-              smoothedLogFold[i - lengthOfRolling + 1] = median(matrixOfLogFoldAllowedChrom[(i - lengthOfRolling + 1):i])
-            }
+            smoothedLogFold = runmed(globalLogFoldAllowedChroms, k = lengthOfRolling)
             clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))])
             print("Mclust finished")
             bigClusters <- which(clusteredResult$parameters$pro > 0.3)
@@ -335,26 +332,27 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             globalBed <- rbind(bedFile, bedFileOfftarget)
             globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])
             allowedChromosomesAutosomesOnly = c()
+            smoothedLogFold= c()
             for (allowedArm in allowedChromsBafSample) {
               splittedValue <- strsplit(allowedArm, "-")
               chrom = splittedValue[[1]][1]
               if (!chrom %in% c("chrY", "Y", "chrX", "X")) {
                 startOfArm = as.numeric(splittedValue[[1]][2])
                 endOfArm = as.numeric(splittedValue[[1]][3])
+                lengthOfRolling = min(40, round((endOfArm - startOfArm)/5))
                 allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(globalBed[,1] == chrom &
                                                                                                  globalBed[,2] >= startOfArm &
                                                                                                  globalBed[,3] <= endOfArm))
+                smoothedLogFold = c(smoothedLogFold, runmed(globalLogFold[which(globalBed[,1] == chrom &
+                                                                                   globalBed[,2] >= startOfArm &
+                                                                                   globalBed[,3] <= endOfArm)], k = lengthOfRolling))
               }
             }
-            lengthOfRolling = 30
-            smoothedLogFold <- rep(0, length(allowedChromosomesAutosomesOnly) - lengthOfRolling)
-            globalLogFoldAllowedChroms = globalLogFold[allowedChromosomesAutosomesOnly]
-            for (i in lengthOfRolling:length(allowedChromosomesAutosomesOnly)) {
-              smoothedLogFold[i - lengthOfRolling + 1] = median(globalLogFoldAllowedChroms[(i - lengthOfRolling + 1):i])
-            }
-            clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))])
+            #globalLogFoldAllowedChroms = globalLogFold[allowedChromosomesAutosomesOnly]
+            #smoothedLogFold = runmed(globalLogFoldAllowedChroms, k = lengthOfRolling)
+            clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))], model="E")
             print("Mclust finished")
-            bigClusters <- which(clusteredResult$parameters$pro > 0.3)
+            bigClusters <- which(clusteredResult$parameters$pro > 0.1)
             if (length(bigClusters) == 0) {
               shiftOfCoverage <- median(globalLogFold[allowedChromosomesAutosomesOnly])
             } else {
@@ -396,7 +394,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         if (length(position) == 1) {
           bAlleleFreqsTumor <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] ]]
           bAlleleFreqsNormal <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2] ]]
-          
+          overdispersionNormal = overdispersionsNormal[[position]]
+          overdispersionTumor = overdispersionsTumor[[position]]
           # calculate median correction factor
           allowedChromosomesAutosomesOnly = which(!bAlleleFreqsTumor[,1] %in% c("X","Y","chrX","chrY"))
           multiplierOfSNVsDueToMapping <- median(as.numeric(bAlleleFreqsNormal[allowedChromosomesAutosomesOnly,5]))
@@ -430,14 +429,19 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           if (!finalIteration) {
             bAlleleFreqsTumorToy = bAlleleFreqsTumor[seq(from=1, to=nrow(bAlleleFreqsTumor), by=reduceOfSNVsSize),]
             closestBedRegionsToy = closestBedRegions[seq(from=1, to=nrow(bAlleleFreqsTumor), by=reduceOfSNVsSize)]
+            overdispersionNormalToy = overdispersionNormal[seq(from=1, to=nrow(bAlleleFreqsTumor), by=reduceOfSNVsSize)]
+            overdispersionTumorToy = overdispersionTumor[seq(from=1, to=nrow(bAlleleFreqsTumor), by=reduceOfSNVsSize)]
           } else {
             bAlleleFreqsTumorToy = bAlleleFreqsTumor
             closestBedRegionsToy = closestBedRegions
+            overdispersionNormalToy = overdispersionNormal
+            overdispersionTumorToy = overdispersionTumor
           }
           matrixOfBAFLikeliks = foreach (i = 1:nrow(bAlleleFreqsTumorToy), .combine='rbind') %dopar% {
             altAlleleDepth <- as.numeric(bAlleleFreqsTumorToy[i,5])
             overallDepth <- round(as.numeric(bAlleleFreqsTumorToy[i,6]))
             altAlleleDepth = round(altAlleleDepth * overallDepth)
+            overdispersionValue = overdispersionTumorToy[i]
             
             if (closestBedRegionsToy[i] != 0) {
               numberOfAssignedPositions = numberOfAssignedPositions + 1
@@ -448,7 +452,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                 pur = local_purities[j]
                 cn = local_copy_numbers_used[j]
                 stateUsed = local_cnv_states[j]
-                listOfLikelikAndPList = likelihoodOfSNVBasedOnCN(altAlleleDepth, overallDepth, pur, cn, stateUsed, multiplierOfSNVsDueToMapping, pList)
+                
+                listOfLikelikAndPList = likelihoodOfSNVBasedOnCN(altAlleleDepth, overallDepth, pur, cn, stateUsed, multiplierOfSNVsDueToMapping, pList, overdispersionValue)
                 
                 likelihood = -2 * listOfLikelikAndPList[[1]]
                 if (listOfLikelikAndPList[[2]])
@@ -572,14 +577,20 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             arrayOfMediansOfToyLogFold <- sapply(1:(length(toyLogFoldChange) - opt$lengthS), function(i) {median(toyLogFoldChange[i:(i + opt$lengthS)])})
             blocked_states = c(setdiff(c(1,2), initial_state),
                                which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
+            if (initial_state %in% blocked_states) {
+              blocked_states = blocked_states[-which(blocked_states == initial_state)]
+            }
+            if (length(local_cn_states) - length(blocked_states) == 1) {
+              blocked_states <- c()
+            }
           }
           copy_numbers_for_penalties = 4 - local_copy_numbers_used
           copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
           penalties = penaltyForHigherCN * abs(copy_numbers_for_penalties)
           if (length(local_cn_states) - length(blocked_states) > 1) {
-          found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states, penalties))
+            found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states, penalties))
           } else {
-            next
+            found_CNVs = matrix(0, nrow=0, ncol=10)
           }
           
           if (nrow(found_CNVs) > 0 & !chrom %in% c("chrX", "chrY", "X", "Y")) {
@@ -617,6 +628,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             if(opt$debug) {
               print(paste("End of IGV plotting", Sys.time()))
             }
+          }
+          if (length(local_cn_states) - length(blocked_states) <= 1) {
+            next
           }
           ### END OF IGV PLOTTING
           
@@ -792,7 +806,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     CIsOnTargetOff = matrix(NA, nrow=nrow(found_CNVs_total), ncol=3)
     BAFsignature = matrix(NA, nrow=nrow(found_CNVs_total), ncol=3)
     overallPvalues = matrix(NA, nrow=nrow(found_CNVs_total), ncol=1)
-    if (nrow(found_CNVs_total) > 1){
+    if (nrow(found_CNVs_total) > 0){
       for (i in 1:nrow(found_CNVs_total)) {
         defaultCN = 2
         if (found_CNVs_total[i,1] %in% c("chrX", "chrY") & genderOfSamples[germline_sample_no] == "M") {
@@ -859,7 +873,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             diffs = abs(tumorReversedValues - centralLocation)
             tumorReversedValues = centralLocation + diffs
             #tumorReversedValues[which(tumorReversedValues > particularAlleleBalance)] = max(0, 2 * particularAlleleBalance - tumorReversedValues[which(tumorReversedValues > particularAlleleBalance)])
-            medianAFTumor = median(tumorReversedValues)
+            medianAFTumor = min(1, median(tumorReversedValues))
             tumorDepthRefAllele = round(medianAFTumor * depthTumor)
             
             BAFsignature[i,1] = paste(normalDepthRefAllele, "/", depthNormal)
