@@ -310,6 +310,19 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     }
   }
   
+  pvaluesForCNVs <- rep(NA, nrow(found_CNVs_total))
+  for (i in 1:nrow(found_CNVs_total)) {
+    coordsInBedOn = which(bedFileFiltered[,1] == found_CNVs_total[i,1] & as.numeric(bedFileFiltered[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileFiltered[,3]) <= as.numeric(found_CNVs_total[i,3]))
+    valueOfSample = median(coverage.normalised[coordsInBedOn,sam_no])
+    valueOfOthers = apply(coverage.normalised[coordsInBedOn,-sam_no,drop=F],2,median)
+    sdOfOthers = Qn(valueOfOthers)
+    pval = 2 * (pnorm(-abs(valueOfSample - median(valueOfOthers)) / sdOfOthers))
+    pvaluesForCNVs[i] = pval
+  }
+  pvaluesForCNVs = p.adjust(pvaluesForCNVs, method="fdr")
+  found_CNVs_total = cbind(found_CNVs_total, format(round(pvaluesForCNVs, 5), scientific = F))
+  colnames(found_CNVs_total)[ncol(found_CNVs_total)] = "qvalue"
+  
   ### FDR
   if (as.numeric(opt$fdrGermline) != 0) {
     positionsToExclude = c()

@@ -236,7 +236,7 @@ esimtateVarianceFromSampleNoise <- function(vecOfSDsParam, numberOfRepetitions) 
 
 find_final_state <- function(start, end, initial_state, matrix_of_likeliks_local, blocked_states, penalties) {
   super_small_likelik = -10^20
-  sweeped_matrix <- sweep(matrix_of_likeliks_local[(start + 1):(end - 1),,drop=F], 1, matrix_of_likeliks_local[(start + 1):(end - 1),initial_state])
+  sweeped_matrix <- sweep(matrix_of_likeliks_local[min(start + 1, end):(max(end - 1, start)),,drop=F], 1, matrix_of_likeliks_local[min(start + 1, end):(max(end - 1, start)),initial_state])
   res_within <- apply(sweeped_matrix, 2, sum)
   if (length(penalties) == ncol(sweeped_matrix)) {
     res_within = res_within + penalties
@@ -256,16 +256,16 @@ find_final_state <- function(start, end, initial_state, matrix_of_likeliks_local
     sweeped_matrix <- sweep(matrix_of_likeliks_local[(start):(end),,drop=F], 1, matrix_of_likeliks_local[(start):(end),initial_state])
     res <- apply(sweeped_matrix, 2, sum)
     likelihood_score_all_tiles_read_depth_only <- res[cn_state_by_central_points]
-    for_output <- apply((matrix_of_likeliks_local[(start + 1):(end - 1),,drop=F] / -2) * log10(exp(0)), 2, sum)
+    #for_output <- apply((matrix_of_likeliks_local[(start + 1):(end - 1),,drop=F] / -2) * log10(exp(0)), 2, sum)
   } else {
-    sweeped_matrix <- sweep(matrix_of_likeliks_local[(start + 1):(end - 1),,drop=F], 1, matrix_of_likeliks_local[(start + 1):(end - 1),initial_state])
+    sweeped_matrix <- sweep(matrix_of_likeliks_local[min(start + 1, end):(max(end - 1, start)),,drop=F], 1, matrix_of_likeliks_local[min(start + 1, end):(max(end - 1, start)),initial_state])
     res <- apply(sweeped_matrix, 2, sum)
     likelihood_score_all_tiles_read_depth_only <- res[cn_state_by_central_points]
-    for_output <- apply((matrix_of_likeliks_local[(start + 1):(end - 1),,drop=F] / -2) * log10(exp(0)), 2, sum)
+    #for_output <- apply((matrix_of_likeliks_local[(start + 1):(end - 1),,drop=F] / -2) * log10(exp(0)), 2, sum)
   }
 
   
-  return(c(likelihood_score_including_all_tiles, cn_state_by_central_points, likelihood_score_all_tiles_read_depth_only, for_output))
+  return(c(likelihood_score_including_all_tiles, cn_state_by_central_points, likelihood_score_all_tiles_read_depth_only))#, for_output))
 }
 
 maxSubArraySum <- function(x){
@@ -357,14 +357,14 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
       }
     } else if (found_CNV[4] != 0 & found_CNV[3] - found_CNV[2] < minimum_length_of_CNV) {
       # found CNV is too short!
-      matrix_of_likeliks_local[found_CNV[2]:found_CNV[3],] = matrix_of_likeliks_local[found_CNV[2]:found_CNV[3],] / 2
+      matrix_of_likeliks_local[found_CNV[2]:found_CNV[3],] = as.matrix(matrix_of_likeliks_local[found_CNV[2]:found_CNV[3],] / 2)
 
-      matrix_for_calculations <- -matrix_of_likeliks_local[start:end,] + matrix_of_likeliks_local[start:end, initial_state]
+      matrix_for_calculations <- sweep(matrix_of_likeliks_local[start:end,,drop=F], 1, matrix_of_likeliks_local[start:end, initial_state, drop=F], FUN="-")
       if (!is.null(nrow(matrix_for_calculations))) {
         matrix_for_calculations <- apply(matrix_for_calculations, 2, sum)
       } 
-      determined_state <- which.max(matrix_for_calculations)
-      BF <- max(matrix_for_calculations)
+      determined_state <- which.min(matrix_for_calculations)
+      BF <- -1 * min(matrix_for_calculations)
       current_region_to_look_for_CNVs <- c(BF, start, end, determined_state)
       vector_of_regions <- rbind(vector_of_regions, current_region_to_look_for_CNVs)
     } else {
@@ -377,22 +377,22 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
         vector_of_regions <- rbind(vector_of_regions, found_CNV)
       }
       if (start_of_CNV - start >= minimum_length_of_CNV) { # if left part is big enough to add! CAUTION!!!
-        matrix_for_calculations <- -matrix_of_likeliks_local[start:(start_of_CNV - 1),] + matrix_of_likeliks_local[start:(start_of_CNV - 1), current_region_to_look_for_CNVs[4]]
+        matrix_for_calculations <- sweep(matrix_of_likeliks_local[start:max(start, start_of_CNV - 1),,drop=F], 2, matrix_of_likeliks_local[start:max(start, start_of_CNV - 1), current_region_to_look_for_CNVs[4],drop=F], FUN="-")
         if (!is.null(nrow(matrix_for_calculations))) {
           matrix_for_calculations <- apply(matrix_for_calculations, 2, sum)
         } 
-        determined_state <- which.max(matrix_for_calculations)
-        BF <- max(matrix_for_calculations)
+        determined_state <- which.min(matrix_for_calculations)
+        BF <- -1 * min(matrix_for_calculations)
         left_part <- c(BF, start, start_of_CNV - 1, determined_state)
         vector_of_regions <- rbind(vector_of_regions, left_part)
       }
       if (end - end_of_CNV >= minimum_length_of_CNV) { # if right part is big enough to add! CAUTION!!!
-        matrix_for_calculations <- -matrix_of_likeliks_local[start:(start_of_CNV - 1),] + matrix_of_likeliks_local[start:(start_of_CNV - 1), current_region_to_look_for_CNVs[4]]
+        matrix_for_calculations <- sweep(matrix_of_likeliks_local[min(end, end_of_CNV + 1):end,,drop=F], 2, matrix_of_likeliks_local[min(end, end_of_CNV + 1):end, current_region_to_look_for_CNVs[4],drop=F], FUN="-")
         if (!is.null(nrow(matrix_for_calculations))) {
           matrix_for_calculations <- apply(matrix_for_calculations, 2, sum)
         } 
-        determined_state <- which.max(matrix_for_calculations)
-        BF <- max(matrix_for_calculations)
+        determined_state <- which.min(matrix_for_calculations)
+        BF <- -1 * min(matrix_for_calculations)
         right_part <- c(BF, end_of_CNV + 1, end, determined_state)
         vector_of_regions <- rbind(vector_of_regions, right_part)
       }
