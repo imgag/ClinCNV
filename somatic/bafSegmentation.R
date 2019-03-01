@@ -235,7 +235,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   par(mar=c(5.1, 4.1, 4.1, 2.1), mgp=c(3, 1, 0), las=0)
   dev.off()
   
-  png("overdispersion.png", width=1024)
+  png("overdispersion.png", width=1024, height=1024)
   plot(overdispersionFactorsNornm ~ overdispersionFactorsTum, main="Dispersion over Binomial")
   dev.off()
   
