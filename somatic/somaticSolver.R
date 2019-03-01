@@ -390,7 +390,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         
         numberOfAssignedPositions = 0
         sampleName2 <- strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1]
-        position <- which(substring(names(allowedChromsBaf), 1, nchar(sampleName2)) == sampleName2)
+        tumorNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][1]})
+        position <- which(tumorNames == sampleName2)
         if (length(position) == 1) {
           bAlleleFreqsTumor <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] ]]
           bAlleleFreqsNormal <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2] ]]
