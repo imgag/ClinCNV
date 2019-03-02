@@ -60,7 +60,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     
     healthySample = healthySample[which(healthySample[,6] > max(median(healthySample[,6]) / 10, 40) & healthySample[,6] < quantile(healthySample[,6], 0.975)),]
     tumorSample = tumorSample[which(tumorSample[,6] > max(median(tumorSample[,6]) / 10, 40)),]
-    if (nrow(healthySampleName) < 300 | nrow(tumorSample) < 300) {
+    if (nrow(healthySample) < 300 | nrow(tumorSample) < 300) {
       return(list(NULL, NULL))
     }
     
