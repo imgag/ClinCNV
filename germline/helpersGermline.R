@@ -20,7 +20,7 @@ EstimateModeSimple <- function(x, chrom="", genders=NULL) {
     }
   }
   if (length(x) > 50) {
-    density_of_x <-  density(x, kernel="gaussian")
+    density_of_x <-  density(x, kernel="gaussian", bw="SJ")
     mu = density_of_x$x[which.max(density_of_x$y)]
   } else if (length(x) > 30 ){
     mu = median(x)
@@ -215,6 +215,7 @@ Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
   set.seed(100)
   if (length(which(probes[,1] == "chrX")) > 100 & length(which(probes[,1] == "chrY")) > 10) {
     matrix_of_values <- cbind(apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrY"),], 2, EstimateModeSimple), apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrX"),], 2, EstimateModeSimple))
+    matrix_of_values[matrix_of_values > 1.5] = 1.5
     clKmeans <- NULL
     clKmeans <- tryCatch({kmeans(matrix_of_values, centers=matrix(c(0,1,sqrt(1/2), sqrt(1/2)), nrow=2))}, 
                    error = function(e) {
@@ -431,14 +432,14 @@ returnClustering <- function(minNumOfElemsInCluster) {
 
   coverageForClustering = sqrt(normal[which(!bedFile[,1] %in% c("chrX","chrY")),])
   sdsOfRegions <- apply(coverageForClustering, 1, mad)
-  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.8) | sdsOfRegions == 0)
+  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.75) | sdsOfRegions < quantile(sdsOfRegions, 0.25))
   
   coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
   if (ncol(normal) < 3 * minNumOfElemsInCluster) {
     print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
-    n = 3
-    coverageForClustering = (apply(coverageForClustering, 2, function(x) tapply(x, ceiling(seq_along(x) / n), median)))
+    n = 5
+    coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) tapply(x, ceiling(seq_along(x) / n), median)))
     fit <- isoMDS(dist(t(coverageForClustering), method="manhattan"), k=2) # k is the number of dim
     x <- trimValues(fit$points[,1], 0.01)
     y <- trimValues(fit$points[,2], 0.01)
@@ -470,12 +471,12 @@ returnClustering <- function(minNumOfElemsInCluster) {
         coverageForClustering[,father_number] = coverageToReplace
       }
     }
-    n = 3
+    n = 5
   } else {
-    n = 3
+    n = 5
   }
 
-  coverageForClustering = (apply(coverageForClustering, 2, function(x) tapply(x, ceiling(seq_along(x) / n), median)))
+  coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) tapply(x, ceiling(seq_along(x) / n), median)))
   
   corMatrix <- cor(coverageForClustering)
   

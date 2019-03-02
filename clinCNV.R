@@ -475,7 +475,7 @@ bordersOfChroms <- getBordersOfChromosomes(bedFile)
 
 
 
-stopCluster(cl)
+
 ### PROCESSING OF GERMLINE VARIANTS
 
 
@@ -493,12 +493,18 @@ if (frameworkTrios == "trios") {
   trios <- unique(trios)
   colnames(trios) <- c("Kid","Mother","Father")
 }
+sdsForQC = apply(sqrt(normal[which(!bedFile[,1] %in% c("chrX","chrY")),]), 2, mad)
+samplesToFilterOut = which(sdsForQC < 0.005 | sdsForQC > 0.3)
+if (length(samplesToFilterOut) > 0) {
+  print(paste("Germline samples", colnames(normal)[samplesToFilterOut], "did not pass QC due to high level of noise"))
+  normal = normal[,-samplesToFilterOut]
+}
 
 print(paste("We start to cluster your data (you will find a plot if clustering is possible in your output directory)", opt$out, Sys.time()))
 clusteringList <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
 clustering = clusteringList[[1]]
 outliersByClusteringCohort = clusteringList[[2]]
-
+stopCluster(cl)
   
 orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
 bedFile = bedFile[orderOfBedFile,]

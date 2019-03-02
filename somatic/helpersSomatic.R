@@ -149,7 +149,7 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
   plot(shiftsAll)
   lines(shifts, col="red", lwd=3)
   dev.off()
-  matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
+  #matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
   return(list(matrixOfLogFold))
 }
 

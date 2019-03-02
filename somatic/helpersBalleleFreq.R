@@ -65,7 +65,7 @@ determineHeterozygousPositionsOverdispersed <- function(freq, depth, probAB=0.48
     print(depth)
     return(F)
   }
-  if ((prob > 0.05)) {
+  if ((prob > 0.1)) {
     return(T)
   } else {
     return(F)
