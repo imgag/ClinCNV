@@ -1,6 +1,6 @@
 setwd(opt$folderWithScript)
 source(paste0(opt$folderWithScript, "/germline/mCNVhelpers.R"))
-
+setwd(opt$out)
 
 
 vect_of_norm_likeliks = fast_dt_list(100)
@@ -32,13 +32,13 @@ sdsOfProbes <- apply(coverage.normalised.polymorph, 1, Qn)
 bandwidths <- parApply(cl=cl, coverage.normalised.polymorph, 1, bw.SJ)
 dataToTrain = data.frame(cbind(sdsOfProbes, bandwidths))
 newlm <- rlm(sdsOfProbes ~ bandwidths, data=dataToTrain)
-predictedVariances = predict(newlm, dataToTrain, interval="prediction", level=0.999)
+predictedVariances = predict(newlm, dataToTrain, interval="prediction", level=0.99)
 sdsOfProbesCorrected = apply(cbind(sdsOfProbes, predictedVariances[,3]), 1, min)
 
 # lower bound of SD
 lowerBoundOfSD = quantile(sdsOfProbesCorrected, 0.0001)
 vect_of_norm_likeliks <- fast_dnorm_list()
-minimum_length_of_CNV = 1
+minimum_length_of_CNV = 0
 threshold = 20
 initial_state = 1
 price_per_tile = 5
@@ -85,7 +85,8 @@ for (l in 1:length(left_borders)) {
       }
       if (i %% 1000 == 0) print(i)
       coverageOfProbe = coverageToWorkWith[i,]
-      if (max(correlationsAround) > quantile(correlations, 0.75)) {
+      localSdsCurrentProbe = localSdsOfProbes[i]
+      if (max(correlationsAround) > quantile(correlations, 0.75) | localSdsCurrentProbe > quantile(localSdsOfProbes, 0.75)) {
         notHomozygousDeletions = which(coverageOfProbe > 0.25)
         if (length(notHomozygousDeletions) < length(coverageOfProbe)) {
           homozygousDelShit = median(coverageOfProbe[which(coverageOfProbe < 0.25)]) ** 2
@@ -93,7 +94,7 @@ for (l in 1:length(left_borders)) {
         }
         sdNormalised = localSdsOfProbes[i]
         matrixOfLikeliksLocal[i,1] = -2 * likelihoodOfGaussianMixture(c(1), coverageOfProbe[notHomozygousDeletions], sdNormalised , 
-                                                                 0.05 * (length(notHomozygousDeletions)) / ncol(coverageToWorkWith), 0.1, 
+                                                                 0.025 * (length(notHomozygousDeletions)) / ncol(coverageToWorkWith), 0.1, 
                                                                  multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)
         bestWeights[[i]] = c(1)
         bestDivisors[[i]] = 2
@@ -108,7 +109,7 @@ for (l in 1:length(left_borders)) {
           vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageOfProbe[notHomozygousDeletions]) - 0.1 & vecOfMeans < max(coverageOfProbe[notHomozygousDeletions]) + 0.1)]
           if (length(vecOfMeans) <= 1) next
           likelikAndWeights = likelihoodOfGaussianMixture(vecOfMeans, coverageOfProbe[notHomozygousDeletions], sdNormalised, 
-                                                          0.05 * (length(notHomozygousDeletions)) / ncol(coverageToWorkWith), 0.1, 
+                                                          0.025 * (length(notHomozygousDeletions)) / ncol(coverageToWorkWith), 0.1, 
                                                           multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)
           tmpLikelik =  (
             -2 * likelikAndWeights[[1]] + (length(which(likelikAndWeights[[2]] > 0.1 / length(notHomozygousDeletions)))  + 1) * log(length(notHomozygousDeletions))
@@ -176,11 +177,10 @@ for (l in 1:length(left_borders)) {
     
     if (nrow(finalMCNVs) > 0)
     for (i in 1:nrow(finalMCNVs)) {
-      mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],], 
-                     median(mediansOfPolymorphicLocal[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)]), 
+      mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                      toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                     multipliersSamples, i)
-      if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < 0.05 * ncol(coverageToWorkWith)) {
+                     multipliersSamples, cluster)
+      if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < 0.025 * ncol(coverageToWorkWith)) {
         print(i)
         next
       }

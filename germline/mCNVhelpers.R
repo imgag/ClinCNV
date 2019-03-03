@@ -120,20 +120,39 @@ checkConnectivity = function(covOne, covTwo) {
 }
 
 checkConnectivityComplex = function(j) {
+  if (j == length(localSdsOfProbes)) {
+    return(F)
+  }
   sdFirst=localSdsOfProbes[j]
   sdSecond = localSdsOfProbes[j+1]
+  sdThree = NULL
+  if (j + 2 <= length(localSdsOfProbes)) {
+    sdThree = localSdsOfProbes[j+2]
+  }
   locations1 = bestLocations[[j]]
   locations2 = bestLocations[[j+1]]
+  if (j + 2 <= length(localSdsOfProbes)) {
+    locations3 = bestLocations[[j+1]]
+  }
   weightsOne = bestWeights[[j]]
   weightsTwo = bestWeights[[j+1]]
+  if (j + 2 <= length(localSdsOfProbes)) {
+    weightsThree = bestLocations[[j+2]]
+  }
   if (is.null(weightsOne) | is.null(weightsTwo)) {
     return(F)
   }
   sdsMultipliers = multipliersSamples
   dataOne = coverageToWorkWith[j,]
   dataTwo = coverageToWorkWith[j+1,]
-  minSizeOfCluster = 0.001
+  if (j + 2 <= length(localSdsOfProbes)) {
+    dataThree = coverageToWorkWith[j+2,]
+  }
+  minSizeOfCluster = 1
   resultList = likelihoodForTwoNeighbors(sdFirst, sdSecond, locations1, locations2, weightsOne, weightsTwo, sdsMultipliers, dataOne, dataTwo, minSizeOfCluster)
+  if (!is.null(sdThree)) {
+    resultListAdd = likelihoodForTwoNeighbors(sdFirst, sdThree, locations1, locations3, weightsOne, weightsThree, sdsMultipliers, dataOne, dataThree, minSizeOfCluster)
+  }
   if (length(resultList) == 1) {
     return(F)
   }
@@ -141,13 +160,18 @@ checkConnectivityComplex = function(j) {
   if (sum(diag(clusterWeights)) + max(sum(diag(clusterWeights[,-1])), sum(diag(clusterWeights[-1,]))) > 0.95) {
     return(T)
   } else {
-    plot(dataOne ~ dataTwo)
+    if (!is.null(sdThree)) {
+      clusterWeightsNew = resultListAdd[[2]]
+      if (sum(diag(clusterWeightsNew)) + max(sum(diag(clusterWeightsNew[,-1])), sum(diag(clusterWeightsNew[-1,]))) > 0.95) {
+        return(T)
+      } 
+    }
     return(F)
   }
 }
 
 
-findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePolymorphCurrent, multipliersSamples,index) {
+findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, multipliersSamples,index, numberOfClusterAnalysed) {
   startOfmCNV = 2
   endOfmCNV = (nrow(coverageNeededToCheck) - 1)
   if (toyBedFilePolymorphCurrent[1,3] - toyBedFilePolymorphCurrent[1,2] < 250 | nrow(coverageNeededToCheck) < 3) {
@@ -186,7 +210,7 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
   for (j in 1:length(locations)) {
     #if (!j %in% possibleLocations) next
     vecOfMeans = locations[[j]]
-    vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageSummarised[notHomozygousDeletions]) - 0.2 & vecOfMeans < max(coverageSummarised[notHomozygousDeletions]) + 0.2)]
+    vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageSummarised[notHomozygousDeletions]) - 0.25 & vecOfMeans < max(coverageSummarised[notHomozygousDeletions]) + 0.25)]
     if (length(which(coverageSummarised <= 0.25)) / length(coverageSummarised) > 0.01) {
       vecOfMeans = unique(round(c(vecOfMeans, 1 / sqrt(j)) * 100000))
       vecOfMeans = vecOfMeans / 100000
@@ -252,7 +276,7 @@ findFinalState <- function(coverageNeededToCheck, medianOfCoverage, toyBedFilePo
   coloursP = c(coloursP, coloursP)
   diagnosticPlot = (length(which(copy_number != as.numeric(names(sort(table(copy_number),decreasing=TRUE)[1])))) >= 0.05 * length(copy_number))
   if (diagnosticPlot == T) {
-    fileName = paste(index, toyBedFilePolymorphCurrent[1,1], toyBedFilePolymorphCurrent[1,2], toyBedFilePolymorphCurrent[nrow(toyBedFilePolymorphCurrent),3], sep="_")
+    fileName = paste(numberOfClusterAnalysed, toyBedFilePolymorphCurrent[1,1], toyBedFilePolymorphCurrent[1,2], toyBedFilePolymorphCurrent[nrow(toyBedFilePolymorphCurrent),3], sep="_")
     png(paste0(fileName, ".png"), width=length(copy_number) * 3, height=800)
     plot(coverageSummarised ** 2 * bestDivisor, col="black", pch=21,bg=coloursP[(copy_number + 1)])
     abline(h=bestLoc ** 2 * bestDivisor)
