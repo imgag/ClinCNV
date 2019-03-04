@@ -6,7 +6,7 @@ setwd(opt$out)
 vect_of_norm_likeliks = fast_dt_list(100)
   
 autosomes = which(!bedFile[,1] %in% c("chrX", "chrY"))
-mediansAndSdsPolymorphic = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes, T)
+mediansAndSdsPolymorphic = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes, polymorphic=T)
 coverage.normalised.polymorph = mediansAndSdsPolymorphic[[1]]
 
 
@@ -39,12 +39,13 @@ sdsOfProbesCorrected = apply(cbind(sdsOfProbes, predictedVariances[,3]), 1, min)
 lowerBoundOfSD = quantile(sdsOfProbesCorrected, 0.0001)
 vect_of_norm_likeliks <- fast_dnorm_list()
 minimum_length_of_CNV = 0
-threshold = 20
+threshold = 100
 initial_state = 1
 price_per_tile = 5
 resultingMCNVs <- matrix(0, nrow=0, ncol=11)
 copyNumberForReporting = matrix(0, nrow=0, ncol=3 + ncol(coverage))
 colnames(copyNumberForReporting) = c("chr", "start", "end", colnames(coverage))
+percentageToBePolymorphism = max(0.025, 10 / ncol(coverage))
 for (l in 1:length(left_borders)) {
   chrom = names(left_borders)[l]
   if (chrom == "chrX") next
@@ -68,7 +69,7 @@ for (l in 1:length(left_borders)) {
     toyBedFilePolymorph = bedFilePolymorph[which_to_allow,]
     locations = list()
     for (i in 1:16) {
-      locations[[i]] = sqrt(1:20/i)[sqrt(1:20/i) > 0.4]
+      locations[[i]] = sqrt(1:20/i) #[sqrt(1:20/i) > 0.4]
     }
     matrixOfLikeliksLocal = matrix(threshold, nrow= nrow(coverageToWorkWith), ncol=2)
     matrixOfLikeliksLocal[,1] = 0
@@ -94,7 +95,7 @@ for (l in 1:length(left_borders)) {
         }
         sdNormalised = localSdsOfProbes[i]
         matrixOfLikeliksLocal[i,1] = -2 * likelihoodOfGaussianMixture(c(1), coverageOfProbe[notHomozygousDeletions], sdNormalised , 
-                                                                 0.025 * (length(notHomozygousDeletions)) / ncol(coverageToWorkWith), 0.1, 
+                                                                      percentageToBePolymorphism * (length(notHomozygousDeletions)) / ncol(coverageToWorkWith), 0.1, 
                                                                  multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)
         bestWeights[[i]] = c(1)
         bestDivisors[[i]] = 2
@@ -109,7 +110,7 @@ for (l in 1:length(left_borders)) {
           vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageOfProbe[notHomozygousDeletions]) - 0.1 & vecOfMeans < max(coverageOfProbe[notHomozygousDeletions]) + 0.1)]
           if (length(vecOfMeans) <= 1) next
           likelikAndWeights = likelihoodOfGaussianMixture(vecOfMeans, coverageOfProbe[notHomozygousDeletions], sdNormalised, 
-                                                          0.025 * (length(notHomozygousDeletions)) / ncol(coverageToWorkWith), 0.1, 
+                                                          percentageToBePolymorphism * (length(notHomozygousDeletions)) / ncol(coverageToWorkWith), 0.1, 
                                                           multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)
           tmpLikelik =  (
             -2 * likelikAndWeights[[1]] + (length(which(likelikAndWeights[[2]] > 0.1 / length(notHomozygousDeletions)))  + 1) * log(length(notHomozygousDeletions))
@@ -150,6 +151,7 @@ for (l in 1:length(left_borders)) {
             if (!checkConnectivity(coverageToWorkWith[j,], coverageToWorkWith[j + 1,])) {
               print(j)
             }
+            print(j)
              if (!checkConnectivityComplex(j)) {
               #if (j + 2 <= nrow(coverageToWorkWith)) {
                 #if (checkConnectivity(coverageToWorkWith[j,], coverageToWorkWith[j + 2,])) {
@@ -180,7 +182,7 @@ for (l in 1:length(left_borders)) {
       mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                      toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
                      multipliersSamples, cluster)
-      if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < 0.025 * ncol(coverageToWorkWith)) {
+      if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < percentageToBePolymorphism * ncol(coverageToWorkWith)) {
         print(i)
         next
       }

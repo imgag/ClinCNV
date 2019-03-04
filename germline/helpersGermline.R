@@ -2,7 +2,7 @@ EstimateModeSimple <- function(x, chrom="", genders=NULL) {
   if (chrom != "") {
     if (chrom %in% c("X", "Y", "chrX", "chrY")) {
       if (is.null(genders)) {
-      x = x[which(x > median(x))]
+        x = x[which(x > median(x))]
       } else {
         if (chrom == "chrX") {
           x = x[which(genders == "F")]
@@ -436,10 +436,16 @@ returnClustering <- function(minNumOfElemsInCluster) {
   
   coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
+  if (nrow(coverageForClustering) > 100000) {
+    coverageForClustering = coverageForClustering[1:100000,]
+  }
+  coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) tapply(x, ceiling(seq_along(x) / 5), median)))
   matrixOfDistForMDS = matrix(0, ncol=ncol(coverageForClustering), nrow=ncol(coverageForClustering))
   for (i in 1:nrow(matrixOfDistForMDS)) {
+    differences = abs(sweep(coverageForClustering[,i:ncol(coverageForClustering), drop=F], 2, coverageForClustering[,i]))
+    mediansOfDiff = apply(differences, 2, median)
     for (j in i:nrow(matrixOfDistForMDS)) {
-      matrixOfDistForMDS[i,j] = median(abs(coverageForClustering[,i] - coverageForClustering[,j]))
+      matrixOfDistForMDS[i,j] = mediansOfDiff[j - i + 1]
       matrixOfDistForMDS[j,i] = matrixOfDistForMDS[i,j]
     }
   }
@@ -747,11 +753,11 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
       }
       whichSamplesUsed = which(genderOfSamples == "M")
     }
-    clusterExport(cl=cl, varlist=c("whichSamplesUsed", "medianWithoutHomozygous", "EstimateModeSimple"))
+    #clusterExport(cl=cl, varlist=c("whichSamplesUsed", "medianWithoutHomozygous", "EstimateModeSimple"))
     if (!polymorphic) {
-      medians <- parApply(cl=cl,coveragesToDealWith[,whichSamplesUsed], 1, medianWithoutHomozygous)
+      medians <- apply(coveragesToDealWith[,whichSamplesUsed], 1, medianWithoutHomozygous)
     } else {
-      medians <- parApply(cl=cl,coveragesToDealWith[,whichSamplesUsed], 1, EstimateModeSimple)
+      medians <- apply(coveragesToDealWith[,whichSamplesUsed], 1, EstimateModeSimple)
     }
     if (chrom == "chrX" & length(which(genderOfSamples == "F")) <= 0.5 * length(which(genderOfSamples == "M"))) {
       medians = sqrt(2) * medians

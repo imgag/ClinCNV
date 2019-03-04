@@ -132,12 +132,12 @@ checkConnectivityComplex = function(j) {
   locations1 = bestLocations[[j]]
   locations2 = bestLocations[[j+1]]
   if (j + 2 <= length(localSdsOfProbes)) {
-    locations3 = bestLocations[[j+1]]
+    locations3 = bestLocations[[j+2]]
   }
   weightsOne = bestWeights[[j]]
   weightsTwo = bestWeights[[j+1]]
   if (j + 2 <= length(localSdsOfProbes)) {
-    weightsThree = bestLocations[[j+2]]
+    weightsThree = bestWeights[[j+2]]
   }
   if (is.null(weightsOne) | is.null(weightsTwo)) {
     return(F)
@@ -171,7 +171,7 @@ checkConnectivityComplex = function(j) {
 }
 
 
-findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, multipliersSamples,index, numberOfClusterAnalysed) {
+findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, multipliersSamples, numberOfClusterAnalysed) {
   startOfmCNV = 2
   endOfmCNV = (nrow(coverageNeededToCheck) - 1)
   if (toyBedFilePolymorphCurrent[1,3] - toyBedFilePolymorphCurrent[1,2] < 250 | nrow(coverageNeededToCheck) < 3) {
