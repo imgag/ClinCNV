@@ -135,12 +135,6 @@ opt = parse_args(opt_parser);
 opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
-### TESTING PART
-opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v4.annotated.bed"
-opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ontarget_v4.cov"
-opt$colNum = 4
-opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
-opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/"
 
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
