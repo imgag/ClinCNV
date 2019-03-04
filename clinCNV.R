@@ -32,76 +32,76 @@ current_working_dir <- script.basename
 
 option_list = list(
   make_option(c("-norm", "--normal"), type="character", default=NULL, 
-              help="path to table with normal coverages", metavar="character"),
+              help="path to table with normal coverages"),
   
   make_option(c("-t", "--tumor"), type="character", default=NULL, 
-              help="path to table with tumor coverages", metavar="character"),
+              help="path to table with tumor coverages"),
   
   make_option(c("-normOff", "--normalOfftarget"), type="character", default=NULL, 
-              help="path to table with normal offtarget coverages", metavar="character"),
+              help="path to table with normal offtarget coverages"),
   
   make_option(c("-tOff", "--tumorOfftarget"), type="character", default=NULL, 
-              help="path to table with tumor offtarget coverages", metavar="character"),
+              help="path to table with tumor offtarget coverages"),
   
   make_option(c("-o", "--out"), type="character", default="./result/", 
-              help="output folder path [default= %default]", metavar="character"),
+              help="output folder path [default= %default]"),
   
   make_option(c("-p", "--pair"), type="character", default="pairs.txt", 
-              help="file with pairing information, 1st column = tumor, 2nd column = normal [default= %default]", metavar="character"),
+              help="file with pairing information, 1st column = tumor, 2nd column = normal [default= %default]"),
   
   make_option(c("-b", "--bed"), type="character", default=NULL, 
-              help="bed file with panel description (chr \t start \t end \t gc_content \t annotation). has to use same notation as .cov files.", metavar="character"),
+              help="bed file with panel description (chr \t start \t end \t gc_content \t annotation). has to use same notation as .cov files."),
   
   make_option(c("-bOff", "--bedOfftarget"), type="character", default=NULL, 
-              help="offtarget bed file with panel description (chr \t start \t end \t gc_content \t annotation). has to use same notation as .cov files.", metavar="character"),
+              help="offtarget bed file with panel description (chr \t start \t end \t gc_content \t annotation). has to use same notation as .cov files."),
   
   make_option(c("-num", "--colNum"), type="integer", default=4, 
-              help="column where coverages start", metavar="number"),
+              help="column where coverages start"),
   
   make_option(c("-script", "--folderWithScript"), type="character", default=current_working_dir, 
-              help="folder where you put script", metavar="character"),
+              help="folder where you put script"),
   
   make_option(c("-r", "--reanalyseCohort"), action="store_false", 
               help="if specified, reanalyses whole cohort [default= %default]"),
   
   make_option(c("-sg", "--scoreG"), type="double", default="20", 
-              help="minimum threshold for significance germline variants", metavar="number"),
+              help="minimum threshold for significance germline variants"),
   
   make_option(c("-lg", "--lengthG"), type="integer", default="2", 
-              help="minimum threshold for length of germline variants", metavar="number"),
+              help="minimum threshold for length of germline variants"),
   
   make_option(c("-ss", "--scoreS"), type="double", default="100", 
-              help="minimum threshold for significance somatic variants", metavar="number"),
+              help="minimum threshold for significance somatic variants"),
   
   make_option(c("-ls", "--lengthS"), type="integer", default="4", 
-              help="minimum threshold for length of somatic variants", metavar="number"),
+              help="minimum threshold for length of somatic variants"),
   
   make_option(c("-mnaxnumg", "--maxNumGermCNVs"), type="integer", default="100", 
-              help="maximum number of germline CNVs allowed (increase thresholds if does not meet criteria)", metavar="number"),
+              help="maximum number of germline CNVs allowed (increase thresholds if does not meet criteria)"),
   
   make_option(c("-mnaxnums", "--maxNumSomCNAs"), type="integer", default="100", 
-              help="maximum number of somatic CNAs allowed (increase thresholds if does not meet criteria)", metavar="number"),
+              help="maximum number of somatic CNAs allowed (increase thresholds if does not meet criteria)"),
   
   make_option(c("-mnaxnumit", "--maxNumIter"), type="integer", default=3, 
-              help="maximum number of iterations of variant calling", metavar="number"),
+              help="maximum number of iterations of variant calling"),
   
   make_option(c("-bafF", "--bafFolder"), type="character", default=NULL, 
-              help="folder where you put BAF frequencies (one per normal, one per tumor sample)", metavar="character"),
+              help="folder where you put BAF frequencies (one per normal, one per tumor sample)"),
   
   make_option(c("-normS", "--normalSample"), type="character", default=NULL, 
-              help="name of normal sample to analyse (if only one sample has to be analysed)", metavar="character"),
+              help="name of normal sample to analyse (if only one sample has to be analysed)"),
   
   make_option(c("-tumorS", "--tumorSample"), type="character", default=NULL, 
-              help="name of tumor sample to analyse (if only one sample has to be analysed, normal has to be provided too)", metavar="character"),
+              help="name of tumor sample to analyse (if only one sample has to be analysed, normal has to be provided too)"),
   
   make_option(c("-triosFile", "--triosFile"), type="character", default=NULL, 
-              help="file with information about trios, child-father-mother", metavar="character"),
+              help="file with information about trios, child-father-mother"),
   
   make_option(c("-fdrG", "--fdrGermline"), type="integer", default=0, 
-              help="number of iterations for FDR check (more - better, but slower, 0 = no FDR correction)", metavar="number"),
+              help="number of iterations for FDR check (more - better, but slower, 0 = no FDR correction)"),
 
-  make_option(c("-numT", "--numberOfThreads"), type="character", default=1, 
-              help="number of threads used for some bottleneck parts, default=1", metavar="character"),  
+  make_option(c("-numT", "--numberOfThreads"), type="integer", default=1, 
+              help="number of threads used for some bottleneck parts, default=1"),  
   
   make_option(c("-numObsInCluster", "--minimumNumOfElemsInCluster"), type="integer", default=100, 
               help="minimum number of elements in cluster (done for germline), default=100, clustering happens only if number of samples bigger than 3 by number of elements in cluster", metavar="number"),  
@@ -135,6 +135,12 @@ opt = parse_args(opt_parser);
 opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
+### TESTING PART
+opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ssSC_v4.annotated.bed"
+opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/Somatic/ontarget_v4.cov"
+opt$colNum = 4
+opt$out = "/Users/gdemidov/Tuebingen/clinCNV_dev/results"
+opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/"
 
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
@@ -187,6 +193,8 @@ if (opt$mosaicism) {
 no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 cl<-makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
+
+
 
 
 

@@ -150,7 +150,7 @@ checkConnectivityComplex = function(j) {
   }
   minSizeOfCluster = 1
   resultList = likelihoodForTwoNeighbors(sdFirst, sdSecond, locations1, locations2, weightsOne, weightsTwo, sdsMultipliers, dataOne, dataTwo, minSizeOfCluster)
-  if (!is.null(sdThree)) {
+  if (!is.null(weightsThree)) {
     resultListAdd = likelihoodForTwoNeighbors(sdFirst, sdThree, locations1, locations3, weightsOne, weightsThree, sdsMultipliers, dataOne, dataThree, minSizeOfCluster)
   }
   if (length(resultList) == 1) {
@@ -160,7 +160,7 @@ checkConnectivityComplex = function(j) {
   if (sum(diag(clusterWeights)) + max(sum(diag(clusterWeights[,-1])), sum(diag(clusterWeights[-1,]))) > 0.95) {
     return(T)
   } else {
-    if (!is.null(sdThree)) {
+    if (!is.null(weightsThree)) {
       clusterWeightsNew = resultListAdd[[2]]
       if (sum(diag(clusterWeightsNew)) + max(sum(diag(clusterWeightsNew[,-1])), sum(diag(clusterWeightsNew[-1,]))) > 0.95) {
         return(T)
@@ -316,7 +316,7 @@ likelihoodForTwoNeighbors = function(sdFirst, sdSecond, locations1, locations2, 
       clusterWeights[i,j] = weightsOne[i] * weightsTwo[j]
     }
   }
-  clusterWeights = clusterWeights + 1/(10**10 * (length(locations1) ** 2))
+  clusterWeights = clusterWeights + min(10**-10, 1/((length(locations1) ** 2)))
   clusterWeights = clusterWeights / sum(clusterWeights)
   
   
@@ -328,7 +328,7 @@ likelihoodForTwoNeighbors = function(sdFirst, sdSecond, locations1, locations2, 
   eachPointLoglik = rep(0, length(dataOne))
   for (k in 1:length(dataOne)) {
     eachPointLoglik[k] = log(sum(clusterWeights * matrixOfLikeliks[k,,]))
-    if (is.na(eachPointLoglik[k])) eachPointLoglik[k] = -10**100
+    if (is.na(eachPointLoglik[k]) | is.infinite(eachPointLoglik[k])) eachPointLoglik[k] = -10**100
   }
   previousLoglik = sum(eachPointLoglik)
   

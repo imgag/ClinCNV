@@ -436,15 +436,32 @@ returnClustering <- function(minNumOfElemsInCluster) {
   
   coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
+  matrixOfDistForMDS = matrix(0, ncol=ncol(coverageForClustering), nrow=ncol(coverageForClustering))
+  for (i in 1:nrow(matrixOfDistForMDS)) {
+    for (j in i:nrow(matrixOfDistForMDS)) {
+      matrixOfDistForMDS[i,j] = median(abs(coverageForClustering[,i] - coverageForClustering[,j]))
+      matrixOfDistForMDS[j,i] = matrixOfDistForMDS[i,j]
+    }
+  }
+  
+  n = 5
+  clusterExport(cl=cl, varlist=c("n"))
+  fit <- isoMDS(as.dist(matrixOfDistForMDS), k=2) # k is the number of dim
+  x <- trimValues(fit$points[,1], 0.01)
+  y <- trimValues(fit$points[,2], 0.01)
+  #coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) tapply(x, ceiling(seq_along(x) / n), median)))
+  
+  #fit <- isoMDS(dist(t(coverageForClustering), method="manhattan"), k=2) # k is the number of dim
+  
+  # plot solution 
+  #x <- trimValues(fit$points[,1], 0.01)
+  #y <- trimValues(fit$points[,2], 0.01)
+  
   if (ncol(normal) < 3 * minNumOfElemsInCluster) {
     print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
-    n = 5
-    coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) tapply(x, ceiling(seq_along(x) / n), median)))
-    fit <- isoMDS(dist(t(coverageForClustering), method="manhattan"), k=2) # k is the number of dim
-    x <- trimValues(fit$points[,1], 0.01)
-    y <- trimValues(fit$points[,2], 0.01)
+    
     setwd(opt$out)
-    png(filename="clusteringSolution.png", width=2048, height=2048)
+    png(filename="clusteringSolution.png", width=1024, height=1024)
     plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
          main="Metric MDS", type="n")
     text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
@@ -471,36 +488,65 @@ returnClustering <- function(minNumOfElemsInCluster) {
         coverageForClustering[,father_number] = coverageToReplace
       }
     }
-    n = 5
-  } else {
-    n = 5
-  }
+  } 
+  
+  coordsAfterMDS = t((rbind(x, y)))
+  distMatrix = dist(t((rbind(x, y))))
+  hc <- hclust(distMatrix, method="ward.D")
 
-  coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) tapply(x, ceiling(seq_along(x) / n), median)))
-  
-  corMatrix <- cor(coverageForClustering)
-  
-  distMatrix <- sqrt(1 - corMatrix)
-  hc <- hclust(as.dist(distMatrix), method="ward.D")
   
   numOfClusters = 1
+  percentage = c()
   for (numOfClusters in 2:100) {
-    memb <- cutree(hc, k=numOfClusters)
+    print(numOfClusters)
+    #km = kmeans(distMatrix, centers=numOfClusters, nstart = 25)
+    #percentage = c(percentage, km$betweenss / km$totss)
+    
+    #memb <- km$cluster
+    memb=cutree(hc, k=numOfClusters)
+    plot(coordsAfterMDS, col=memb+1, main=numOfClusters)
     numOfObservationsInClusters <- table(memb)
-    if (sum(numOfObservationsInClusters[numOfObservationsInClusters >= numOfElementsInCluster]) < 0.8 * sum(numOfObservationsInClusters)) {
+    centers = matrix(0, nrow=0, ncol=2)
+    sds = matrix(0, nrow=0, ncol=2)
+    robCov = c()
+    for (l in 1:numOfClusters) {
+      if (length(which(memb == l)) > 0.05 * length(memb)) {
+        matrOfMembers = coordsAfterMDS[which(memb == l),]
+        centers = rbind(centers, c(median(matrOfMembers[,1]), median(matrOfMembers[,2])))
+        sds = rbind(sds, c(Qn(matrOfMembers[,1]), Qn(matrOfMembers[,2])))
+        robCov = c(robCov, robust_correlation(Qn, median(matrOfMembers[,1]), median(matrOfMembers[,2]), matrOfMembers[,1], matrOfMembers[,2]))
+      }
+    }
+    sdsEqual = apply(sds, 2, median)
+    robCov = median(robCov)
+    sigma = matrix(c(sdsEqual[1] ** 2, robCov * sdsEqual[1] * sdsEqual[2], robCov * sdsEqual[1] * sdsEqual[2], sdsEqual[2] ** 2), nrow=2)
+    mahalanobisDist <- c()
+    if (length(mahalanobisDist) > 0) {
+      for (l in 1:nrow(centers)) {
+        for (k in (l):nrow(centers)) {
+          if (k > l)
+            mahalanobisDist = c(mahalanobisDist, mahalanobis(centers[l,], centers[k,], cov=sigma))
+        }
+      }
+      mahalanobisToChisq = pchisq(mahalanobisDist, df=2)
+    } else {
+      mahalanobisToChisq = 1
+    }
+    if (sum(numOfObservationsInClusters[numOfObservationsInClusters >= numOfElementsInCluster]) < 0.8 * sum(numOfObservationsInClusters) | min(mahalanobisToChisq) < 0.999) {
       break
     }
   }
   
 
-  memb <- cutree(hc, k=numOfClusters - 1)
+  
+  memb <- kmeans(distMatrix, centers=numOfClusters - 1, nstart = 25)$cluster
   numOfObservationsInClusters <- table(memb)
   clustering = memb
   
   significantClusters = which(numOfObservationsInClusters >= numOfElementsInCluster)
   
   outliersFromClustering[which(!clustering %in% significantClusters)] = TRUE
-  
+  distMatrix = as.matrix(distMatrix)
   for (i in 1:length(numOfObservationsInClusters)) {
     if (numOfObservationsInClusters[i] < numOfElementsInCluster) {
       for (elem in which(clustering == i)) {
@@ -521,11 +567,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
     clustering[-samplesActuallyPlayingRole] = -1
   }
   
-  fit <- isoMDS(dist(t(coverageForClustering), method="manhattan"), k=2) # k is the number of dim
 
-  # plot solution 
-  x <- trimValues(fit$points[,1], 0.01)
-  y <- trimValues(fit$points[,2], 0.01)
   setwd(opt$out)
   png(filename="clusteringSolution.png", width=1024, height=1024)
   plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
@@ -705,6 +747,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
       }
       whichSamplesUsed = which(genderOfSamples == "M")
     }
+    clusterExport(cl=cl, varlist=c("whichSamplesUsed", "medianWithoutHomozygous", "EstimateModeSimple"))
     if (!polymorphic) {
       medians <- parApply(cl=cl,coveragesToDealWith[,whichSamplesUsed], 1, medianWithoutHomozygous)
     } else {
@@ -760,3 +803,4 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
   }
   return(list(coverage.normalised + 1, cbind(mediansResult, sdsResults), sdsOfGermlineSamplesTmp))
 }
+
