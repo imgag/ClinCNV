@@ -547,7 +547,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
   
 
   
-  memb <- kmeans(distMatrix, centers=numOfClusters - 1, nstart = 25)$cluster
+  memb=cutree(hc, k=numOfClusters - 1)
   numOfObservationsInClusters <- table(memb)
   clustering = memb
   
