@@ -187,7 +187,7 @@ checkConnectivityComplex = function(j) {
 }
 
 
-findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, multipliersSamples, numberOfClusterAnalysed) {
+findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, multipliersSamples, numberOfClusterAnalysed, plotting) {
   startOfmCNV = 2
   endOfmCNV = (nrow(coverageNeededToCheck) - 1)
   if (toyBedFilePolymorphCurrent[1,3] - toyBedFilePolymorphCurrent[1,2] < 250 | nrow(coverageNeededToCheck) < 3) {
@@ -291,7 +291,7 @@ findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, mu
   coloursP = colors()[c(30, 114, 518, 148, 93, 456, 459, 552, 256, 652, 373, 68, 6, 600, 414, 337)]
   coloursP = c(coloursP, coloursP)
   diagnosticPlot = (length(which(copy_number != as.numeric(names(sort(table(copy_number),decreasing=TRUE)[1])))) >= 0.05 * length(copy_number))
-  if (diagnosticPlot == T) {
+  if (diagnosticPlot == T & plotting) {
     fileName = paste(numberOfClusterAnalysed, toyBedFilePolymorphCurrent[1,1], toyBedFilePolymorphCurrent[1,2], toyBedFilePolymorphCurrent[nrow(toyBedFilePolymorphCurrent),3], sep="_")
     png(paste0(fileName, ".png"), width=length(copy_number) * 3, height=800)
     plot(coverageSummarised ** 2 * bestDivisor, col="black", pch=21,bg=coloursP[(copy_number + 1)])

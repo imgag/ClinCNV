@@ -189,7 +189,7 @@ for (l in 1:length(left_borders)) {
       for (i in 1:nrow(finalMCNVs)) {
         mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                                          toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                                         multipliersSamples, cluster)
+                                         multipliersSamples, cluster, F)
         if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < percentageToBePolymorphism * ncol(coverageToWorkWith)) {
           print(i)
           next
@@ -210,11 +210,13 @@ for (l in 1:length(left_borders)) {
         }
         if (i < nrow(finalMCNVs)) {
           if (sum(copyNumberForReporting[i,] != copyNumberForReporting[i+1,]) < 0.05 * ncol(copyNumberForReporting)) {
-            currentLine = c(currentLine, i)
+            currentLine = c(currentLine, i + 1)
           } else {
             forMergingList[[i]] = currentLine
-            currentLine = c(i)
+            currentLine = c(i + 1)
           }
+        } else {
+          forMergingList[[i]] = currentLine
         }
       }
       newMCNVs = matrix(0, ncol=3, nrow=0)
@@ -232,7 +234,7 @@ for (l in 1:length(left_borders)) {
       for (i in 1:nrow(finalMCNVs)) {
         mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                                          toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                                         multipliersSamples, cluster)
+                                         multipliersSamples, cluster, T)
         if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < percentageToBePolymorphism * ncol(coverageToWorkWith)) {
           print(i)
           next
