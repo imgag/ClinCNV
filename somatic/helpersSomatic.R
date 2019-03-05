@@ -372,3 +372,35 @@ returnMultiplierDueToLog <- function(cnNorm, cnTum, sdNorm, sdTum, covNT) {
   }
   return(resSd)
 }
+
+
+returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr, clonalityForChecking, puritiesOfStates, bedFileForMapping, overdispersionNormalChr, overdispersionTumorChr) {
+  ### CHECK BAFS HERE FOR LOW CLONALITY
+  cnvsThatShowNoBAFdeviation = c()
+  for (q in 1:nrow(found_CNVs)) {
+    if (puritiesOfStates[found_CNVs[q,4]] > clonalityForChecking) next
+    
+    startOfCNV = as.numeric(bedFileForMapping[found_CNVs[q,2],2])
+    endOfCNV <- as.numeric(bedFileForMapping[found_CNVs[q,3],3])
+    varsInside = which(as.numeric(bafNormalChr[,2]) >= startOfCNV & as.numeric(bafNormalChr[,3]) <= endOfCNV)
+    if (length(varsInside) < 10) {
+      cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
+    } else {
+      pvalsOfVariants <- rep(1, length(varsInside))
+      for (l in 1:length(varsInside)) {
+        var = varsInside[l]
+        numOne = round(as.numeric(bafNormalChr[var,5]) * as.numeric(bafNormalChr[var,6]))
+        numTwo = round(as.numeric(bafTumorChr[var,5]) * as.numeric(bafTumorChr[var,6]))
+        refOne = as.numeric(bafNormalChr[var,6]) - numOne
+        refTwo = as.numeric(bafTumorChr[var,6]) - numTwo
+        overdispNorm = overdispersionNormalChr[var]
+        overdispTumo = overdispersionTumorChr[var]
+        pvalsOfVariants[l] = passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo)
+      }
+      if (length(which(pvalsOfVariants < 0.05)) < 0.05 * length(varsInside)) {
+        cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
+      }
+    }
+  }
+  return(cnvsThatShowNoBAFdeviation)
+}

@@ -174,6 +174,7 @@ if (!dir.exists(folder_name)) {
 
 allPotentialPurities <- unique(purities)
 penaltyForHigherCN = 20
+clonalityForChecking = 0.3
 print(paste("Work on actual calling started.", Sys.time()))
 
 for (sam_no in 1:ncol(matrixOfLogFold)) {
@@ -352,7 +353,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             #smoothedLogFold = runmed(globalLogFoldAllowedChroms, k = lengthOfRolling)
             clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))], model="E")
             print("Mclust finished")
-            bigClusters <- which(clusteredResult$parameters$pro > 0.1)
+            bigClusters <- which(clusteredResult$parameters$pro > 0.25)
             if (length(bigClusters) == 0) {
               shiftOfCoverage <- median(globalLogFold[allowedChromosomesAutosomesOnly])
             } else {
@@ -593,6 +594,20 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           } else {
             found_CNVs = matrix(0, nrow=0, ncol=10)
           }
+          
+          # BAFs from this chromosome
+          if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0) {
+            bafsFromThisChr = which(bAlleleFreqsNormal[,1] == chrom)
+            listOfCNVsThatDoNotPass = returnListOfCNVsThatDoNotPass(foundCNVs, bAlleleFreqsNormal[bafsFromThisChr,], bAlleleFreqsTumor[bafsFromThisChr,], 
+                                                                  clonalityForChecking, local_purities, toyBedFile,
+                                                                  overdispersionNormal[bafsFromThisChr],
+                                                                  overdispersionTumor[bafsFromThisChr]
+                                                                  ) 
+            if (length(listOfCNVsThatDoNotPass) > 0)
+            found_CNVs = found_CNVs[-listOfCNVsThatDoNotPass,,drop=F]
+          }
+  
+
           
           if (nrow(found_CNVs) > 0 & !chrom %in% c("chrX", "chrY", "X", "Y")) {
             likeliksFoundCNVsVsPurities <- matrix(nrow=nrow(found_CNVs), ncol=length(uniqueLocalPurities))
@@ -912,4 +927,4 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   }
 }
 
-stopCluster(cl)
+++stopCluster(cl)

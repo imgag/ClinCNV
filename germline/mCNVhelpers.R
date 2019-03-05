@@ -144,9 +144,15 @@ checkConnectivityComplex = function(j) {
   }
   sdsMultipliers = multipliersSamples
   dataOne = coverageToWorkWith[j,]
+  dataOne[which(dataOne < min(locations1))] = min(locations1) + rnorm(1, sd=sdFirst)
+  dataOne[which(dataOne > max(locations1))] = max(locations1) + rnorm(1, sd=sdFirst)
   dataTwo = coverageToWorkWith[j+1,]
+  dataTwo[which(dataTwo < min(locations2))] = min(locations2) + rnorm(1, sd=sdSecond)
+  dataTwo[which(dataTwo > max(locations2))] = max(locations2) + rnorm(1, sd=sdSecond)
   if (j + 2 <= length(localSdsOfProbes)) {
     dataThree = coverageToWorkWith[j+2,]
+    dataThree[which(dataThree < min(locations3))] = min(locations3) + rnorm(1, sd=sdThree)
+    dataThree[which(dataThree > max(locations3))] = max(locations3) + rnorm(1, sd=sdThree)
   }
   minSizeOfCluster = 1
   resultList = likelihoodForTwoNeighbors(sdFirst, sdSecond, locations1, locations2, weightsOne, weightsTwo, sdsMultipliers, dataOne, dataTwo, minSizeOfCluster)

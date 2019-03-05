@@ -436,14 +436,16 @@ returnClustering <- function(minNumOfElemsInCluster) {
   
   coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
-  if (nrow(coverageForClustering) > 100000) {
-    coverageForClustering = coverageForClustering[1:100000,]
+  if (nrow(coverageForClustering) > 20000) {
+    coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 20000),]
   }
-  coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) tapply(x, ceiling(seq_along(x) / 5), median)))
+  coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) {runmed(x, 2)}))
   matrixOfDistForMDS = matrix(0, ncol=ncol(coverageForClustering), nrow=ncol(coverageForClustering))
   for (i in 1:nrow(matrixOfDistForMDS)) {
-    differences = abs(sweep(coverageForClustering[,i:ncol(coverageForClustering), drop=F], 2, coverageForClustering[,i]))
-    mediansOfDiff = apply(differences, 2, median)
+    if (i %% 10 == 0)
+    print(paste("We are calculating distances between samples for visualization and clustering, now we've processed", round(100 * i / nrow(matrixOfDistForMDS)), "% of samples"))
+    differences = abs(sweep(coverageForClustering[,i:ncol(coverageForClustering), drop=F], 1, coverageForClustering[,i]))
+    mediansOfDiff = parApply(cl=cl, differences, 2, median)
     for (j in i:nrow(matrixOfDistForMDS)) {
       matrixOfDistForMDS[i,j] = mediansOfDiff[j - i + 1]
       matrixOfDistForMDS[j,i] = matrixOfDistForMDS[i,j]
