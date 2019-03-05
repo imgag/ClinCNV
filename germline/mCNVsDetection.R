@@ -153,6 +153,12 @@ for (l in 1:length(left_borders)) {
             }
             print(j)
              if (!checkConnectivityComplex(j)) {
+               png(paste0(j, "_connection.png"))
+               plot(coverageToWorkWith[j,] ~ coverageToWorkWith[j + 1,])
+               dev.off()
+               png(paste0(j, "_snd_connection.png"))
+               plot(coverageToWorkWith[j,] ~ coverageToWorkWith[j + 2,])
+               dev.off()
               #if (j + 2 <= nrow(coverageToWorkWith)) {
                 #if (checkConnectivity(coverageToWorkWith[j,], coverageToWorkWith[j + 2,])) {
                 #  next
