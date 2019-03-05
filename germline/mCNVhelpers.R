@@ -156,19 +156,29 @@ checkConnectivityComplex = function(j) {
   }
   minSizeOfCluster = 1
   resultList = likelihoodForTwoNeighbors(sdFirst, sdSecond, locations1, locations2, weightsOne, weightsTwo, sdsMultipliers, dataOne, dataTwo, minSizeOfCluster)
-  if (!is.null(weightsThree)) {
-    resultListAdd = likelihoodForTwoNeighbors(sdFirst, sdThree, locations1, locations3, weightsOne, weightsThree, sdsMultipliers, dataOne, dataThree, minSizeOfCluster)
-  }
   if (length(resultList) == 1) {
     return(F)
   }
   clusterWeights = resultList[[2]]
-  if (sum(diag(clusterWeights)) + max(sum(diag(clusterWeights[,-1])), sum(diag(clusterWeights[-1,]))) > 0.95) {
+  arrayOfDiags <- c(sum(diag(clusterWeights)))
+  for (i in 1:2) {
+    arrayOfDiags = c(arrayOfDiags, sum(clusterWeights[,-i]))
+    arrayOfDiags = c(arrayOfDiags, sum(clusterWeights[-i,]))
+  }
+  if (max(arrayOfDiags) > 0.95) {
     return(T)
   } else {
     if (!is.null(weightsThree)) {
+      resultListAdd = likelihoodForTwoNeighbors(sdFirst, sdThree, locations1, locations3, weightsOne, weightsThree, sdsMultipliers, dataOne, dataThree, minSizeOfCluster)
+    }
+    if (!is.null(weightsThree)) {
       clusterWeightsNew = resultListAdd[[2]]
-      if (sum(diag(clusterWeightsNew)) + max(sum(diag(clusterWeightsNew[,-1])), sum(diag(clusterWeightsNew[-1,]))) > 0.95) {
+      arrayOfDiagsNew <- c(sum(diag(clusterWeightsNew)))
+      for (i in 1:2) {
+        arrayOfDiagsNew = c(arrayOfDiagsNew, sum(clusterWeightsNew[,-i]))
+        arrayOfDiagsNew = c(arrayOfDiagsNew, sum(clusterWeightsNew[-i,]))
+      }
+      if (max(arrayOfDiagsNew) > 0.95) {
         return(T)
       } 
     }
