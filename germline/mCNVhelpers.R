@@ -144,17 +144,17 @@ checkConnectivityComplex = function(j) {
   }
   sdsMultipliers = multipliersSamples
   dataOne = coverageToWorkWith[j,]
-  dataOne[which(dataOne < min(locations1))] = min(locations1) + rnorm(1, sd=sdFirst)
-  dataOne[which(dataOne > max(locations1))] = max(locations1) + rnorm(1, sd=sdFirst)
+  dataOne[which(dataOne < min(locations1))] = min(locations1) + rnorm(length(which(dataOne < min(locations1))), sd=sdFirst)
+  dataOne[which(dataOne > max(locations1))] = max(locations1) + rnorm(length(which(dataOne > max(locations1))), sd=sdFirst)
   dataTwo = coverageToWorkWith[j+1,]
-  dataTwo[which(dataTwo < min(locations2))] = min(locations2) + rnorm(1, sd=sdSecond)
-  dataTwo[which(dataTwo > max(locations2))] = max(locations2) + rnorm(1, sd=sdSecond)
+  dataTwo[which(dataTwo < min(locations2))] = min(locations2) + rnorm(length(which(dataTwo < min(locations2))), sd=sdSecond)
+  dataTwo[which(dataTwo > max(locations2))] = max(locations2) + rnorm(length(which(dataTwo > max(locations2))), sd=sdSecond)
   if (j + 2 <= length(localSdsOfProbes)) {
     dataThree = coverageToWorkWith[j+2,]
-    dataThree[which(dataThree < min(locations3))] = min(locations3) + rnorm(1, sd=sdThree)
-    dataThree[which(dataThree > max(locations3))] = max(locations3) + rnorm(1, sd=sdThree)
+    dataThree[which(dataThree < min(locations3))] = min(locations3) + rnorm(length(which(dataThree < min(locations3))), sd=sdThree)
+    dataThree[which(dataThree > max(locations3))] = max(locations3) + rnorm(length(which(dataThree > max(locations3))), sd=sdThree)
   }
-  minSizeOfCluster = 1
+  minSizeOfCluster = 2
   resultList = likelihoodForTwoNeighbors(sdFirst, sdSecond, locations1, locations2, weightsOne, weightsTwo, sdsMultipliers, dataOne, dataTwo, minSizeOfCluster)
   if (length(resultList) == 1) {
     return(F)
