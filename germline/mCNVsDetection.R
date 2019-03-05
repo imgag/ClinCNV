@@ -182,26 +182,69 @@ for (l in 1:length(left_borders)) {
       }
     }
     finalMCNVs = rbind(finalMCNVs, smallRegions)
+    finalMCNVs = finalMCNVs[order(as.numeric(finalMCNVs[,2])),]
     
-    if (nrow(finalMCNVs) > 0)
-    for (i in 1:nrow(finalMCNVs)) {
-      mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
-                     toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                     multipliersSamples, cluster)
-      if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < percentageToBePolymorphism * ncol(coverageToWorkWith)) {
-        print(i)
-        next
+    if (nrow(finalMCNVs) > 0) {
+      copyNumberForReportingBefore = matrix(0, nrow=0, ncol=ncol(coverage))
+      for (i in 1:nrow(finalMCNVs)) {
+        mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
+                                         toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
+                                         multipliersSamples, cluster)
+        if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < percentageToBePolymorphism * ncol(coverageToWorkWith)) {
+          print(i)
+          next
+        }
+        toyBedFilePolymorphCurrent = toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],]
+        copyNumberForReporting = rbind(copyNumberForReporting, c(toyBedFilePolymorph[finalMCNVs[i,2],1], 
+                                                                 toyBedFilePolymorph[finalMCNVs[i,2],2],
+                                                                 toyBedFilePolymorph[finalMCNVs[i,3],3],
+                                                                 mcnvCopyNumber))
       }
-      coverageNeededToCheck = coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],]
-      medianOfCoverage = median(mediansOfPolymorphicLocal[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)])
-      sdNormalised = median(localSdsOfProbes[(finalMCNVs[i,2] + 1):(finalMCNVs[i,3] - 1)])
-      toyBedFilePolymorphCurrent = toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],]
-      copyNumberForReporting = rbind(copyNumberForReporting, c(toyBedFilePolymorph[finalMCNVs[i,2],1], 
-                                                               toyBedFilePolymorph[finalMCNVs[i,2],2],
-                                                               toyBedFilePolymorph[finalMCNVs[i,3],3],
-                                                               mcnvCopyNumber))
+      
+      forMergingList = list()
+      currentLine = c()
+      for (i in 1:nrow(finalMCNVs)) {
+        forMergingList[[i]] = NULL
+        if (length(currentLine) == 0) {
+          currentLine = c(i)
+        }
+        if (i < nrow(finalMCNVs)) {
+          if (sum(copyNumberForReporting[i,] != copyNumberForReporting[i+1,]) < 0.05 * ncol(copyNumberForReporting)) {
+            currentLine = c(currentLine, i)
+          } else {
+            forMergingList[[i]] = currentLine
+            currentLine = c(i)
+          }
+        }
+      }
+      newMCNVs = matrix(0, ncol=3, nrow=0)
+      for (i in 1:nrow(finalMCNVs)) {
+        if (!is.null(forMergingList)) {
+          winningLine = forMergingList[[i]]
+          print(winningLine)
+          minim = min(winningLine)
+          maxim = max(winningLine)
+          rbind(newMCNVs, matirx(c(finalMCNVs[minim,1], finalMCNVs[minim,2], finalMCNVs[maxim,3]), nrow=1))
+        }
+        
+      }
+      finalMCNVs = newMCNVs
+      for (i in 1:nrow(finalMCNVs)) {
+        mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
+                                         toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
+                                         multipliersSamples, cluster)
+        if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < percentageToBePolymorphism * ncol(coverageToWorkWith)) {
+          print(i)
+          next
+        }
+        toyBedFilePolymorphCurrent = toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],]
+        copyNumberForReporting = rbind(copyNumberForReporting, c(toyBedFilePolymorph[finalMCNVs[i,2],1], 
+                                                                 toyBedFilePolymorph[finalMCNVs[i,2],2],
+                                                                 toyBedFilePolymorph[finalMCNVs[i,3],3],
+                                                                 mcnvCopyNumber))
+      }
     }
-   }
+  }
 }
 
 folder_name <- paste0(opt$out, "/normal/")
