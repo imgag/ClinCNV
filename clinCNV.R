@@ -512,12 +512,11 @@ stopCluster(cl)
 orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
 bedFile = bedFile[orderOfBedFile,]
 normal = normal[orderOfBedFile,]
-coverageAllSamples <- sqrt(as.matrix(normal))
 
 
 
 print(paste("Gender estimation started", Sys.time()))
-genderOfSamplesCohort <- Determine.gender(coverageAllSamples, bedFile)
+genderOfSamplesCohort <- Determine.gender(sqrt(normal), bedFile)
 print(genderOfSamplesCohort)
 print(paste("Gender succesfully determined. Plot is written in your results directory:", opt$out, Sys.time()))
 
@@ -550,17 +549,17 @@ if (framework == "germline") {
     
     samplesToAnalyse = which(clustering == cluster)
     if (!is.null(opt$normalSample)) {
-      if (!opt$normalSample %in% colnames(coverageAllSamples)[samplesToAnalyse]) {
+      if (!opt$normalSample %in% colnames(normal)[samplesToAnalyse]) {
         next
       }
     }
     
-    coverage <- coverageAllSamples[,samplesToAnalyse]
+    coverage <- sqrt(normal[,samplesToAnalyse])
     genderOfSamples = genderOfSamplesCohort[samplesToAnalyse]
     outliersByClustering = outliersByClusteringCohort[samplesToAnalyse]
     if (frameworkOff == "offtargetGermline") {
-      samplesToAnalyseOff = which(colnames(coverageAllSamplesOff) %in% colnames(coverage))
-      coverageOff <- coverageAllSamplesOff[,samplesToAnalyseOff]
+      samplesToAnalyseOff = which(colnames(normalOff) %in% colnames(coverage))
+      coverageOff <- sqrt(as.matrix(normalOff))[,samplesToAnalyseOff]
       genderOfSamplesOff <- sapply(1:ncol(coverageOff), function(i) {return(genderOfSamplesCohort[which(colnames(normal) == colnames(coverageOff)[i])])})
     }
     
@@ -590,7 +589,8 @@ if (framework == "germline") {
     print(paste("We start estimation of parameters of germline cohort. It may take some time. Cluster of samples being analysed:", cluster, Sys.time()))
     mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes)
     coverage.normalised = mediansAndSds[[1]]
-    
+    rm(coverage)
+    gc()
     
 
     
@@ -606,6 +606,8 @@ if (framework == "germline") {
       
       autosomesOff = which(!bedFileOfftarget[,1] %in% c("chrX", "chrY"))
       mediansAndSdsOff = calculateLocationAndScale(bedFileOfftarget, coverageOff, genderOfSamplesOff, autosomesOff)
+      rm(coverageOff)
+      gc()
       coverage.normalised.off = mediansAndSdsOff[[1]]
       sdsOfProbesOff = trimValues(as.numeric(mediansAndSdsOff[[2]][,2]), 0.01)
       sdsOfGermlineSamplesOff = mediansAndSdsOff[[3]]
@@ -613,6 +615,7 @@ if (framework == "germline") {
       sdsOfProbesOff = sdsOfProbesOff[filterOutRegionsWithSmallMedians]
       bedFileFilteredOfftarget = bedFileOfftarget[filterOutRegionsWithSmallMedians,]
       coverage.normalised.off = coverage.normalised.off[filterOutRegionsWithSmallMedians,]
+
     }
     
     
