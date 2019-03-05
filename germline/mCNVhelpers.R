@@ -284,7 +284,7 @@ findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, mu
     matrix(rep(x,each=n),nrow=n)
   }
   copy_number_likeliks <- abs(sweep(rep.row(coverageSummarised, length(bestLoc)), 1, bestLoc, FUN="-"))
-  copy_number_likeliks <- t(apply(copy_number_likeliks, 1, function(x){dnorm(x, sd = bestSD * multipliersSamples)}))
+  copy_number_likeliks <- t(apply(copy_number_likeliks, 1, function(x){dnorm(x, sd = bestSD)}))
   copy_number_likeliks <- sweep(copy_number_likeliks, 1, bestWeight, FUN="*")
   copy_number <- bestLoc[apply(copy_number_likeliks, 2, which.max)]
   copy_number = round(copy_number ** 2 * bestDivisor)
