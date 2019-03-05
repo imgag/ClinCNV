@@ -197,7 +197,7 @@ for (l in 1:length(left_borders)) {
           next
         }
         toyBedFilePolymorphCurrent = toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],]
-        copyNumberForReporting = rbind(copyNumberForReporting, c(toyBedFilePolymorph[finalMCNVs[i,2],1], 
+        copyNumberForReportingBefore = rbind(copyNumberForReportingBefore, c(toyBedFilePolymorph[finalMCNVs[i,2],1], 
                                                                  toyBedFilePolymorph[finalMCNVs[i,2],2],
                                                                  toyBedFilePolymorph[finalMCNVs[i,3],3],
                                                                  mcnvCopyNumber))
@@ -217,7 +217,7 @@ for (l in 1:length(left_borders)) {
           currentLine = c(i)
         }
         if (i < nrow(finalMCNVs)) {
-          if (sum(copyNumberForReporting[i,] != copyNumberForReporting[i+1,]) < 0.05 * ncol(copyNumberForReporting)) {
+          if (sum(copyNumberForReportingBefore[i,] != copyNumberForReportingBefore[i+1,]) < 0.05 * ncol(copyNumberForReportingBefore)) {
             currentLine = c(currentLine, i + 1)
           } else {
             forMergingList[[i]] = currentLine
@@ -234,12 +234,11 @@ for (l in 1:length(left_borders)) {
           print(winningLine)
           minim = min(winningLine)
           maxim = max(winningLine)
-          newMCNVs = rbind(newMCNVs, matirx(c(finalMCNVs[minim,1], finalMCNVs[minim,2], finalMCNVs[maxim,3]), nrow=1))
+          newMCNVs = rbind(newMCNVs, matrix(c(finalMCNVs[minim,1], finalMCNVs[minim,2], finalMCNVs[maxim,3]), nrow=1))
         }
         
       }
       finalMCNVs = newMCNVs
-      copyNumberForReportingBefore = matrix(0, nrow=0, ncol=ncol(coverage))
       for (i in 1:nrow(finalMCNVs)) {
         mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                                          toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],

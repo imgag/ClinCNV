@@ -76,10 +76,10 @@ option_list = list(
   make_option(c("-ls", "--lengthS"), type="integer", default="4", 
               help="minimum threshold for length of somatic variants"),
   
-  make_option(c("-mnaxnumg", "--maxNumGermCNVs"), type="integer", default="100", 
+  make_option(c("-mnaxnumg", "--maxNumGermCNVs"), type="integer", default="10000", 
               help="maximum number of germline CNVs allowed (increase thresholds if does not meet criteria)"),
   
-  make_option(c("-mnaxnums", "--maxNumSomCNAs"), type="integer", default="100", 
+  make_option(c("-mnaxnums", "--maxNumSomCNAs"), type="integer", default="10000", 
               help="maximum number of somatic CNAs allowed (increase thresholds if does not meet criteria)"),
   
   make_option(c("-mnaxnumit", "--maxNumIter"), type="integer", default=3, 
@@ -103,7 +103,7 @@ option_list = list(
   make_option(c("-numT", "--numberOfThreads"), type="integer", default=1, 
               help="number of threads used for some bottleneck parts, default=1"),  
   
-  make_option(c("-numObsInCluster", "--minimumNumOfElemsInCluster"), type="integer", default=100, 
+  make_option(c("-numObsInCluster", "--minimumNumOfElemsInCluster"), type="integer", default=10000, 
               help="minimum number of elements in cluster (done for germline), default=100, clustering happens only if number of samples bigger than 3 by number of elements in cluster", metavar="number"),  
   
   make_option(c("-vis", "--visulizationIGV"), action="store_true", default=T, 
@@ -134,7 +134,6 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
-
 
 
 if (is.null(opt$normal) | is.null(opt$bed)) {

@@ -440,28 +440,14 @@ returnClustering <- function(minNumOfElemsInCluster) {
     coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 20000),]
   }
   coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) {runmed(x, 2)}))
-  matrixOfDistForMDS = matrix(0, ncol=ncol(coverageForClustering), nrow=ncol(coverageForClustering))
-  for (i in 1:nrow(matrixOfDistForMDS)) {
-    if (i %% 10 == 0)
-    print(paste("We are calculating distances between samples for visualization and clustering, now we've processed", round(100 * i / nrow(matrixOfDistForMDS)), "% of samples"))
-    differences = (sweep(coverageForClustering[,i:ncol(coverageForClustering), drop=F], 1, coverageForClustering[,i]))
-    differences[which((differences) > sqrt(3/2) - 1)] = sqrt(3/2) - 1
-    differences[which((differences) < 1 - sqrt(3/2))] = 1 - sqrt(3/2)
-    mediansOfDiff = parApply(cl=cl, differences, 2, mean)
-    for (j in i:nrow(matrixOfDistForMDS)) {
-      matrixOfDistForMDS[i,j] = mediansOfDiff[j - i + 1]
-      matrixOfDistForMDS[j,i] = matrixOfDistForMDS[i,j]
-    }
-  }
+  matrixOfDistForMDS = as.matrix(dist(t(coverageForClustering), method="manhattan"))
   
-  n = 5
-  clusterExport(cl=cl, varlist=c("n"))
   fit <- isoMDS(as.dist(matrixOfDistForMDS), k=2) # k is the number of dim
   x <- trimValues(fit$points[,1], 0.01)
   y <- trimValues(fit$points[,2], 0.01)
 
   
-  if (ncol(normal) < 3 * minNumOfElemsInCluster) {
+  if (ncol(normal) < 2 * minNumOfElemsInCluster) {
     print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
     
     setwd(opt$out)
