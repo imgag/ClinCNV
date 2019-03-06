@@ -496,7 +496,7 @@ if (frameworkTrios == "trios") {
   colnames(trios) <- c("Kid","Mother","Father")
 }
 sdsForQC = apply(sqrt(normal[which(!bedFile[,1] %in% c("chrX","chrY")),]), 2, mad)
-samplesToFilterOut = which(sdsForQC < 0.005 | sdsForQC > 0.3)
+samplesToFilterOut = which(sdsForQC < 0.005 | sdsForQC > 0.5)
 if (length(samplesToFilterOut) > 0) {
   print(paste("Germline samples", colnames(normal)[samplesToFilterOut], "did not pass QC due to high level of noise"))
   normal = normal[,-samplesToFilterOut]
