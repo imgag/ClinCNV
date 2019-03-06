@@ -136,7 +136,6 @@ opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
 
-
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
