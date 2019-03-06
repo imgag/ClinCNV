@@ -190,7 +190,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         presenceOfMosaicVariants = F
         while(!armFinalized) {
 
-          if (opt$mosaicism == F) armFinalized = T
+          if (opt$mosaicism == F | chrom %in% c("chrX", "chrY")) armFinalized = T
           output_of_plots <-  paste0(folder_name, sample_name)
           which_to_allow <- "NA"
           which_to_allow_ontarget <- "NA"
@@ -268,7 +268,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           rollingThrowCoverage = runmed(toyCoverageGermlineWithoutNonMosaicCNVs, max(3, opt$lengthG * 2))
           standDevOfRolling = Qn(rollingThrowCoverage)
           locationOfRolling = median(rollingThrowCoverage)
-          if (max(abs(rollingThrowCoverage - locationOfRolling)) > max(3 * standDevOfRolling, 0.2)) {
+          if (max(abs(rollingThrowCoverage - locationOfRolling)) > max(3 * standDevOfRolling, 0.2) & !chrom %in% c("chrX", "chrY")) {
             print(paste("Potential mosaicism at chromosome", chrom, ", arm: ", k, "(this is normal if you have not filtered polymorphic regions before calling)"))
             if (opt$mosaicism) {
               presenceOfMosaicVariants = T

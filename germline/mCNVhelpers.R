@@ -119,6 +119,27 @@ checkConnectivity = function(covOne, covTwo) {
   return(F)
 }
 
+checkConnectivityMed = function(covOne, covTwo, sampleVariability) {
+  whichBothNonHomo = which(covOne > 0.5 & covTwo > 0.5)
+  if (length(whichBothNonHomo) < 5) {
+    return(F)
+  }
+  angle = median(covOne / covTwo)
+  distances <- sapply(1:length(whichBothNonHomo), function(i) {y0  = covOne[whichBothNonHomo[i]]; 
+  x0 = covTwo[whichBothNonHomo[i]];
+  (-angle * x0 + y0) / sqrt(angle ** 2 + 1)
+  })
+  if (length(which(abs(distances) < sqrt(3/2) - 1)) < 5) {
+    return(F)
+  }
+  QnDist = Qn(distances[which(abs(distances) < sqrt(3/2) - 1)]) * sampleVariability
+  if (length(which(distances > 3 * QnDist)) < 0.05 * length(whichBothNonHomo)) {
+    return(T)
+  }
+  plot(covOne ~ covTwo, main="CHECKED")
+  return(F)
+}
+
 checkConnectivityComplex = function(j) {
   if (j == length(localSdsOfProbes)) {
     return(F)

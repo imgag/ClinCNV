@@ -45,7 +45,7 @@ price_per_tile = 5
 resultingMCNVs <- matrix(0, nrow=0, ncol=11)
 copyNumberForReporting = matrix(0, nrow=0, ncol=3 + ncol(coverage))
 colnames(copyNumberForReporting) = c("chr", "start", "end", colnames(coverage))
-percentageToBePolymorphism = max(0.025, 10 / ncol(coverage))
+percentageToBePolymorphism = max(0.025, 5 / ncol(coverage))
 for (l in 1:length(left_borders)) {
   chrom = names(left_borders)[l]
   if (chrom == "chrX") next
@@ -148,11 +148,13 @@ for (l in 1:length(left_borders)) {
         } else {
           wasDivided = F
           for (j in (regionsToLookForMCNVs[counter,2] + 1):(regionsToLookForMCNVs[counter,3] - 2)) {
-            if (!checkConnectivity(coverageToWorkWith[j,], coverageToWorkWith[j + 1,])) {
-              print(j)
-            }
             print(j)
-             if (!checkConnectivityComplex(j)) {
+             if (!checkConnectivityMed(coverageToWorkWith[j,], coverageToWorkWith[j + 1,], multipliersSamples)) {
+               if (j + 2 < nrow(coverageToWorkWith)) {
+                 if (checkConnectivityMed(coverageToWorkWith[j,], coverageToWorkWith[j + 2,], multipliersSamples)) {
+                   next
+                 }
+               }
                png(paste0(j, "_connection.png"))
                plot(coverageToWorkWith[j,] ~ coverageToWorkWith[j + 1,])
                dev.off()
@@ -182,7 +184,7 @@ for (l in 1:length(left_borders)) {
       }
     }
     finalMCNVs = rbind(finalMCNVs, smallRegions)
-    finalMCNVs = finalMCNVs[order(as.numeric(finalMCNVs[,2])),]
+    finalMCNVs = finalMCNVs[order(as.numeric(finalMCNVs[,2])),,drop=F]
     
     if (nrow(finalMCNVs) > 0) {
       copyNumberForReportingBefore = matrix(0, nrow=0, ncol=ncol(coverage))
