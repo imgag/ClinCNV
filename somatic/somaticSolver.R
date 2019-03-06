@@ -672,74 +672,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       if (finalIteration == T) {
         if (nrow(found_CNVs_total) > 0){
-          allPotentialPurities = allPotentialPurities[allPotentialPurities > 0]
-          datasetForBarplot = matrix(0, nrow=4, ncol=length(unique(allPotentialPurities)))
-          colnames(datasetForBarplot) = sort(unique(allPotentialPurities))
-          rownames(datasetForBarplot) = c("CNeutral", "DUP", "HIGHDUP", "DEL")
-          datasetForBarplotLikelik = matrix(0, nrow=4, ncol=length(unique(allPotentialPurities)))
-          colnames(datasetForBarplotLikelik) = sort(unique(allPotentialPurities))
-          rownames(datasetForBarplotLikelik) = c("CNeutral", "DUP", "HIGHDUP", "DEL")
-          datasetForBarplotNumber = matrix(0, nrow=4, ncol=length(unique(allPotentialPurities)))
-          for (z in 1:nrow(found_CNVs_total)) {
-            dupOrDel = 1
-            if (as.numeric(found_CNVs_total[z,4]) > 2 & as.numeric(found_CNVs_total[z,4]) < 5) {
-              dupOrDel = 2
-            } else if (as.numeric(found_CNVs_total[z,4]) > 4) {
-              dupOrDel = 3
-            } else if (as.numeric(found_CNVs_total[z,4]) < 2) {
-              dupOrDel = 4
-            }
-            datasetForBarplot[dupOrDel, which(colnames(datasetForBarplot) == found_CNVs_total[z,5])] = datasetForBarplot[dupOrDel, which(colnames(datasetForBarplot) == found_CNVs_total[z,5])] + 
-              as.numeric(found_CNVs_total[z,3]) - as.numeric(found_CNVs_total[z,2])
-            datasetForBarplotLikelik[dupOrDel, which(colnames(datasetForBarplotLikelik) == found_CNVs_total[z,5])] = datasetForBarplotLikelik[dupOrDel, which(colnames(datasetForBarplotLikelik) == found_CNVs_total[z,5])] + 
-              as.numeric(found_CNVs_total[z,7])
-            datasetForBarplotNumber[dupOrDel, which(colnames(datasetForBarplotLikelik) == found_CNVs_total[z,5])] = datasetForBarplotNumber[dupOrDel, which(colnames(datasetForBarplotLikelik) == found_CNVs_total[z,5])] + 1
-          }
-          datasetForBarplot = (datasetForBarplot / 10**6)
-          maxheight = max(datasetForBarplot)
-          png(paste0(sample_name, "_clonalityBarplot.png"), width=2400, height=640)
-          bp <- barplot(datasetForBarplot, col=c("brown","blue","darkblue","red") ,  font.axis=2, beside=T, main=paste("Presence of clones in tumor", sample_name, ", estimated purity: ", max(as.numeric(found_CNVs_total[,5]))), ylim=c(0, 1.05 * maxheight), xlab="Subclones investigated", ylab="Length, MB")
-          for (z in 1:ncol(datasetForBarplotNumber)) {
-            for (v in 1:nrow(datasetForBarplotNumber)) {
-              if (datasetForBarplotNumber[v,z] > 0) {
-                text(bp[v,z], datasetForBarplot[v,z] + 0.02 * maxheight, datasetForBarplotNumber[v,z])
-              }
-            }
-            currentPurity = colnames(datasetForBarplot)[z]
-            found_CNVs_total_LOH = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) == 2 & found_CNVs_total[,5] == currentPurity),,drop=F]
-            if (nrow(found_CNVs_total_LOH) > 1) {
-              linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_LOH[, 3]) 
-                                          - as.numeric(found_CNVs_total_LOH[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_LOH) - 1)]
-              for (height in linesToDepict)
-                segments(bp[1,z] - 0.4, height, bp[1,z] + 0.4, height, col="white", lwd=3)
-            }
-            
-            found_CNVs_total_dup = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) > 2 & as.numeric(found_CNVs_total[,4]) < 5 & found_CNVs_total[,5] == currentPurity),,drop=F]
-            if (nrow(found_CNVs_total_dup) > 1) {
-              linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_dup[, 3]) 
-                                          - as.numeric(found_CNVs_total_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_dup) - 1)]
-              for (height in linesToDepict)
-                segments(bp[2,z] - 0.4, height, bp[2,z] + 0.4, height, col="white", lwd=3)
-            }
-            
-            found_CNVs_total_high_dup = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) > 4 & found_CNVs_total[,5] == currentPurity),,drop=F]
-            if (nrow(found_CNVs_total_high_dup) > 1) {
-              linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_high_dup[, 3]) 
-                                          - as.numeric(found_CNVs_total_high_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_high_dup) - 1)]
-              for (height in linesToDepict)
-                segments(bp[3,z] - 0.4, height, bp[3,z] + 0.4, height, col="white", lwd=3)
-            }
-            
-            found_CNVs_total_del = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) < 2 & found_CNVs_total[,5] == currentPurity),,drop=F]
-            if (nrow(found_CNVs_total_del) > 1) {
-              linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_del[, 3]) 
-                                          - as.numeric(found_CNVs_total_del[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_del) - 1)]
-              for (height in linesToDepict)
-                segments(bp[4,z] - 0.4, height, bp[4,z] + 0.4, height, col="white", lwd=3)
-            }
-          }
-          
-          dev.off()
+          makeBarplot(allPotentialPurities, found_CNVs_total)
         }
         
         break}
