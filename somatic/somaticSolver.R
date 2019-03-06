@@ -396,6 +396,10 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         if (length(position) == 1) {
           bAlleleFreqsTumor <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] ]]
           bAlleleFreqsNormal <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2] ]]
+          if (genderOfSamples[germline_sample_no] == "M") {
+            bAlleleFreqsTumor = bAlleleFreqsTumor[which(!bAlleleFreqsTumor[,1] %in% c("chrX", "chrY")),]
+            bAlleleFreqsNormal = bAlleleFreqsNormal[which(!bAlleleFreqsNormal[,1] %in% c("chrX", "chrY")),]
+          }
           overdispersionNormal = overdispersionsNormal[[position]]
           overdispersionTumor = overdispersionsTumor[[position]]
           # calculate median correction factor
@@ -479,8 +483,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         print(Sys.time())
       }
       # Reduce probability of unrealistic state = only super strong evidence is required to go for them
-      fine_for_unrealistic_state = 1
-      set_of_unrealistic_states = c("LOHDup", "CNVboth", "CNVcomplex")
+      fine_for_unrealistic_state = 0.0
+      set_of_unrealistic_states = c("LOHDup", "CNVboth", "CNVcomplex", "LOH")
       whichAreUnrealistic <- which(local_cnv_states %in% set_of_unrealistic_states)
       matrix_of_likeliks[,whichAreUnrealistic] = matrix_of_likeliks[,whichAreUnrealistic] + fine_for_unrealistic_state
       
@@ -589,6 +593,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           copy_numbers_for_penalties = 4 - local_copy_numbers_used
           copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
           penalties = penaltyForHigherCN * abs(copy_numbers_for_penalties)
+          penalties[whichAreUnrealistic] = penalties[whichAreUnrealistic] + 20
           if (length(local_cn_states) - length(blocked_states) > 1) {
             found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states, penalties))
           } else {
@@ -673,6 +678,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       if (finalIteration == T) {
         if (nrow(found_CNVs_total) > 0){
           makeBarplot(allPotentialPurities, found_CNVs_total)
+          plotChromosomalLevelInstabs(found_CNVs_total, left_borders, right_borders, ends_of_chroms, genderOfSamples[germline_sample_no], sample_name)
         }
         
         break}
@@ -856,6 +862,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     if(opt$debug) {
       print(found_CNVs_total)
     }
+    found_CNVs_total = found_CNVs_total[order(found_CNVs_total[,1], as.numeric(found_CNVs_total[,2])),]
     write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
   }
 }

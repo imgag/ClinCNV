@@ -120,7 +120,7 @@ checkConnectivity = function(covOne, covTwo) {
 }
 
 checkConnectivityMed = function(covOne, covTwo, sampleVariability) {
-  whichBothNonHomo = which(covOne > 0.5 & covTwo > 0.5)
+  whichBothNonHomo = which(covOne > 0.3 & covTwo > 0.3)
   if (length(whichBothNonHomo) < 5) {
     return(F)
   }

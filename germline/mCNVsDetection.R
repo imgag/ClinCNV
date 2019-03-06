@@ -150,22 +150,11 @@ for (l in 1:length(left_borders)) {
           for (j in (regionsToLookForMCNVs[counter,2] + 1):(regionsToLookForMCNVs[counter,3] - 2)) {
             print(j)
              if (!checkConnectivityMed(coverageToWorkWith[j,], coverageToWorkWith[j + 1,], multipliersSamples)) {
-               if (j + 2 < nrow(coverageToWorkWith)) {
+               if (j + 2 <= nrow(coverageToWorkWith)) {
                  if (checkConnectivityMed(coverageToWorkWith[j,], coverageToWorkWith[j + 2,], multipliersSamples)) {
                    next
                  }
                }
-               png(paste0(j, "_connection.png"))
-               plot(coverageToWorkWith[j,] ~ coverageToWorkWith[j + 1,])
-               dev.off()
-               png(paste0(j, "_snd_connection.png"))
-               plot(coverageToWorkWith[j,] ~ coverageToWorkWith[j + 2,])
-               dev.off()
-              #if (j + 2 <= nrow(coverageToWorkWith)) {
-                #if (checkConnectivity(coverageToWorkWith[j,], coverageToWorkWith[j + 2,])) {
-                #  next
-                #}
-              #}
               leftVar = regionsToLookForMCNVs[counter,]
               leftVar[3] = j
               rightVar = regionsToLookForMCNVs[counter,]
