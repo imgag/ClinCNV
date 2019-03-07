@@ -580,9 +580,15 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
           blocked_states = c()
           if (length(toyLogFoldChange) > opt$lengthS) {
-            arrayOfMediansOfToyLogFold <- sapply(1:(length(toyLogFoldChange) - opt$lengthS), function(i) {median(toyLogFoldChange[i:(i + opt$lengthS)])})
+            arrayOfMediansOfToyLogFold = runmed(toyLogFoldChange, round(opt$lengthS/ 2))
+            #arrayOfMediansOfToyLogFold <- sapply(1:(length(toyLogFoldChange) - opt$lengthS), function(i) {median(toyLogFoldChange[i:(i + opt$lengthS)])})
+            if (!finalIteration) {
+              blocked_states = c(setdiff(c(1,2), initial_state),
+                                 which(abs(log2(local_cn_states / local_cn_states[initial_state]) - (arrayOfMediansOfToyLogFold) ) > 0.25))
+            } else {
             blocked_states = c(setdiff(c(1,2), initial_state),
-                               which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.25 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.25))
+                               which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
+            }
             if (initial_state %in% blocked_states) {
               blocked_states = blocked_states[-which(blocked_states == initial_state)]
             }
