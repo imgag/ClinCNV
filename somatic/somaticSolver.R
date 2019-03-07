@@ -173,7 +173,7 @@ if (!dir.exists(folder_name)) {
 }
 
 allPotentialPurities <- unique(purities)
-penaltyForHigherCN = 20
+penaltyForHigherCN = 10
 clonalityForChecking = 0.3
 print(paste("Work on actual calling started.", Sys.time()))
 
@@ -604,7 +604,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
           
           # BAFs from this chromosome
-          if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0) {
+          if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0 & finalIteration) {
             bafsFromThisChr = which(bAlleleFreqsNormal[,1] == chrom)
             listOfCNVsThatDoNotPass = returnListOfCNVsThatDoNotPass(foundCNVs, bAlleleFreqsNormal[bafsFromThisChr,], bAlleleFreqsTumor[bafsFromThisChr,], 
                                                                   clonalityForChecking, local_purities, toyBedFile,
@@ -870,4 +870,4 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   }
 }
 
-++stopCluster(cl)
+stopCluster(cl)
