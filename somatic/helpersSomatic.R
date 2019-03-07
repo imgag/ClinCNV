@@ -530,8 +530,8 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
     
     plot(0,0, xlim=c(multiplicator - offsetOfSecondChr, multiplicator *12), ylim=c(0, max(unlist(ends_of_chroms))), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=ifelse(l==1, sample_name, ""))
     if (l == 2) {
-      legend("top", legend=c( "Major clone Dup 3CN", "Major clone Dup >= 4","Major clone Del",
-                                  "Minor clone Dup 3CN","Minor clone Dup >= 4","Minor clone Del"),
+      legend("top", legend=c( "Major clone, CN=3", "Major clone, CN>=4","Major clone CN<2",
+                                  "Minor clone, CN=3","Minor clone, CN>=4","Minor clone CN<2"),
              col=c(colForMajor[2:4],colForMinor[2:4]), cex=1.0, lwd=widthOfLine, box.lty=0)
     }
     
@@ -571,7 +571,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
           cnv_state = (found_CNVs_total[m,9])
           colorType = c(2,0)
           if (copy_number_particuar_cnv == 2) colorType = c(2,4)
-          if (copy_number_particuar_cnv < 2) colorType = c(4,0)
+          if (copy_number_particuar_cnv < 2) colorType = c(0,4)
           if (copy_number_particuar_cnv < 1) colorType = c(4,4)
           if (copy_number_particuar_cnv > 3) {
             colorType = c(3,0)

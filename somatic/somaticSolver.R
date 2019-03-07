@@ -232,6 +232,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     
     copyNumbersInsideExpectedPurities = F
     
+    emptyChroms = matrix(0, ncol=2, nrow=0)
     finalIteration = F
     while(T) {
       
@@ -270,7 +271,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       threshold = opt$scoreS
       minimum_length_of_CNV = opt$lengthS
       if (!finalIteration) {
-        threshold = opt$scoreS + 100
+        threshold = opt$scoreS
       } else {
         threshold = opt$scoreS
       }
@@ -319,7 +320,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             }
             lengthOfRolling = 30
             matrixOfLogFoldAllowedChrom = matrixOfLogFold[allowedChromosomesAutosomesOnly, sam_no]
-            smoothedLogFold = runmed(globalLogFoldAllowedChroms, k = lengthOfRolling)
+            
+            smoothedLogFold = runmed(matrixOfLogFoldAllowedChrom, k = lengthOfRolling)
             clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))])
             print("Mclust finished")
             bigClusters <- which(clusteredResult$parameters$pro > 0.3)
@@ -483,10 +485,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         print(Sys.time())
       }
       # Reduce probability of unrealistic state = only super strong evidence is required to go for them
-      fine_for_unrealistic_state = 0.0
-      set_of_unrealistic_states = c("LOHDup", "CNVboth", "CNVcomplex", "LOH")
-      whichAreUnrealistic <- which(local_cnv_states %in% set_of_unrealistic_states)
-      matrix_of_likeliks[,whichAreUnrealistic] = matrix_of_likeliks[,whichAreUnrealistic] + fine_for_unrealistic_state
+
+
       
       sizesOfPointsFromLocalSds <- 0.5 / localSds 
       if (sampleInOfftarget) {
@@ -582,7 +582,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           if (length(toyLogFoldChange) > opt$lengthS) {
             arrayOfMediansOfToyLogFold <- sapply(1:(length(toyLogFoldChange) - opt$lengthS), function(i) {median(toyLogFoldChange[i:(i + opt$lengthS)])})
             blocked_states = c(setdiff(c(1,2), initial_state),
-                               which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
+                               which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.25 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.25))
             if (initial_state %in% blocked_states) {
               blocked_states = blocked_states[-which(blocked_states == initial_state)]
             }
@@ -590,8 +590,11 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               blocked_states <- c()
             }
           }
+          # BLOCK WITH PENALTIES
           copy_numbers_for_penalties = 4 - local_copy_numbers_used
           copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
+          set_of_unrealistic_states = c("LOHDup", "CNVboth", "CNVcomplex", "LOH")
+          whichAreUnrealistic <- which(local_cnv_states %in% set_of_unrealistic_states)
           penalties = penaltyForHigherCN * abs(copy_numbers_for_penalties)
           penalties[whichAreUnrealistic] = penalties[whichAreUnrealistic] + 20
           if (length(local_cn_states) - length(blocked_states) > 1) {
@@ -688,7 +691,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       
       
-      if (nrow(likeliksFoundCNVsVsPuritiesGlobal) > 0) {
+      if (nrow(likeliksFoundCNVsVsPuritiesGlobal) > 0 & !finalIteration) {
         # Again - matrix of clonality
         matrixOfClonality = matrix(0, nrow=length(uniqueLocalPurities), ncol=length(uniqueLocalPurities))
         colnames(matrixOfClonality) = uniqueLocalPurities
@@ -846,7 +849,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       BAFsignature[,3] = p.adjust(as.numeric(BAFsignature[,3]), method="fdr")
       BAFsignature[,3] = format(round(as.numeric(BAFsignature[,3]), 4), scientific = F)
       colnamesForFutureMatrix <- colnames(found_CNVs_total)
-      found_CNVs_total = cbind(found_CNVs_total, CIsOnTarget[,3:2], CIsOnTargetOff[,3:2], BAFsignature, format(round(overallPvalues,5), scientific = F))
+      found_CNVs_total = cbind(found_CNVs_total, matrix(CIsOnTarget[,3:2], ncol=2), matrix(CIsOnTargetOff[,3:2], ncol=2), BAFsignature, format(round(overallPvalues,5), scientific = F))
       #colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD", "Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "BAF_Normal", "BAF_tumor", "BAF_pval"))
       colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "BAF_Normal", "BAF_tumor", "BAF_qval_fdr", "Overall_qvalue"))
     }
