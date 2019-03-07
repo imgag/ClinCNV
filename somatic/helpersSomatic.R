@@ -383,7 +383,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr, c
     startOfCNV = as.numeric(bedFileForMapping[found_CNVs[q,2],2])
     endOfCNV <- as.numeric(bedFileForMapping[found_CNVs[q,3],3])
     varsInside = which(as.numeric(bafNormalChr[,2]) >= startOfCNV & as.numeric(bafNormalChr[,3]) <= endOfCNV)
-    if (length(varsInside) < 10) {
+    if (length(varsInside) < 20) {
       cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
     } else {
       pvalsOfVariants <- rep(1, length(varsInside))
@@ -397,7 +397,8 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr, c
         overdispTumo = overdispersionTumorChr[var]
         pvalsOfVariants[l] = passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo)
       }
-      if (length(which(pvalsOfVariants < 0.05)) < 0.05 * length(varsInside)) {
+      mergedPvals = pchisq((sum(log(min(1, pvalsOfVariants + 10**-10)))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
+      if (length(which(pvalsOfVariants < 0.05)) < 0.05 * length(varsInside) & mergedPvals < 0.001) {
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
       }
     }
@@ -494,127 +495,6 @@ makeTransparent = function(..., alpha=0.5) {
   
 }
 
-plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_borders, ends_of_chroms, gender, sample_name) {
-  found_CNVs_total[,5] = as.numeric(found_CNVs_total[,5]) / max(as.numeric(found_CNVs_total[,5]))
-  majorClone = max(as.numeric(found_CNVs_total[,5]))
-  linesOnBarplot = list()
-  orderOfNames = c(paste0("chr", 1:22), "chrX", "chrY")
-  orderInLists = c()
-  for (l in 1:length(orderOfNames)) {
-    orderInLists = c(orderInLists, which(names(left_borders) == orderOfNames[l]))
-  }
-  for (l in orderInLists) {
-    startOfChr = 0
-    endOfLeftArm = left_borders[[l]]
-    startOfRightArm = right_borders[[l]]
-    endOfRightArm = ends_of_chroms[[l]]
-    nameOfChrom = names(left_borders)[l]
-    linesOnBarplot[[as.character(l)]] = c(startOfChr, endOfLeftArm, startOfRightArm, endOfRightArm, nameOfChrom)
-  }
-  colForMajor=c("brown","blue","darkblue","red")
-  colForMinor = c("brown1", "darkslategray3", "darkslategray4", "lightpink")
-  
-  multiplicator = 35
-  offsetOfSecondChr = round(multiplicator / 4)
-  widthOfLine = round((8 / 20) * multiplicator)
-  pdf(file=paste0(sample_name, "_chromPlot.pdf"), width=12, height=16)
-  par(mfrow=c(2,1), mar=c(1.5, 0, 0, 1.5))
-  colOfChr = "lightgrey"
-  for (l in 1:2) {
-    if (l == 1) {
-      chromsToAnalyse = 1:12
-    } else {
-      chromsToAnalyse = 13:24
-    }
-    
-    
-    plot(0,0, xlim=c(multiplicator - offsetOfSecondChr, multiplicator *12), ylim=c(0, max(unlist(ends_of_chroms))), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=ifelse(l==1, sample_name, ""))
-    if (l == 2) {
-      legend("top", legend=c( "Major clone, CN=3", "Major clone, CN>=4","Major clone CN<2",
-                                  "Minor clone, CN=3","Minor clone, CN>=4","Minor clone CN<2"),
-             col=c(colForMajor[2:4],colForMinor[2:4]), cex=1.0, lwd=widthOfLine, box.lty=0)
-    }
-    
-    text(x = multiplicator *1:12 + offsetOfSecondChr / 2, y = rep(0, 12), labels=orderOfNames[chromsToAnalyse], pos=1, offset = 0.5)
-    for (z in chromsToAnalyse) {
-      i = which(chromsToAnalyse == z)
-      chromStructure = linesOnBarplot[[(z)]]
-      if (!chromStructure[[5]] %in% c("chrX", "chrY") | (chromStructure[[5]] == "chrX" & gender == "F")) {
-        segments( multiplicator* i, 0, multiplicator * i, as.numeric(chromStructure[2]), lwd=widthOfLine, col=colOfChr)
-        segments( multiplicator* i, as.numeric(chromStructure[3]), multiplicator * i, as.numeric(chromStructure[4]),lwd=widthOfLine, col=colOfChr)
-        segments( multiplicator* i + offsetOfSecondChr, 0, multiplicator * i + offsetOfSecondChr, as.numeric(chromStructure[2]) ,lwd=widthOfLine, col=colOfChr)
-        segments( multiplicator* i + offsetOfSecondChr, as.numeric(chromStructure[3]), multiplicator * i + offsetOfSecondChr, as.numeric(chromStructure[4]),lwd=widthOfLine, col=colOfChr)
-      } else {
-        if ((chromStructure[[5]] == "chrX" | chromStructure[[5]] == "chrY") & gender == "M") {
-          segments( multiplicator* i, 0, multiplicator * i, as.numeric(chromStructure[2]) ,lwd=widthOfLine, col=colOfChr)
-          segments( multiplicator* i, as.numeric(chromStructure[3]), multiplicator * i, as.numeric(chromStructure[4]),lwd=widthOfLine, col=colOfChr)
-        } 
-      }
-      # DEPICTION OF CNVs
-      whichCNVsToPlot = which(found_CNVs_total[,1] == chromStructure[[5]])
-      
-      if (length(whichCNVsToPlot) > 0) {
-        for (numOfCNV in 1:length(whichCNVsToPlot)) {
-          m = whichCNVsToPlot[numOfCNV]
-          particularPurity = as.numeric(found_CNVs_total[m,5])
-          colorForPlotting = colForMajor
-          cnvLty = 1
-          cnvLwd = max(0.3, 0.9 * particularPurity) * widthOfLine
-          if (as.numeric(found_CNVs_total[m,5]) < majorClone - 10 ** -5) {
-            colorForPlotting = colForMinor
-            cnvLty = 1
-          }
-          cnvToPlot = found_CNVs_total[m,]
-          start = as.numeric(found_CNVs_total[m,2])
-          end = as.numeric(found_CNVs_total[m,3])
-          copy_number_particuar_cnv = as.numeric(found_CNVs_total[m,4])
-          cnv_state = (found_CNVs_total[m,9])
-          colorType = c(2,0)
-          if (copy_number_particuar_cnv == 2) colorType = c(2,4)
-          if (copy_number_particuar_cnv < 2) colorType = c(0,4)
-          if (copy_number_particuar_cnv < 1) colorType = c(4,4)
-          if (copy_number_particuar_cnv > 3) {
-            colorType = c(3,0)
-            if (cnv_state == "CNVcomplex") {
-              if (copy_number_particuar_cnv == 5) {
-                colorType = c(3,2)
-              } else if (copy_number_particuar_cnv >= 6) {
-                colorType = c(3,3)
-              } else
-              {
-                colorType = c(2,2)
-              }
-            }
-            if (cnv_state == "CNVboth") {
-              if (copy_number_particuar_cnv >= 8) {
-                colorType = c(3,3)
-              } else {
-                colorType = c(2,2)
-              }
-            }
-          }
-          if (cnv_state == "LOHDup") {
-            colorType = c(3,4)
-          }
-          
-          segments(multiplicator* i, start, multiplicator * i, end, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[1]], alpha=max(0.3, particularPurity)))
-          if (colorType[2] != 0) {
-            segments(multiplicator* i + offsetOfSecondChr, start, multiplicator * i + offsetOfSecondChr, end, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[2]], alpha=max(0.3, particularPurity)))
-          }
-          text(x = multiplicator *i + offsetOfSecondChr / 2, y = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"))
-        }
-      }
-      
-      
-      
-    }
-  }
-  dev.off()
-}
-
-
-
-
 # plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_borders, ends_of_chroms, gender, sample_name) {
 #   found_CNVs_total[,5] = as.numeric(found_CNVs_total[,5]) / max(as.numeric(found_CNVs_total[,5]))
 #   majorClone = max(as.numeric(found_CNVs_total[,5]))
@@ -635,97 +515,218 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
 #   colForMajor=c("brown","blue","darkblue","red")
 #   colForMinor = c("brown1", "darkslategray3", "darkslategray4", "lightpink")
 #   
-#   multiplicator = 80
-#   offsetOfSecondChr = (multiplicator / 2.5)
-#   widthOfLine = ((2.3 / 20) * multiplicator)
-#   pdf(file=paste0(sample_name, "_chromPlot.pdf"), width=16, height=14)
-#   #par(mfrow=c(2,1), mar=c(1.5, 0, 2, 1.5))
+#   multiplicator = 35
+#   offsetOfSecondChr = round(multiplicator / 4)
+#   widthOfLine = round((8 / 20) * multiplicator)
+#   pdf(file=paste0(sample_name, "_chromPlot.pdf"), width=12, height=16)
+#   par(mfrow=c(2,1), mar=c(1.5, 0, 0, 1.5))
 #   colOfChr = "lightgrey"
-#   par( mar=c(1.5, 2, 2, 1.5))
-#   
-#   chromsToAnalyse = 1:24
-#   
-#   
-#   
-#   plot(0,0, ylim=c(multiplicator - offsetOfSecondChr, multiplicator *24), xlim=c(0, max(unlist(ends_of_chroms))), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=ifelse(l==1, sample_name, ""))
-# 
-#     legend("right", legend=c( "Major clone Dup 3CN", "Major clone Dup >= 4","Major clone Del",
-#                                 "Minor clone Dup 3CN","Minor clone Dup >= 4","Minor clone Del"),
-#            col=c(colForMajor[2:4],colForMinor[2:4]), cex=1.8, lwd=widthOfLine)
-# 
-#   
-#   text(y = multiplicator *1:24 + offsetOfSecondChr / 2, x = rep(0 ** 7, 24), labels=orderOfNames[sort(chromsToAnalyse, decreasing = T)], pos=2, offset = 0.5)
-#   for (z in sort(chromsToAnalyse, decreasing = T)) {
-#     i = 25 - which(chromsToAnalyse == z)
-#     chromStructure = linesOnBarplot[[(z)]]
-#     if (!chromStructure[[5]] %in% c("chrX", "chrY") | (chromStructure[[5]] == "chrX" & gender == "F")) {
-#       segments( 0, multiplicator* i, as.numeric(chromStructure[2]), multiplicator * i,  lwd=widthOfLine, col=colOfChr)
-#       segments(as.numeric(chromStructure[3]),  multiplicator* i, as.numeric(chromStructure[4]), multiplicator * i,lwd=widthOfLine, col=colOfChr)
-#       segments(0,  multiplicator* i + offsetOfSecondChr,  as.numeric(chromStructure[2]) , multiplicator * i + offsetOfSecondChr, lwd=widthOfLine, col=colOfChr)
-#       segments(as.numeric(chromStructure[3]),  multiplicator* i + offsetOfSecondChr,  as.numeric(chromStructure[4]), multiplicator * i + offsetOfSecondChr,lwd=widthOfLine, col=colOfChr)
+#   for (l in 1:2) {
+#     if (l == 1) {
+#       chromsToAnalyse = 1:12
 #     } else {
-#       if ((chromStructure[[5]] == "chrX" | chromStructure[[5]] == "chrY") & gender == "M") {
-#         segments( 0, multiplicator* i, as.numeric(chromStructure[2]), multiplicator * i,  lwd=widthOfLine, col=colOfChr)
-#         segments(as.numeric(chromStructure[3]),  multiplicator* i, as.numeric(chromStructure[4]), multiplicator * i,lwd=widthOfLine, col=colOfChr)
-#       } 
+#       chromsToAnalyse = 13:24
 #     }
-#     # DEPICTION OF CNVs
-#     whichCNVsToPlot = which(found_CNVs_total[,1] == chromStructure[[5]])
 #     
-#     if (length(whichCNVsToPlot) > 0) {
-#       for (numOfCNV in 1:length(whichCNVsToPlot)) {
-#         m = whichCNVsToPlot[numOfCNV]
-#         particularPurity = as.numeric(found_CNVs_total[m,5])
-#         colorForPlotting = colForMajor
-#         cnvLty = 1
-#         cnvLwd = max(0.3, 0.9 * particularPurity) * widthOfLine
-#         if (as.numeric(found_CNVs_total[m,5]) < majorClone - 10 ** -5) {
-#           colorForPlotting = colForMinor
-#           cnvLty = 1
-#         }
-#         cnvToPlot = found_CNVs_total[m,]
-#         start = as.numeric(found_CNVs_total[m,2])
-#         end = as.numeric(found_CNVs_total[m,3])
-#         copy_number_particuar_cnv = as.numeric(found_CNVs_total[m,4])
-#         cnv_state = (found_CNVs_total[m,9])
-#         colorType = c(2,0)
-#         if (copy_number_particuar_cnv == 2) colorType = c(2,4)
-#         if (copy_number_particuar_cnv < 2) colorType = c(4,0)
-#         if (copy_number_particuar_cnv < 1) colorType = c(4,4)
-#         if (copy_number_particuar_cnv > 3) {
-#           colorType = c(3,0)
-#           if (cnv_state == "CNVcomplex") {
-#             if (copy_number_particuar_cnv == 5) {
-#               colorType = c(3,2)
-#             } else if (copy_number_particuar_cnv >= 6) {
-#               colorType = c(3,3)
-#             } else
-#             {
-#               colorType = c(2,2)
-#             }
-#           }
-#           if (cnv_state == "CNVboth") {
-#             if (copy_number_particuar_cnv >= 8) {
-#               colorType = c(3,3)
-#             } else {
-#               colorType = c(2,2)
-#             }
-#           }
-#         }
-#         if (cnv_state == "LOHDup") {
-#           colorType = c(3,4)
-#         }
-#         
-#         segments(start, multiplicator* i,  end,multiplicator * i, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[1]], alpha=max(0.3, particularPurity)))
-#         if (colorType[2] != 0) {
-#           segments( start, multiplicator* i + offsetOfSecondChr,  end, multiplicator * i + offsetOfSecondChr, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[2]], alpha=max(0.3, particularPurity)))
-#         }
-#         text(y = multiplicator *i + offsetOfSecondChr / 2, x = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"), cex=0.7)
+#     
+#     plot(0,0, xlim=c(multiplicator - offsetOfSecondChr, multiplicator *12), ylim=c(0, max(unlist(ends_of_chroms))), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=ifelse(l==1, sample_name, ""))
+#     if (l == 2) {
+#       legend("top", legend=c( "Major clone, CN=3", "Major clone, CN>=4","Major clone CN<2",
+#                                   "Minor clone, CN=3","Minor clone, CN>=4","Minor clone CN<2"),
+#              col=c(colForMajor[2:4],colForMinor[2:4]), cex=1.0, lwd=widthOfLine, box.lty=0)
+#     }
+#     
+#     text(x = multiplicator *1:12 + offsetOfSecondChr / 2, y = rep(0, 12), labels=orderOfNames[chromsToAnalyse], pos=1, offset = 0.5)
+#     for (z in chromsToAnalyse) {
+#       i = which(chromsToAnalyse == z)
+#       chromStructure = linesOnBarplot[[(z)]]
+#       if (!chromStructure[[5]] %in% c("chrX", "chrY") | (chromStructure[[5]] == "chrX" & gender == "F")) {
+#         segments( multiplicator* i, 0, multiplicator * i, as.numeric(chromStructure[2]), lwd=widthOfLine, col=colOfChr)
+#         segments( multiplicator* i, as.numeric(chromStructure[3]), multiplicator * i, as.numeric(chromStructure[4]),lwd=widthOfLine, col=colOfChr)
+#         segments( multiplicator* i + offsetOfSecondChr, 0, multiplicator * i + offsetOfSecondChr, as.numeric(chromStructure[2]) ,lwd=widthOfLine, col=colOfChr)
+#         segments( multiplicator* i + offsetOfSecondChr, as.numeric(chromStructure[3]), multiplicator * i + offsetOfSecondChr, as.numeric(chromStructure[4]),lwd=widthOfLine, col=colOfChr)
+#       } else {
+#         if ((chromStructure[[5]] == "chrX" | chromStructure[[5]] == "chrY") & gender == "M") {
+#           segments( multiplicator* i, 0, multiplicator * i, as.numeric(chromStructure[2]) ,lwd=widthOfLine, col=colOfChr)
+#           segments( multiplicator* i, as.numeric(chromStructure[3]), multiplicator * i, as.numeric(chromStructure[4]),lwd=widthOfLine, col=colOfChr)
+#         } 
 #       }
+#       # DEPICTION OF CNVs
+#       whichCNVsToPlot = which(found_CNVs_total[,1] == chromStructure[[5]])
+#       
+#       if (length(whichCNVsToPlot) > 0) {
+#         for (numOfCNV in 1:length(whichCNVsToPlot)) {
+#           m = whichCNVsToPlot[numOfCNV]
+#           particularPurity = as.numeric(found_CNVs_total[m,5])
+#           colorForPlotting = colForMajor
+#           cnvLty = 1
+#           cnvLwd = max(0.3, 0.9 * particularPurity) * widthOfLine
+#           if (as.numeric(found_CNVs_total[m,5]) < majorClone - 10 ** -5) {
+#             colorForPlotting = colForMinor
+#             cnvLty = 1
+#           }
+#           cnvToPlot = found_CNVs_total[m,]
+#           start = as.numeric(found_CNVs_total[m,2])
+#           end = as.numeric(found_CNVs_total[m,3])
+#           copy_number_particuar_cnv = as.numeric(found_CNVs_total[m,4])
+#           cnv_state = (found_CNVs_total[m,9])
+#           colorType = c(2,0)
+#           if (copy_number_particuar_cnv == 2) colorType = c(2,4)
+#           if (copy_number_particuar_cnv < 2) colorType = c(0,4)
+#           if (copy_number_particuar_cnv < 1) colorType = c(4,4)
+#           if (copy_number_particuar_cnv > 3) {
+#             colorType = c(3,0)
+#             if (cnv_state == "CNVcomplex") {
+#               if (copy_number_particuar_cnv == 5) {
+#                 colorType = c(3,2)
+#               } else if (copy_number_particuar_cnv >= 6) {
+#                 colorType = c(3,3)
+#               } else
+#               {
+#                 colorType = c(2,2)
+#               }
+#             }
+#             if (cnv_state == "CNVboth") {
+#               if (copy_number_particuar_cnv >= 8) {
+#                 colorType = c(3,3)
+#               } else {
+#                 colorType = c(2,2)
+#               }
+#             }
+#           }
+#           if (cnv_state == "LOHDup") {
+#             colorType = c(3,4)
+#           }
+#           
+#           segments(multiplicator* i, start, multiplicator * i, end, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[1]], alpha=max(0.3, particularPurity)))
+#           if (colorType[2] != 0) {
+#             segments(multiplicator* i + offsetOfSecondChr, start, multiplicator * i + offsetOfSecondChr, end, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[2]], alpha=max(0.3, particularPurity)))
+#           }
+#           text(x = multiplicator *i + offsetOfSecondChr / 2, y = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"))
+#         }
+#       }
+#       
+#       
+#       
 #     }
-#     
-#     
-#     
 #   }
 #   dev.off()
 # }
+
+
+
+
+plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_borders, ends_of_chroms, gender, sample_name) {
+  found_CNVs_total[,5] = as.numeric(found_CNVs_total[,5]) / max(as.numeric(found_CNVs_total[,5]))
+  majorClone = max(as.numeric(found_CNVs_total[,5]))
+  linesOnBarplot = list()
+  orderOfNames = c(paste0("chr", 1:22), "chrX", "chrY")
+  orderInLists = c()
+  for (l in 1:length(orderOfNames)) {
+    orderInLists = c(orderInLists, which(names(left_borders) == orderOfNames[l]))
+  }
+  for (l in orderInLists) {
+    startOfChr = 0
+    endOfLeftArm = left_borders[[l]]
+    startOfRightArm = right_borders[[l]]
+    endOfRightArm = ends_of_chroms[[l]]
+    nameOfChrom = names(left_borders)[l]
+    linesOnBarplot[[as.character(l)]] = c(startOfChr, endOfLeftArm, startOfRightArm, endOfRightArm, nameOfChrom)
+  }
+  colForMajor=c("brown","blue","darkblue","red")
+  colForMinor = c("brown1", "darkslategray3", "darkslategray4", "lightpink")
+
+  multiplicator = 80
+  offsetOfSecondChr = (multiplicator / 2.5)
+  widthOfLine = ((2.3 / 20) * multiplicator)
+  pdf(file=paste0(sample_name, "_chromPlot.pdf"), width=16, height=14)
+  #par(mfrow=c(2,1), mar=c(1.5, 0, 2, 1.5))
+  colOfChr = "lightgrey"
+  par( mar=c(1.5, 2, 2, 1.5))
+
+  chromsToAnalyse = 1:24
+
+
+
+  plot(0,0, ylim=c(multiplicator - offsetOfSecondChr, multiplicator *24), xlim=c(0, max(unlist(ends_of_chroms))), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=ifelse(l==1, sample_name, ""))
+
+    legend("right", legend=c( "Major clone Dup 3CN", "Major clone Dup >= 4","Major clone Del",
+                                "Minor clone Dup 3CN","Minor clone Dup >= 4","Minor clone Del"),
+           col=c(colForMajor[2:4],colForMinor[2:4]), cex=1.8, lwd=widthOfLine, box.lty=0)
+
+
+  text(y = multiplicator *1:24 + offsetOfSecondChr / 2, x = rep(0 ** 7, 24), labels=orderOfNames[sort(chromsToAnalyse, decreasing = T)], pos=2, offset = 0.5)
+  for (z in sort(chromsToAnalyse, decreasing = T)) {
+    i = 25 - which(chromsToAnalyse == z)
+    chromStructure = linesOnBarplot[[(z)]]
+    if (!chromStructure[[5]] %in% c("chrX", "chrY") | (chromStructure[[5]] == "chrX" & gender == "F")) {
+      segments( 0, multiplicator* i, as.numeric(chromStructure[2]), multiplicator * i,  lwd=widthOfLine, col=colOfChr)
+      segments(as.numeric(chromStructure[3]),  multiplicator* i, as.numeric(chromStructure[4]), multiplicator * i,lwd=widthOfLine, col=colOfChr)
+      segments(0,  multiplicator* i + offsetOfSecondChr,  as.numeric(chromStructure[2]) , multiplicator * i + offsetOfSecondChr, lwd=widthOfLine, col=colOfChr)
+      segments(as.numeric(chromStructure[3]),  multiplicator* i + offsetOfSecondChr,  as.numeric(chromStructure[4]), multiplicator * i + offsetOfSecondChr,lwd=widthOfLine, col=colOfChr)
+    } else {
+      if ((chromStructure[[5]] == "chrX" | chromStructure[[5]] == "chrY") & gender == "M") {
+        segments( 0, multiplicator* i, as.numeric(chromStructure[2]), multiplicator * i,  lwd=widthOfLine, col=colOfChr)
+        segments(as.numeric(chromStructure[3]),  multiplicator* i, as.numeric(chromStructure[4]), multiplicator * i,lwd=widthOfLine, col=colOfChr)
+      }
+    }
+    # DEPICTION OF CNVs
+    whichCNVsToPlot = which(found_CNVs_total[,1] == chromStructure[[5]])
+
+    if (length(whichCNVsToPlot) > 0) {
+      for (numOfCNV in 1:length(whichCNVsToPlot)) {
+        m = whichCNVsToPlot[numOfCNV]
+        particularPurity = as.numeric(found_CNVs_total[m,5])
+        colorForPlotting = colForMajor
+        cnvLty = 1
+        cnvLwd = max(0.3, 0.9 * particularPurity) * widthOfLine
+        if (as.numeric(found_CNVs_total[m,5]) < majorClone - 10 ** -5) {
+          colorForPlotting = colForMinor
+          cnvLty = 1
+        }
+        cnvToPlot = found_CNVs_total[m,]
+        start = as.numeric(found_CNVs_total[m,2])
+        end = as.numeric(found_CNVs_total[m,3])
+        copy_number_particuar_cnv = as.numeric(found_CNVs_total[m,4])
+        cnv_state = (found_CNVs_total[m,9])
+        colorType = c(2,0)
+        if (copy_number_particuar_cnv == 2) colorType = c(2,4)
+        if (copy_number_particuar_cnv < 2) colorType = c(0,4)
+        if (copy_number_particuar_cnv < 1) colorType = c(4,4)
+        if (copy_number_particuar_cnv > 3) {
+          colorType = c(3,0)
+          if (cnv_state == "CNVcomplex") {
+            if (copy_number_particuar_cnv == 5) {
+              colorType = c(3,2)
+            } else if (copy_number_particuar_cnv >= 6) {
+              colorType = c(3,3)
+            } else
+            {
+              colorType = c(2,2)
+            }
+          }
+          if (cnv_state == "CNVboth") {
+            if (copy_number_particuar_cnv >= 8) {
+              colorType = c(3,3)
+            } else {
+              colorType = c(2,2)
+            }
+          }
+        }
+        if (cnv_state == "LOHDup") {
+          colorType = c(3,4)
+        }
+
+        segments(start, multiplicator* i,  end,multiplicator * i, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[1]], alpha=max(0.3, particularPurity)))
+        if (colorType[2] != 0) {
+          segments( start, multiplicator* i + offsetOfSecondChr,  end, multiplicator * i + offsetOfSecondChr, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[2]], alpha=max(0.3, particularPurity)))
+        }
+        text(y = multiplicator *i + offsetOfSecondChr / 2, x = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"), cex=0.7)
+      }
+    }
+
+
+
+  }
+  dev.off()
+}

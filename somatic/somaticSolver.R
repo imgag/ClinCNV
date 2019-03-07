@@ -9,6 +9,8 @@ setwd(opt$folderWithScript)
 source(paste0(opt$folderWithScript, "/somatic/helpersSomatic.R"),local=TRUE)
 
 vect_of_norm_likeliks <- fast_dt_list(as.numeric(opt$degreesOfFreedomStudent))
+vect_of_t_likeliks <- fast_dt_list(as.numeric(opt$degreesOfFreedomStudent))
+
 
 print(paste("Work on data preparation for somatic samples started (log-fold change matrices plus parameters estimation)", Sys.time()))
 
@@ -55,8 +57,6 @@ if (frameworkOff == "offtarget") {
   
 }
 
-### FORMING MATRIX OF LIKELIHOODS
-vect_of_t_likeliks <- fast_dt_list(ncol(matrixOfLogFold) - 1)
 
 
 
