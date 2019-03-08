@@ -398,7 +398,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr, c
         pvalsOfVariants[l] = passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo)
       }
       mergedPvals = pchisq((sum(log(min(1, pvalsOfVariants + 10**-10)))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
-      if (pbinom(length(which(pvalsOfVariants < 0.05)),  length(varsInside), 0.05, lower.tail = F) < 0.001 & mergedPvals < 0.001) {
+      if (pbinom(length(which(pvalsOfVariants < 0.05)),  length(varsInside), 0.05, lower.tail = F) > 0.01 | mergedPvals > 0.001) {
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
       }
     }

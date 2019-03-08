@@ -174,7 +174,7 @@ if (!dir.exists(folder_name)) {
 
 allPotentialPurities <- unique(purities)
 penaltyForHigherCN = 10
-clonalityForChecking = 0.3
+clonalityForChecking = 0.4
 print(paste("Work on actual calling started.", Sys.time()))
 
 for (sam_no in 1:ncol(matrixOfLogFold)) {
