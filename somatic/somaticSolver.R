@@ -639,7 +639,10 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             listOfCNVsThatDoNotPass = returnListOfCNVsThatDoNotPass(foundCNVs, bAlleleFreqsNormal[bafsFromThisChr,], bAlleleFreqsTumor[bafsFromThisChr,], 
                                                                   clonalityForChecking, local_purities, toyBedFile,
                                                                   overdispersionNormal[bafsFromThisChr],
-                                                                  overdispersionTumor[bafsFromThisChr]
+                                                                  overdispersionTumor[bafsFromThisChr],
+                                                                  toyLogFoldChange,
+                                                                  median(sdsOfProbes) * (sdsOfSomaticSamples[sam_no]),
+                                                                  ifelse(sampleInOfftarget, median(sdsOfProbesOff) * (sdsOfSomaticSamplesOff[sam_no_off]), -1)
                                                                   ) 
             if (length(listOfCNVsThatDoNotPass) > 0)
             found_CNVs = found_CNVs[-listOfCNVsThatDoNotPass,,drop=F]

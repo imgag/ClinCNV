@@ -374,14 +374,62 @@ returnMultiplierDueToLog <- function(cnNorm, cnTum, sdNorm, sdTum, covNT) {
 }
 
 
-returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr, clonalityForChecking, puritiesOfStates, bedFileForMapping, overdispersionNormalChr, overdispersionTumorChr) {
+returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr, 
+                                         clonalityForChecking, puritiesOfStates, bedFileForMapping, 
+                                         overdispersionNormalChr, overdispersionTumorChr,
+                                         toyLogFoldChange,
+                                         sdOfSomaticOn,
+                                         sdOfSomaticOff) {
   ### CHECK BAFS HERE FOR LOW CLONALITY
   cnvsThatShowNoBAFdeviation = c()
   for (q in 1:nrow(found_CNVs)) {
-    if (puritiesOfStates[found_CNVs[q,4]] > clonalityForChecking) next
     
     startOfCNV = as.numeric(bedFileForMapping[found_CNVs[q,2],2])
     endOfCNV <- as.numeric(bedFileForMapping[found_CNVs[q,3],3])
+    coverageInsideOff = c()
+    if (sdOfSomaticOff > 0) {
+      coverageInsideOff = toyLogFoldChange[which(as.numeric(bedFileForMapping[,2]) >= startOfCNV & as.numeric(bedFileForMapping[,3]) <= endOfCNV & 
+                                                 (as.numeric(bedFileForMapping[,3] - as.numeric(bedFileForMapping[,2]) > 10000))
+                                                 )]
+    }
+    coverageInsideOn = toyLogFoldChange[which(as.numeric(bedFileForMapping[,2]) >= startOfCNV & as.numeric(bedFileForMapping[,3]) <= endOfCNV & 
+                                                 (as.numeric(bedFileForMapping[,3] - as.numeric(bedFileForMapping[,2]) < 10000))
+    )]
+    if (length(coverageInsideOn) > 4) {
+      trimmedCoverageInsideOn = trimValues(coverageInsideOn, 0.05)
+    }
+    if (length(coverageInsideOff) > 4) {
+      trimmedCoverageInsideOff = trimValues(coverageInsideOff, 0.05)
+    }
+    if (length(coverageInsideOff) < 4 & length(coverageInsideOn) > 4) {
+      sdOn = sd(trimmedCoverageInsideOn)
+      print(sdOn / sdOfSomaticOn)
+      if (sdOn > 3 * sdOfSomaticOn) {
+        cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
+        print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]),  "; level of noise", print(sdOff / sdOfSomaticOff), "due to large amount of noise in on target reads"))
+        next
+      }
+    } else {
+      if (length(coverageInsideOff) > length(coverageInsideOn)) {
+        sdOff = sd(trimmedCoverageInsideOff)
+        
+        if (sdOff > 3 * sdOfSomaticOff) {
+          cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
+          print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "; level of noise", print(sdOff / sdOfSomaticOff), "due to large amount of noise in off target reads"))
+          next
+        }
+      } else {
+        sdOn = sd(trimmedCoverageInsideOn)
+        print(sdOn / sdOfSomaticOn)
+        if (sdOn > 3 * sdOfSomaticOn) {
+          cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
+          print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]),"; level of noise", print(sdOff / sdOfSomaticOff), "due to large amount of noise in on target reads"))
+          next
+        }
+      }
+    }
+    
+    if (puritiesOfStates[found_CNVs[q,4]] > clonalityForChecking) next
     varsInside = which(as.numeric(bafNormalChr[,2]) >= startOfCNV & as.numeric(bafNormalChr[,3]) <= endOfCNV)
     if (length(varsInside) < 10) {
       cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
@@ -400,6 +448,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr, c
       mergedPvals = pchisq((sum(log(pvalsOfVariants))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
       if (pbinom(length(which(pvalsOfVariants < 0.05)),  length(varsInside), 0.05, lower.tail = F) > 0.01 | mergedPvals > 0.0001) {
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
+        print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], "due to 1) low clonality AND 2) absence of clear signal from BAF"))
       }
     }
   }
