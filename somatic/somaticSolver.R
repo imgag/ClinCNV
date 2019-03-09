@@ -450,7 +450,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                                                                                                    )
                                                                                                    )
             }
-            coordsIncludedAtFirst = setdiff(1:nrow(bAlleleFreqsTumor), union(allowedChromosomesAutosomesOnlySNV, which(bAlleleFreqsTumor[,1] %in% c("chrX", "chrY"))))
+            coordsIncludedAtFirst = setdiff(1:nrow(bAlleleFreqsTumor), union(allowedChromosomesAutosomesOnlySNV, which(bAlleleFreqsTumor[,1] %in% ifelse(genderOfSamples[germline_sample_no] == "M",
+                                                                                                                                                         c("chrY"),
+                                                                                                                                                         c("chrX", "chrY")))))
             if (length(coordsIncludedAtFirst) > 0) {
               bAlleleFreqsTumorToy = bAlleleFreqsTumor[coordsIncludedAtFirst,,drop=F]
               closestBedRegionsToy = closestBedRegions[coordsIncludedAtFirst]
@@ -632,7 +634,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
           
           # BAFs from this chromosome
-          if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0 & finalIteration) {
+          if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0) {
             bafsFromThisChr = which(bAlleleFreqsNormal[,1] == chrom)
             listOfCNVsThatDoNotPass = returnListOfCNVsThatDoNotPass(foundCNVs, bAlleleFreqsNormal[bafsFromThisChr,], bAlleleFreqsTumor[bafsFromThisChr,], 
                                                                   clonalityForChecking, local_purities, toyBedFile,
