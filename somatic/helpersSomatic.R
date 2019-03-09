@@ -405,7 +405,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
       sdOn = sd(trimmedCoverageInsideOn)
       if (sdOn > 3 * sdOfSomaticOn) {
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
-        print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]),  "; level of noise", print(sdOn / sdOfSomaticOff), "due to large amount of noise in on target reads"))
+        print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]),  "; level of noise", print(sdOn / sdOfSomaticOn), "due to large amount of noise in on target reads"))
         next
       }
     } else {
@@ -420,7 +420,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
         sdOn = sd(trimmedCoverageInsideOn)
         if (sdOn > 3 * sdOfSomaticOn) {
           cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
-          print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]),"; level of noise", print(sdOn / sdOfSomaticOff), "due to large amount of noise in on target reads"))
+          print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]),"; level of noise", print(sdOn / sdOfSomaticOn), "due to large amount of noise in on target reads"))
           next
         }
       }
