@@ -389,11 +389,11 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
     coverageInsideOff = c()
     if (sdOfSomaticOff > 0) {
       coverageInsideOff = toyLogFoldChange[which(as.numeric(bedFileForMapping[,2]) >= startOfCNV & as.numeric(bedFileForMapping[,3]) <= endOfCNV & 
-                                                 (as.numeric(bedFileForMapping[,3] - as.numeric(bedFileForMapping[,2]) > 10000))
-                                                 )]
+                                                   (as.numeric(bedFileForMapping[,3] - as.numeric(bedFileForMapping[,2]) > 10000))
+      )]
     }
     coverageInsideOn = toyLogFoldChange[which(as.numeric(bedFileForMapping[,2]) >= startOfCNV & as.numeric(bedFileForMapping[,3]) <= endOfCNV & 
-                                                 (as.numeric(bedFileForMapping[,3] - as.numeric(bedFileForMapping[,2]) < 10000))
+                                                (as.numeric(bedFileForMapping[,3] - as.numeric(bedFileForMapping[,2]) < 10000))
     )]
     if (length(coverageInsideOn) > 4) {
       trimmedCoverageInsideOn = trimValues(coverageInsideOn, 0.05)
@@ -426,26 +426,27 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
       }
     }
     
-    if (puritiesOfStates[found_CNVs[q,4]] > clonalityForChecking) next
-    varsInside = which(as.numeric(bafNormalChr[,2]) >= startOfCNV & as.numeric(bafNormalChr[,3]) <= endOfCNV)
-    if (length(varsInside) < 10) {
-      cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
-    } else {
-      pvalsOfVariants <- rep(1, length(varsInside))
-      for (l in 1:length(varsInside)) {
-        var = varsInside[l]
-        numOne = round(as.numeric(bafNormalChr[var,5]) * as.numeric(bafNormalChr[var,6]))
-        numTwo = round(as.numeric(bafTumorChr[var,5]) * as.numeric(bafTumorChr[var,6]))
-        refOne = as.numeric(bafNormalChr[var,6]) - numOne
-        refTwo = as.numeric(bafTumorChr[var,6]) - numTwo
-        overdispNorm = overdispersionNormalChr[var]
-        overdispTumo = overdispersionTumorChr[var]
-        pvalsOfVariants[l] = min(1, passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo))
-      }
-      mergedPvals = pchisq((sum(log(pvalsOfVariants))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
-      if (pbinom(length(which(pvalsOfVariants < 0.05)),  length(varsInside), 0.05, lower.tail = F) > 0.01 | mergedPvals > 0.0001) {
+    if (puritiesOfStates[found_CNVs[q,4]] > clonalityForChecking) {
+      varsInside = which(as.numeric(bafNormalChr[,2]) >= startOfCNV & as.numeric(bafNormalChr[,3]) <= endOfCNV)
+      if (length(varsInside) < 10) {
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
-        print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], "due to 1) low clonality AND 2) absence of clear signal from BAF"))
+      } else {
+        pvalsOfVariants <- rep(1, length(varsInside))
+        for (l in 1:length(varsInside)) {
+          var = varsInside[l]
+          numOne = round(as.numeric(bafNormalChr[var,5]) * as.numeric(bafNormalChr[var,6]))
+          numTwo = round(as.numeric(bafTumorChr[var,5]) * as.numeric(bafTumorChr[var,6]))
+          refOne = as.numeric(bafNormalChr[var,6]) - numOne
+          refTwo = as.numeric(bafTumorChr[var,6]) - numTwo
+          overdispNorm = overdispersionNormalChr[var]
+          overdispTumo = overdispersionTumorChr[var]
+          pvalsOfVariants[l] = min(1, passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo))
+        }
+        mergedPvals = pchisq((sum(log(pvalsOfVariants))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
+        if (pbinom(length(which(pvalsOfVariants < 0.05)),  length(varsInside), 0.05, lower.tail = F) > 0.01 | mergedPvals > 0.0001) {
+          cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
+          print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], "due to 1) low clonality AND 2) absence of clear signal from BAF"))
+        }
       }
     }
   }
