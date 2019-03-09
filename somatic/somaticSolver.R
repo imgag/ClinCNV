@@ -107,7 +107,14 @@ for (pur in purity) {
       cn_states <- c(cn_states, cn_state)
       copy_numbers_used <- c(copy_numbers_used, cn)
       purities <- c(purities, pur)
-      statesUsed <- c(statesUsed, "CNVcomplex")
+      statesUsed <- c(statesUsed, "CNVcomplex2")
+    }
+    if (cn >= 7 & cn <= 8) {
+      cn_state <- (1 - pur) * 2 + pur * cn
+      cn_states <- c(cn_states, cn_state)
+      copy_numbers_used <- c(copy_numbers_used, cn)
+      purities <- c(purities, pur)
+      statesUsed <- c(statesUsed, "CNVcomplex3")
     }
     if (cn == 3 | cn == 4) {
       cn_state <- (1 - pur) * 2 + pur * cn
@@ -411,10 +418,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           print(multiplierOfSNVsDueToMapping)
           
           numOfSNVs = nrow(bAlleleFreqsTumor)
-          reduceOfSNVsSize = 1
-          if (numOfSNVs > 1500 ) {
-            reduceOfSNVsSize = round(numOfSNVs / 1500)
-          }
           if (length(closestBedRegions) == 0) closestBedRegions = rep(0, nrow(bAlleleFreqsTumor))
           for (i in 1:nrow(bAlleleFreqsTumor)) {
             # To avoid computationally expensive steps on the start of estimation
@@ -432,19 +435,37 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               }
             }
           }
+          vectorsWithRegionCoordsFilled = T
           #bAlleleFreqsTumor = bAlleleFreqsTumor[which(closestBedRegions != 0),]
           #closestBedRegions = closestBedRegions[which(closestBedRegions != 0)]
+          noBAF = F
           if (!finalIteration) {
-            bAlleleFreqsTumorToy = bAlleleFreqsTumor[seq(from=1, to=nrow(bAlleleFreqsTumor), by=reduceOfSNVsSize),]
-            closestBedRegionsToy = closestBedRegions[seq(from=1, to=nrow(bAlleleFreqsTumor), by=reduceOfSNVsSize)]
-            overdispersionNormalToy = overdispersionNormal[seq(from=1, to=nrow(bAlleleFreqsTumor), by=reduceOfSNVsSize)]
-            overdispersionTumorToy = overdispersionTumor[seq(from=1, to=nrow(bAlleleFreqsTumor), by=reduceOfSNVsSize)]
+            allowedChromosomesAutosomesOnlySNV = c()
+            allowedChromsBafSample <- allowedChromsBaf[[position]]
+            for (allowedArm in allowedChromsBafSample) {
+                splittedValue <- strsplit(allowedArm, "-")
+                allowedChromosomesAutosomesOnlySNV = c(allowedChromosomesAutosomesOnlySNV, which(bAlleleFreqsTumor[,1] == splittedValue[[1]][1] & 
+                                                                                                   as.numeric(bAlleleFreqsTumor[,2]) >= as.numeric(splittedValue[[1]][2]) &
+                                                                                                   as.numeric(bAlleleFreqsTumor[,3]) <= as.numeric(splittedValue[[1]][3])
+                                                                                                   )
+                                                                                                   )
+            }
+            coordsIncludedAtFirst = setdiff(1:nrow(bAlleleFreqsTumor), union(allowedChromosomesAutosomesOnlySNV, which(bAlleleFreqsTumor[,1] %in% c("chrX", "chrY"))))
+            if (length(coordsIncludedAtFirst) > 0) {
+              bAlleleFreqsTumorToy = bAlleleFreqsTumor[coordsIncludedAtFirst,,drop=F]
+              closestBedRegionsToy = closestBedRegions[coordsIncludedAtFirst]
+              overdispersionNormalToy = overdispersionNormal[coordsIncludedAtFirst]
+              overdispersionTumorToy = overdispersionTumor[coordsIncludedAtFirst]
+            } else {
+              noBAF = T
+            }
           } else {
             bAlleleFreqsTumorToy = bAlleleFreqsTumor
             closestBedRegionsToy = closestBedRegions
             overdispersionNormalToy = overdispersionNormal
             overdispersionTumorToy = overdispersionTumor
           }
+          if (!noBAF) {
           matrixOfBAFLikeliks = foreach (i = 1:nrow(bAlleleFreqsTumorToy), .combine='rbind') %dopar% {
             altAlleleDepth <- as.numeric(bAlleleFreqsTumorToy[i,5])
             overallDepth <- round(as.numeric(bAlleleFreqsTumorToy[i,6]))
@@ -479,7 +500,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               if (closestBedRegion != 0)
                 matrix_of_likeliks[closestBedRegion,] = matrix_of_likeliks[closestBedRegion,] + matrixOfBAFLikeliks[i,]
           }
-          vectorsWithRegionCoordsFilled = T
+          }
         }
         print("Finished BAF calculation")
         print(Sys.time())
@@ -600,7 +621,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           # BLOCK WITH PENALTIES
           copy_numbers_for_penalties = 4 - local_copy_numbers_used
           copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
-          set_of_unrealistic_states = c("LOHDup", "CNVboth", "CNVcomplex", "LOH")
+          set_of_unrealistic_states = c("LOHDup", "CNVboth", "CNVcomplex2", "CNVcomplex3", "LOH")
           whichAreUnrealistic <- which(local_cnv_states %in% set_of_unrealistic_states)
           penalties = penaltyForHigherCN * abs(copy_numbers_for_penalties)
           penalties[whichAreUnrealistic] = penalties[whichAreUnrealistic] + 20

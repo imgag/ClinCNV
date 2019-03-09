@@ -125,27 +125,30 @@ likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, stateUsed, multiplie
       pListChanged=T
     }
     finalLikelihood = log(pList[[as.character(pUsed)]])
-  } else if (stateUsed == "CNVcomplex") {
+  } else if (stateUsed == "CNVcomplex2" | stateUsed == "CNVcomplex3") {
     if (cn == 5) {
       pUsed1=round(multiplierDueToMapping * max(0.01, (1 + pur) / (2 + 3 * pur)), digits=2)
       pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 3* pur)), digits=2)
-      pUsed3=pUsed1
-      pUsed4=pUsed2
+
     } else if (cn == 6) {
       pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 1 * pur) / (2 + 4 * pur)), digits=2)
       pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 3 * pur) / (2 + 4 * pur)), digits=2)
-      pUsed3=pUsed1
-      pUsed4=pUsed2
     } else if (cn == 7) {
-      pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 3 * pur) / (2 + 5 * pur)), digits=2)
-      pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 5 * pur)), digits=2)
-      pUsed3=round(multiplierDueToMapping * max(0.01, (1 + 4 * pur) / (2 + 5 * pur)), digits=2)
-      pUsed4=round(multiplierDueToMapping * min(0.99, (1 + 1 * pur) / (2 + 5 * pur)), digits=2)
+      if (stateUsed == "CNVcomplex3") {
+        pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 3 * pur) / (2 + 5 * pur)), digits=2)
+        pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 5 * pur)), digits=2)
+      } else {
+        pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 4 * pur) / (2 + 5 * pur)), digits=2)
+        pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 1 * pur) / (2 + 5 * pur)), digits=2)
+    }
     } else if (cn == 8) {
-      pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 4 * pur) / (2 + 6 * pur)), digits=2)
-      pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 6 * pur)), digits=2)
-      pUsed3=round(multiplierDueToMapping * max(0.01, (1 + 1 * pur) / (2 + 6 * pur)), digits=2)
-      pUsed4=round(multiplierDueToMapping * min(0.99, (1 + 5 * pur) / (2 + 6 * pur)), digits=2)
+      if (stateUsed == "CNVcomplex3") {
+        pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 4 * pur) / (2 + 6 * pur)), digits=2)
+        pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 6 * pur)), digits=2)
+      } else {
+        pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 1 * pur) / (2 + 6 * pur)), digits=2)
+        pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 5 * pur) / (2 + 6 * pur)), digits=2)
+      }
     }
     if (!as.character(pUsed1) %in% names(pList)) {
       pList[[as.character(pUsed1)]] = likelihoodOfSNV(value, depth, pUsed1, overdispersionValue)
@@ -155,18 +158,8 @@ likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, stateUsed, multiplie
       pList[[as.character(pUsed2)]] = (likelihoodOfSNV(value, depth, pUsed2, overdispersionValue))
       pListChanged=T
     }
-    if (!as.character(pUsed3) %in% names(pList)) {
-      pList[[as.character(pUsed3)]] = likelihoodOfSNV(value, depth, pUsed3, overdispersionValue)
-      pListChanged=T
-    }
-    if (!as.character(pUsed4) %in% names(pList)) {
-      pList[[as.character(pUsed4)]] = (likelihoodOfSNV(value, depth, pUsed4, overdispersionValue))
-      pListChanged=T
-    }
-    finalLikelihood = log(0.25 * pList[[as.character(pUsed1)]] + 
-                            0.25 * pList[[as.character(pUsed2)]] +
-                            0.25 * pList[[as.character(pUsed3)]] + 
-                            0.25 * pList[[as.character(pUsed4)]])
+    finalLikelihood = log(0.5 * pList[[as.character(pUsed1)]] + 
+                            0.5 * pList[[as.character(pUsed2)]])
   } else {
     print("State used was not described by previous condition")
     print(pur)

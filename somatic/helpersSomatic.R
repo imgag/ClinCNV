@@ -398,7 +398,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr, c
         pvalsOfVariants[l] = passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo)
       }
       mergedPvals = pchisq((sum(log(min(1, pvalsOfVariants + 10**-10)))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
-      if (pbinom(length(which(pvalsOfVariants < 0.05)),  length(varsInside), 0.05, lower.tail = F) > 0.01 | mergedPvals > 0.001) {
+      if (pbinom(length(which(pvalsOfVariants < 0.05)),  length(varsInside), 0.05, lower.tail = F) > 0.05 | mergedPvals > 0.001) {
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
       }
     }
@@ -695,7 +695,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
         if (copy_number_particuar_cnv < 1) colorType = c(4,4)
         if (copy_number_particuar_cnv > 3) {
           colorType = c(3,0)
-          if (cnv_state == "CNVcomplex") {
+          if (cnv_state == "CNVcomplex2") {
             if (copy_number_particuar_cnv == 5) {
               colorType = c(3,2)
             } else if (copy_number_particuar_cnv >= 6) {
@@ -704,6 +704,9 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
             {
               colorType = c(2,2)
             }
+          }
+          if (cnv_state == "CNVcomplex3") {
+            colorType = c(3,3)
           }
           if (cnv_state == "CNVboth") {
             if (copy_number_particuar_cnv >= 8) {
@@ -721,7 +724,11 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
         if (colorType[2] != 0) {
           segments( start, multiplicator* i + offsetOfSecondChr,  end, multiplicator * i + offsetOfSecondChr, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[2]], alpha=max(0.3, particularPurity)))
         }
-        text(y = multiplicator *i + offsetOfSecondChr / 2, x = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"), cex=0.7)
+        if (cnv_state == "CNVcomplex3") {
+          text(y = multiplicator *i + offsetOfSecondChr / 2, x = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv, "(", 3, "/", copy_number_particuar_cnv - 3, ")"), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"), cex=0.7)
+        } else {
+          text(y = multiplicator *i + offsetOfSecondChr / 2, x = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"), cex=0.7)
+        }
       }
     }
 
