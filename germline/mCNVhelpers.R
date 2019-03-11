@@ -208,7 +208,7 @@ checkConnectivityComplex = function(j) {
 }
 
 
-findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, multipliersSamples, numberOfClusterAnalysed, plotting) {
+findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, multipliersSamples, numberOfClusterAnalysed, plotting, chromX = F) {
   startOfmCNV = 2
   endOfmCNV = (nrow(coverageNeededToCheck) - 1)
   if (toyBedFilePolymorphCurrent[1,3] - toyBedFilePolymorphCurrent[1,2] < 250 | nrow(coverageNeededToCheck) < 3) {
@@ -231,7 +231,7 @@ findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, mu
   }
   modeOfCovSummarised = EstimateModeSimple(coverageSummarised[notHomozygousDeletions])
   coverageSummarised = coverageSummarised / modeOfCovSummarised
-  notHomozygousDeletions = which(coverageSummarised >= 0.5)
+  notHomozygousDeletions = which(coverageSummarised >= 0.45)
   bestLoc = sqrt(0:20/2)
   sdNormalised = Qn(coverageSummarised[which(coverageSummarised > sqrt(1/2) & coverageSummarised < sqrt(3/2))])
   #likelikAndWeights = likelihoodOfGaussianMixture(1, coverageSummarised[notHomozygousDeletions], sdNormalised, 
@@ -244,42 +244,42 @@ findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, mu
   bestLoc = c(1)
   #possibleLocations = round(medianOfCoverage ** 2 * 2)
   #possibleLocations = unique(c(possibleLocations, possibleLocations + -5:5))
+  coverageSummarisedCleaned = coverageSummarised[which(multipliersSamples < quantile(multipliersSamples, 0.95))]
+  notHomozygousDeletionsCleaned = which(coverageSummarisedCleaned >= 0.45)
   for (j in 1:length(locations)) {
     #if (!j %in% possibleLocations) next
     vecOfMeans = locations[[j]]
-    vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageSummarised[notHomozygousDeletions]) - 0.25 & vecOfMeans < max(coverageSummarised[notHomozygousDeletions]) + 0.25)]
-    if (length(which(coverageSummarised <= 0.25)) / length(coverageSummarised) > 0.01) {
+    vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageSummarisedCleaned[notHomozygousDeletionsCleaned]) - 0.25 & vecOfMeans < max(coverageSummarisedCleaned[notHomozygousDeletionsCleaned]) + 0.25)]
+    if (length(which(coverageSummarisedCleaned <= 0.25)) / length(coverageSummarisedCleaned) > 0.01) {
       vecOfMeans = unique(round(c(vecOfMeans, 1 / sqrt(j)) * 100000))
       vecOfMeans = vecOfMeans / 100000
     }
     if (length(vecOfMeans) == 1) next
-    likelikAndWeights = likelihoodOfGaussianMixture(vecOfMeans, coverageSummarised[notHomozygousDeletions], sdNormalised, 
-                                                    0.05 * (length(notHomozygousDeletions)) / length(coverageSummarised), 0.1, 
-                                                    multipliersSamples[notHomozygousDeletions], lowerBoundOfSD)
+    likelikAndWeights = likelihoodOfGaussianMixture(vecOfMeans, coverageSummarisedCleaned[notHomozygousDeletionsCleaned], sdNormalised, 
+                                                    0.05 * (length(notHomozygousDeletionsCleaned)) / length(coverageSummarisedCleaned), 0.1, 
+                                                    multipliersSamples[notHomozygousDeletionsCleaned], lowerBoundOfSD)
     firstSignifCluster = min(which(likelikAndWeights[[2]] > 0.025))
-    if (length(notHomozygousDeletions) < length(coverageSummarised)) {
+    if (length(notHomozygousDeletionsCleaned) < length(coverageSummarisedCleaned)) {
       firstSignifCluster = 1
     }
     lastSignifCluster = max(which(likelikAndWeights[[2]] > 0.025))
     if (firstSignifCluster < lastSignifCluster - 1)
       if (min(likelikAndWeights[[2]][(firstSignifCluster + 1):(lastSignifCluster - 1)]) < 0.01) next
-    if (length(which(coverageSummarised <= 0.25)) / length(coverageSummarised) > 0.01) {
+    if (length(which(coverageSummarisedCleaned <= 0.25)) / length(coverageSummarisedCleaned) > 0.01) {
       whichHomoDel = which.min(vecOfMeans - 1/sqrt(j))
       if (likelikAndWeights[[2]][whichHomoDel] < 0.01) {
         next
       }
     }
     tmpLikelik =  (
-      -2 * likelikAndWeights[[1]] + (lastSignifCluster - firstSignifCluster  + 1) * log(length(notHomozygousDeletions))
+      -2 * likelikAndWeights[[1]] + (lastSignifCluster - firstSignifCluster  + 1) * log(length(notHomozygousDeletionsCleaned))
     )
-    #normalmixEM(coverageSummarised[notHomozygousDeletions], mu=vecOfMeans)
-    #print(tmpLikelik)
-    #print(j)
-    bestWeightCheckForEvenDominance = c(likelikAndWeights[[2]] * length(notHomozygousDeletions)) + 0.1
+
+    bestWeightCheckForEvenDominance = c(likelikAndWeights[[2]] * length(notHomozygousDeletionsCleaned)) + 0.1
     bestWeightCheckForEvenDominance = bestWeightCheckForEvenDominance / sum(bestWeightCheckForEvenDominance)
     bestLocEvenDominance = c(vecOfMeans)
     bestLocEvenDominance = round(bestLocEvenDominance ** 2 * j)
-    if ((sum(bestWeightCheckForEvenDominance[which(bestLocEvenDominance %% 2 == 0)]) * length(notHomozygousDeletions) + length(which(coverageSummarised < 0.5))) / length(coverageSummarised) < 0.4) next
+    if (!chromX & (sum(bestWeightCheckForEvenDominance[which(bestLocEvenDominance %% 2 == 0)]) * length(notHomozygousDeletionsCleaned) + length(which(coverageSummarisedCleaned < 0.5))) / length(coverageSummarisedCleaned) < 0.4) next
 
     if (tmpLikelik < bestLikelik | is.null(bestSD)) {
       if (3 * likelikAndWeights[[3]] < 1 - sqrt((j-1)/j)) {
@@ -290,6 +290,18 @@ findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, mu
         bestDivisor = j
       }
     }
+  }
+  if (length(bestWeight) == 1) {
+    bestLoc = sqrt(1:20/2)
+    bestWeight = rep(0, 20)
+    for (c in 1:length(coverageSummarised)) {
+      if (coverageSummarised[c] > 0.5) {
+        closestLoc = which.min(abs(coverageSummarised[c] - bestLoc))
+        bestWeight[closestLoc] = bestWeight[closestLoc] + 1
+      }
+    }
+    bestWeight = bestWeight / sum(bestWeight)
+    bestSD = sdNormalised
   }
   if (is.null(bestSD)) {
     bestSD = sdNormalised

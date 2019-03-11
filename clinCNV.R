@@ -109,8 +109,8 @@ option_list = list(
   make_option(c("-vis", "--visulizationIGV"), action="store_true", default=T, 
               help="if you dont need IGV tracks as output, specify this flag (as printing out IGV tracks slows down the program)"),  
   
-  make_option(c("-cloneP", "--clonePenalty"), type="integer", default=200, 
-              help="penalty for each additional clone (if you feel that you have some false positive clones, increase this value from default 200)"),  
+  make_option(c("-cloneP", "--clonePenalty"), type="integer", default=300, 
+              help="penalty for each additional clone (if you feel that you have some false positive clones, increase this value from default 300)"),  
   
   make_option(c("-purityS", "--purityStep"), type="double", default=2.5, 
               help="step of purity we investigate (from 5% to 100% with the step you specify, default=2.5)", metavar="number"),  
@@ -578,8 +578,8 @@ if (framework == "germline") {
     ### HERE THE POLYMORPHIC REGIONS DETECTION GOES
     if (opt$polymorphicCalling == "YES") {
       source(paste0(opt$folderWithScript, "/germline/mCNVsDetection.R"),local=TRUE)
-      if (nrow(copyNumberForReporting) > 0)
-      polymorphicRegions = copyNumberForReporting
+      if (nrow(copyNumberForReportingGlobal) > 0)
+      polymorphicRegions = copyNumberForReportingGlobal
     }
     if (opt$polymorphicCalling != "YES" & opt$polymorphicCalling != "NO") {
       print("Since polymorphicCalling option was not YES or NO, we interpret the value as a path to file")

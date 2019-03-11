@@ -754,11 +754,14 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         # true clonal structure
         maxNumOfClones <- min(5, length(uniqueLocalPurities))
         localPurityStates = 1:length(uniqueLocalPurities)
+        hundredPercentPurity = which(uniqueLocalPurities == 1)
         resultBestCombination = 0
         minResult = 10**100
-        for (m in 1:maxNumOfClones) {
+        for (m in 2:maxNumOfClones) {
           combinationsOfPurities <- combn(localPurityStates, m)
-
+          indicesOfPuritiesWithMax = apply(combinationsOfPurities, 2, function(x) {sum(which(x == hundredPercentPurity))})
+          combinationsOfPurities = combinationsOfPurities[,which(indicesOfPuritiesWithMax > 0),drop=F]
+          
           bestCombination = 1
           
           for (q in 1:ncol(combinationsOfPurities)) {
@@ -782,7 +785,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
         }
         clonalBestPurities = uniqueLocalPurities[resultBestCombination]
-        clonalBestPurities = unique(clonalBestPurities, 1)
         if (length(clonalBestPurities) == 0) {
           clonalBestPurities = c(0, 1)
         } 
