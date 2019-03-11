@@ -180,7 +180,7 @@ if (!dir.exists(folder_name)) {
 }
 
 allPotentialPurities <- unique(purities)
-penaltyForHigherCN = 10
+penaltyForHigherCN = 20
 clonalityForChecking = 0.4
 print(paste("Work on actual calling started.", Sys.time()))
 
@@ -349,7 +349,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               if (!chrom %in% c("chrY", "Y", "chrX", "X")) {
                 startOfArm = as.numeric(splittedValue[[1]][2])
                 endOfArm = as.numeric(splittedValue[[1]][3])
-                lengthOfRolling = min(40, round((endOfArm - startOfArm)/5))
+                lengthOfRolling = min(100, round((endOfArm - startOfArm)/5))
                 allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(globalBed[,1] == chrom &
                                                                                                  globalBed[,2] >= startOfArm &
                                                                                                  globalBed[,3] <= endOfArm))
@@ -360,7 +360,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             }
             #globalLogFoldAllowedChroms = globalLogFold[allowedChromosomesAutosomesOnly]
             #smoothedLogFold = runmed(globalLogFoldAllowedChroms, k = lengthOfRolling)
-            clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))], model="E")
+            clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(3/8))], model="E")
             print("Mclust finished")
             bigClusters <- which(clusteredResult$parameters$pro > 0.25)
             if (length(bigClusters) == 0) {
@@ -621,9 +621,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             }
           }
           # BLOCK WITH PENALTIES
-          copy_numbers_for_penalties = 4 - local_copy_numbers_used
+          copy_numbers_for_penalties = 3 - local_copy_numbers_used
           copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
-          set_of_unrealistic_states = c("LOHDup", "CNVboth", "CNVcomplex2", "CNVcomplex3", "LOH")
+          set_of_unrealistic_states = c("LOHDup", "CNVboth", "CNVcomplex2", "CNVcomplex3")
           whichAreUnrealistic <- which(local_cnv_states %in% set_of_unrealistic_states)
           penalties = penaltyForHigherCN * abs(copy_numbers_for_penalties)
           penalties[whichAreUnrealistic] = penalties[whichAreUnrealistic] + 20
@@ -637,7 +637,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0) {
             bafsFromThisChr = which(bAlleleFreqsNormal[,1] == chrom)
             listOfCNVsThatDoNotPass = returnListOfCNVsThatDoNotPass(foundCNVs, bAlleleFreqsNormal[bafsFromThisChr,], bAlleleFreqsTumor[bafsFromThisChr,], 
-                                                                  clonalityForChecking, local_purities, toyBedFile,
+                                                                  clonalityForChecking, local_purities, local_cn_states, toyBedFile,
                                                                   overdispersionNormal[bafsFromThisChr],
                                                                   overdispersionTumor[bafsFromThisChr],
                                                                   toyLogFoldChange,
@@ -651,15 +651,16 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
 
           
           if (nrow(found_CNVs) > 0 & !chrom %in% c("chrX", "chrY", "X", "Y")) {
-            likeliksFoundCNVsVsPurities <- matrix(nrow=nrow(found_CNVs), ncol=length(uniqueLocalPurities))
+            likeliksFoundCNVsVsPurities <- matrix(0,nrow=nrow(found_CNVs), ncol=length(uniqueLocalPurities))
             for (m in 1:length(uniqueLocalPurities)) {
               localPurityCurrent = uniqueLocalPurities[m]
               for (q in 1:nrow(found_CNVs)) {
                 startOfCNV <- found_CNVs[q,2]
                 endOfCNV <- found_CNVs[q,3]
                 if (endOfCNV - startOfCNV > 3) { 
-                  #penalty = penaltyForHigherCN * abs(2 - local_copy_numbers_used[which(local_purities == localPurityCurrent)])
-                  likeliksFoundCNVsVsPurities[q, m] = min(apply(toyMatrixOfLikeliks[(startOfCNV + 1):(endOfCNV - 1),which(local_purities == localPurityCurrent)], 2, sum)) # + penalty)
+                  
+                  likeliksFoundCNVsVsPurities[q, m] = min(apply(toyMatrixOfLikeliks[(startOfCNV + 1):(endOfCNV - 1),which(local_purities == localPurityCurrent)], 2, sum)
+                                                          + penaltyForHigherCN * abs(copy_numbers_for_penalties[which(local_purities == localPurityCurrent)]))
                 }
               }
             }
@@ -688,7 +689,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
           if (length(local_cn_states) - length(blocked_states) <= 1) {
             next
-          }
+          }       
           ### END OF IGV PLOTTING
           
           
@@ -781,6 +782,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
         }
         clonalBestPurities = uniqueLocalPurities[resultBestCombination]
+        clonalBestPurities = unique(clonalBestPurities, 1)
         if (length(clonalBestPurities) == 0) {
           clonalBestPurities = c(0, 1)
         } 

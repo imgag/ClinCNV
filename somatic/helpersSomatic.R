@@ -375,7 +375,7 @@ returnMultiplierDueToLog <- function(cnNorm, cnTum, sdNorm, sdTum, covNT) {
 
 
 returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr, 
-                                         clonalityForChecking, puritiesOfStates, bedFileForMapping, 
+                                         clonalityForChecking, puritiesOfStates, relativeCNumbersOfStates, bedFileForMapping, 
                                          overdispersionNormalChr, overdispersionTumorChr,
                                          toyLogFoldChange,
                                          sdOfSomaticOn,
@@ -383,7 +383,17 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
   ### CHECK BAFS HERE FOR LOW CLONALITY
   cnvsThatShowNoBAFdeviation = c()
   for (q in 1:nrow(found_CNVs)) {
-    
+    if (relativeCNumbersOfStates[found_CNVs[q,4]] < 0.5) {
+      toyLogFoldChangeBetween = toyLogFoldChange[(found_CNVs[q,2] + 1):(found_CNVs[q,3] - 1)]
+      if(length(which(toyLogFoldChangeBetween > log(3/4))) > 0.25 * length(toyLogFoldChangeBetween)) {
+        cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
+        print(paste("We remove potential homozygous deletion", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "due to large amount of values which are too big in the middle"))
+        next
+      } else {
+        next
+      }
+      
+    }
     startOfCNV = as.numeric(bedFileForMapping[found_CNVs[q,2],2])
     endOfCNV <- as.numeric(bedFileForMapping[found_CNVs[q,3],3])
     coverageInsideOff = c()
@@ -426,7 +436,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
       }
     }
     
-    if (puritiesOfStates[found_CNVs[q,4]] > clonalityForChecking) {
+    if (as.numeric(puritiesOfStates[found_CNVs[q,4]]) < clonalityForChecking) {
       varsInside = which(as.numeric(bafNormalChr[,2]) >= startOfCNV & as.numeric(bafNormalChr[,3]) <= endOfCNV)
       if (length(varsInside) < 10) {
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
