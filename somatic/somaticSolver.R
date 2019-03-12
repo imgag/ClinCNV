@@ -31,10 +31,10 @@ samplesNotPassedQC = colnames(matrixOfLogFold)[which(sampleLevelOfNoise > 1.0)]
 if (length(samplesNotPassedQC) > 0) {
   print("Samples don't pass our QC - too noisy!")
   print(samplesNotPassedQC)
-  matrixOfLogFold = matrixOfLogFold[,-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
   sdsOfSomaticSamples = sdsOfSomaticSamples[-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
   matrixWithSds = matrixWithSds[,-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
   gendersInOntargetMatrix = gendersInOntargetMatrix[-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
+  matrixOfLogFold = matrixOfLogFold[,-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
 }
 
 ## QC FOR PROBES
