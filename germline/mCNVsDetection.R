@@ -13,10 +13,12 @@ vect_of_norm_likeliks = fast_dt_list(100)
 QnSample <- apply(coverage[which(!bedFilePolymorph[,1] %in% c("chrX","chrY")),], 2, mad)
 modeOfVariances <- EstimateModeSimple(QnSample)
 samplesForExclusion <- which(QnSample > 2.5 * modeOfVariances)
-print(paste("Samples", paste(colnames(coverage), collapse=", "), "have variances 2.5 times bigger than the mode variance of the cohort. We have to exclude them."))
-coverageForNormalization = coverage[,-samplesForExclusion]
-if (ncol(coverage) < 50) {
-  paste("The amount of samples is too small for polymorphic calling!")
+if (length(samplesForExclusion) > 0) {
+  print(paste("Samples", paste(colnames(coverage), collapse=", "), "have variances 2.5 times bigger than the mode variance of the cohort. We have to exclude them."))
+  coverageForNormalization = coverage[,-samplesForExclusion]
+  if (ncol(coverageForNormalization) < 50) {
+    paste("The amount of samples is too small for polymorphic calling!")
+  }
 }
 
 
@@ -34,7 +36,7 @@ if (length(regionsToRemove) > 0) {
   mediansOfPolymorphic = mediansOfPolymorphic[-regionsToRemove]
 }
 
-QnSample <- apply(coverage.normalised.polymorph[which(!bedFilePolymorph[,1] %in% c("chrX","chrY")),], 2, Qn)
+QnSample <- apply(coverage.normalised.polymorph[which(!bedFilePolymorph[,1] %in% c("chrX","chrY")),], 2, Sn)
 
 
 matrixOfMultipliers <- matrix(0, nrow=1000, ncol=ncol(coverage.normalised.polymorph))

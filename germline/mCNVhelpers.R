@@ -1,11 +1,7 @@
 
 EstimateModeSimple <- function(x) {
-  tmpx = x[which(x > 0.5)]
-  if (length(tmpx) < 5) {
-    return(0)
-  }
-  
-  density_of_x <-  density(tmpx, kernel="gaussian", bw="SJ")
+
+  density_of_x <-  density(x, kernel="gaussian", bw="SJ")
   mu = density_of_x$x[which.max(density_of_x$y)]
   mu
 }
