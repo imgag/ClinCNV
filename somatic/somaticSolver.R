@@ -14,29 +14,41 @@ vect_of_t_likeliks <- fast_dt_list(as.numeric(opt$degreesOfFreedomStudent))
 
 print(paste("Work on data preparation for somatic samples started (log-fold change matrices plus parameters estimation)", Sys.time()))
 
-listOfValue <- formilngLogFoldChange(pairs, tmpNormal, tumor, bedFile, genderOfSamples)
+listOfValue <- formilngLogFoldChange(pairs, tmpNormal, tumor, bedFileForCluster, genderOfSamples)
 matrixOfLogFold <- listOfValue[[1]]
+gendersInOntargetMatrix = listOfValue[[2]]
+
+
+
+matrixWithSdsList <- findSDsOfSamples(pairs, tmpNormal, tumor, bedFileForCluster, bordersOfChroms, genderOfSamples)
+matrixWithSds = matrixWithSdsList[[1]]
+sdsOfSomaticSamples <- matrixWithSds[4,]
+sdsOfProbes <- matrixWithSdsList[[2]]
 
 # QC control
-sampleLevelOfNoise = apply(matrixOfLogFold[which(!bedFile[,1] %in% c("chrX","chrY")),], 2, Sn)
+sampleLevelOfNoise = apply(matrixOfLogFold[which(!bedFileForCluster[,1] %in% c("chrX","chrY")),], 2, Sn)
 samplesNotPassedQC = colnames(matrixOfLogFold)[which(sampleLevelOfNoise > 1.0)]
 if (length(samplesNotPassedQC) > 0) {
   print("Samples don't pass our QC - too noisy!")
   print(samplesNotPassedQC)
   matrixOfLogFold = matrixOfLogFold[,-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
+  sdsOfSomaticSamples = sdsOfSomaticSamples[-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
+  matrixWithSds = matrixWithSds[,-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
+  gendersInOntargetMatrix = gendersInOntargetMatrix[-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
 }
 
-
-matrixWithSdsList <- findSDsOfSamples(pairs, tmpNormal, tumor, bedFile, bordersOfChroms, genderOfSamples)
-matrixWithSds = matrixWithSdsList[[1]]
-sdsOfSomaticSamples <- matrixWithSds[4,]
-sdsOfProbes <- matrixWithSdsList[[2]]
-
-
+## QC FOR PROBES
+probesToRemove <- probeLevelQC(matrixOfLogFold, sdsOfProbes, sdsOfSomaticSamples, gendersInOntargetMatrix, bedFileForCluster)
+if (length(probesToRemove) > 0) {
+  sdsOfProbes = sdsOfProbes[-probesToRemove]
+  matrixOfLogFold = matrixOfLogFold[-probesToRemove,]
+  bedFileForCluster = bedFileForCluster[-probesToRemove,]
+}
 
 if (frameworkOff == "offtarget") {
-  listOfValueOff <- formilngLogFoldChange(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileOfftarget, genderOfSamples)
+  listOfValueOff <- formilngLogFoldChange(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileForClusterOff, genderOfSamples)
   matrixOfLogFoldOff =  listOfValueOff[[1]]
+  gendersInOfftargetMatrix = listOfValueOff[[2]]
 
   if (length(samplesNotPassedQC) > 0) {
     if (length(which(colnames(matrixOfLogFoldOff) %in% samplesNotPassedQC)) > 0) {
@@ -44,11 +56,21 @@ if (frameworkOff == "offtarget") {
     }
   }
   
-  bordersOfChroms <- getBordersOfChromosomes(bedFileOfftarget)
-  matrixWithSdsOffList <- findSDsOfSamples(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileOfftarget, bordersOfChroms, genderOfSamples)
+
+  
+  
+  bordersOfChroms <- getBordersOfChromosomes(bedFileForClusterOff)
+  matrixWithSdsOffList <- findSDsOfSamples(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileForClusterOff, bordersOfChroms, genderOfSamples)
   matrixWithSdsOff = matrixWithSdsOffList[[1]]
   sdsOfSomaticSamplesOff <- matrixWithSdsOff[4,]
   sdsOfProbesOff <- matrixWithSdsOffList[[2]]
+  
+  probesToRemove <- probeLevelQC(matrixOfLogFoldOff, sdsOfProbesOff, sdsOfSomaticSamplesOff, gendersInOfftargetMatrix, bedFileForClusterOff)
+  if (length(probesToRemove) > 0) {
+    sdsOfProbesOff = sdsOfProbesOff[-probesToRemove]
+    matrixOfLogFoldOff = matrixOfLogFoldOff[-probesToRemove,]
+    bedFileForClusterOff = bedFileForClusterOff[-probesToRemove,]
+  }
   #sdsOfProbesOff <- sapply(1:nrow(matrixOfLogFoldOff), function(i) {determineSDsOfSomaticProbe(matrixOfLogFoldOff[i,], i)})
   
   #listOfVarianceAndMultiplicatorOff <- esimtateVarianceFromSampleNoise(sdsOfSomaticSamplesOff, 10000)
@@ -320,9 +342,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               if (!chrom %in% c("chrY", "Y", "chrX", "X")) {
                 startOfArm = as.numeric(splittedValue[[1]][2])
                 endOfArm = as.numeric(splittedValue[[1]][3])
-                allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(bedFile[,1] == chrom &
-                                                                                                 bedFile[,2] >= startOfArm &
-                                                                                                 bedFile[,3] <= endOfArm))
+                allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(bedFileForCluster[,1] == chrom &
+                                                                                                 bedFileForCluster[,2] >= startOfArm &
+                                                                                                 bedFileForCluster[,3] <= endOfArm))
               }
             }
             lengthOfRolling = 30
@@ -339,7 +361,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             }
           } else {
             sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
-            globalBed <- rbind(bedFile, bedFileOfftarget)
+            globalBed <- rbind(bedFileForCluster, bedFileForClusterOff)
             globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])
             allowedChromosomesAutosomesOnly = c()
             smoothedLogFold= c()
@@ -384,10 +406,10 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2), local_multipliersDueToLog)
       
       if (genderOfSamples[germline_sample_no] == "M") {
-        if (length(which(bedFile[,1] %in% c("chrX","chrY"))) > 0)
-          matrix_of_likeliks[which(bedFile[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
-            1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[which(bedFile[,1] %in% c("chrX","chrY")),sam_no], 
-            localSds[which(bedFile[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
+        if (length(which(bedFileForCluster[,1] %in% c("chrX","chrY"))) > 0)
+          matrix_of_likeliks[which(bedFileForCluster[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
+            1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[which(bedFileForCluster[,1] %in% c("chrX","chrY")),sam_no], 
+            localSds[which(bedFileForCluster[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
       }
       
       
@@ -424,7 +446,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             if (vectorsWithRegionCoordsFilled) {
               closestBedRegion = closestBedRegions[i]
             } else {
-              closestBedRegion <- which(bedFile[,1] == bAlleleFreqsTumor[i,1] & bedFile[,2] <= bAlleleFreqsTumor[i,2] & bedFile[,3] >= bAlleleFreqsTumor[i,3])
+              closestBedRegion <- which(bedFileForCluster[,1] == bAlleleFreqsTumor[i,1] & bedFileForCluster[,2] <= bAlleleFreqsTumor[i,2] & bedFileForCluster[,3] >= bAlleleFreqsTumor[i,3])
               if (length(closestBedRegion) >= 1) {
                 closestBedRegion = closestBedRegion[1]
                 closestBedRegions[i] = closestBedRegion
@@ -518,15 +540,15 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
         matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[,sam_no_off], localSdsOff, log2(local_cn_states/2), local_multipliersDueToLogOff)
         if (genderOfSamples[germline_sample_no] == "M") {
-          matrix_of_likeliks_off[which(bedFileOfftarget[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
-            1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileOfftarget[,1] %in% c("chrX","chrY")),sam_no_off], 
-            localSdsOff[which(bedFileOfftarget[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
+          matrix_of_likeliks_off[which(bedFileForClusterOff[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
+            1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileForClusterOff[,1] %in% c("chrX","chrY")),sam_no_off], 
+            localSdsOff[which(bedFileForClusterOff[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
         }
         
         
         
         globalMatrOfLikeliks <- rbind(matrix_of_likeliks, matrix_of_likeliks_off)
-        globalBed <- rbind(bedFile, bedFileOfftarget)
+        globalBed <- rbind(bedFileForCluster, bedFileForClusterOff)
         sizesOfPointsFromLocalSdsOff <- 0.5 / localSdsOff
         vecOfOrder = order(globalBed[,1], as.numeric(globalBed[,2]))
         globalSizesOfPoints <- c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[vecOfOrder]
@@ -588,12 +610,12 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             toySizesOfPointsFromLocalSds = toySizesOfPointsFromLocalSds[which_to_allow]
           } else {
             if (k == 1) {
-              which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] <= start )
+              which_to_allow = which(bedFileForCluster[,1] == chrom & bedFileForCluster[,2] <= start )
             } else {
-              which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] >= end )
+              which_to_allow = which(bedFileForCluster[,1] == chrom & bedFileForCluster[,2] >= end )
             }
             toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
-            toyBedFile = bedFile[which_to_allow,]
+            toyBedFile = bedFileForCluster[which_to_allow,]
             toyLogFoldChange = matrixOfLogFold[which_to_allow, sam_no]
             
 
@@ -754,13 +776,13 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         # true clonal structure
         maxNumOfClones <- min(5, length(uniqueLocalPurities))
         localPurityStates = 1:length(uniqueLocalPurities)
-        hundredPercentPurity = which(uniqueLocalPurities == 1)
+        #hundredPercentPurity = which(uniqueLocalPurities == 1)
         resultBestCombination = 0
         minResult = 10**100
         for (m in 2:maxNumOfClones) {
           combinationsOfPurities <- combn(localPurityStates, m)
-          indicesOfPuritiesWithMax = apply(combinationsOfPurities, 2, function(x) {sum(which(x == hundredPercentPurity))})
-          combinationsOfPurities = combinationsOfPurities[,which(indicesOfPuritiesWithMax > 0),drop=F]
+          #indicesOfPuritiesWithMax = apply(combinationsOfPurities, 2, function(x) {sum(which(x == hundredPercentPurity))})
+          #combinationsOfPurities = combinationsOfPurities[,which(indicesOfPuritiesWithMax > 0),drop=F]
           
           bestCombination = 1
           
@@ -808,7 +830,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           defaultCN = 1
         }
         pvalsSeparateTests = c(NA, NA, NA)
-        onTargetCoords <- which(bedFile[,1] == found_CNVs_total[i,1] & as.numeric(bedFile[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFile[,3]) <= as.numeric(found_CNVs_total[i,3]))
+        onTargetCoords <- which(bedFileForCluster[,1] == found_CNVs_total[i,1] & as.numeric(bedFileForCluster[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileForCluster[,3]) <= as.numeric(found_CNVs_total[i,3]))
         if (length(onTargetCoords) > 1) {
           tumorValue <- median(log2(tumor[onTargetCoords, tumor_sample_no]))
           if (found_CNVs_total[i,1] %in% c("chrX", "chrY")) {
@@ -828,7 +850,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           ) / sdOfNormals, df=length(samplesToUse)) 
         }
         if (sampleInOfftarget) {
-          offTargetCoords <- which(bedFileOfftarget[,1] == found_CNVs_total[i,1] & as.numeric(bedFileOfftarget[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileOfftarget[,3]) <= as.numeric(found_CNVs_total[i,3]))
+          offTargetCoords <- which(bedFileForClusterOff[,1] == found_CNVs_total[i,1] & as.numeric(bedFileForClusterOff[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileForClusterOff[,3]) <= as.numeric(found_CNVs_total[i,3]))
           if (length(offTargetCoords) > 1) {
             tumorValueOff <- median(log2(tumorOff[offTargetCoords, tumor_sample_no_off]))
             if (found_CNVs_total[i,1] %in% c("chrX", "chrY")) {
@@ -908,3 +930,4 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
 }
 
 stopCluster(cl)
+

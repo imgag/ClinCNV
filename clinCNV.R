@@ -674,6 +674,8 @@ for (cluster in unique(clustering)) {
         next
       }
     }
+    bedFileForCluster = bedFile
+    bedFileForClusterOff = bedFileOfftarget
     source(paste0(opt$folderWithScript, "/somatic/somaticSolver.R"),local=TRUE)
 }
 

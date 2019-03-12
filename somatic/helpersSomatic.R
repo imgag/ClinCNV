@@ -1,6 +1,17 @@
 
 findSDsOfSamples <- function(pairs, normalCov, tumorCov, bedFileForCalc, bordersOfChroms, genderOfSamplesLocal) {
+  females = genderOfSamplesLocal[which(genderOfSamplesLocal == "F")]
+  males = genderOfSamplesLocal[which(genderOfSamplesLocal == "M")]
+  whichAreMales = which(colnames(normalCov) %in% names(males))
+  whichAreFemales = which(colnames(normalCov) %in% names(females))
+  normalCov[which(bedFileForCalc[,1] == "chrX"),whichAreMales] = 2 * normalCov[which(bedFileForCalc[,1] == "chrX"),whichAreMales]
+  chrY = which(bedFileForCalc[,1] == "chrY")
+  for (i in 1:length(chrY)) {
+    normalCov[chrY[i],whichAreFemales] = sample(normalCov[chrY[i],whichAreMales], length(whichAreFemales), replace = T)
+  }
+  
   normalCovForVarianceMedians = apply(log2(normalCov), 1, median)
+  
   normalCenteredAroundZero = sweep(log2(normalCov), 2, normalCovForVarianceMedians)
   normalCovForVarianceSD = apply(normalCenteredAroundZero, 2, Qn)
   normalCenteredAroundZeroAndNormalisedBySD = sweep(normalCenteredAroundZero, 1, normalCovForVarianceSD, FUN="/")
@@ -110,6 +121,7 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
   }
   counter = 1
   colnamesForMatrix <- rep(0, ncol(matrixOfLogFold))
+  gendersInFormedMatrix = c()
   for (i in 1:ncol(normalCov)) {
     sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
     for (sampleName1 in sampleNames1) {
@@ -117,6 +129,7 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
       new_name <- (paste(colnames(tumorCov)[sampleName2], "-",  colnames(normalCov)[i], sep=""))
       if (length(sampleName2) > 0) {
         colnamesForMatrix[counter] <- new_name
+        gendersInFormedMatrix <- c(gendersInFormedMatrix, (genderOfSamplesInCluster[which(names(genderOfSamplesInCluster) == colnames(normalCov)[i])]))
         counter = counter + 1
       }
     }
@@ -150,7 +163,7 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
   lines(shifts, col="red", lwd=3)
   dev.off()
   #matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
-  return(list(matrixOfLogFold))
+  return(list(matrixOfLogFold, gendersInFormedMatrix))
 }
 
 
@@ -675,7 +688,7 @@ makeTransparent = function(..., alpha=0.5) {
 
 plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_borders, ends_of_chroms, gender, sample_name) {
   found_CNVs_total[,5] = as.numeric(found_CNVs_total[,5]) / max(as.numeric(found_CNVs_total[,5]))
-  majorClone = max(as.numeric(found_CNVs_total[,5]))
+  majorClone = max(as.numeric(found_CNVs_total[,5])[which(as.numeric(found_CNVs_total[,5]) < 1)])
   linesOnBarplot = list()
   orderOfNames = c(paste0("chr", 1:22), "chrX", "chrY")
   orderInLists = c()
@@ -793,4 +806,26 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
 
   }
   dev.off()
+}
+
+probeLevelQC <- function(matrixOfLogFold, sdsOfProbes, sdsOfSomaticSamples, genderOfSamplesLocal, bedFile) {
+  females = which(genderOfSamplesLocal == "F")
+  males = which(genderOfSamplesLocal == "M")
+  QNs <- apply(matrixOfLogFold, 1, function(x) {ifelse(length(which(x > log(1/2) & x < log(3/2))) > 10, Qn(x[which(x > log(1/2) & x < log(3/2))]), Qn(x))})
+  for (i in 1:nrow(bedFile)) {
+    if (bedFile[i,1] == "chrX") {
+      QNs = Qn(matrixOfLogFold[i, females])
+    }
+    if (bedFile[i,1] == "chrY") {
+      QNs = Qn(matrixOfLogFold[i, males])
+    }
+  }
+  ratios <- (QNs / sdsOfProbes)
+  qnRatios = Qn(ratios)
+  medianRatio = median(ratios)
+  plot(ratios, col=rgb(0,0,0,0.1), pch=19)
+  points(ratios[which(ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 2)] ~ which(ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 2), col=rgb(1,0,0,0.5), pch=19)
+  
+  
+  return(which(ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 2))
 }
