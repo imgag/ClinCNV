@@ -16,6 +16,7 @@ samplesForExclusion <- which(QnSample > 2.5 * modeOfVariances)
 if (length(samplesForExclusion) > 0) {
   print(paste("Samples", paste(colnames(coverage), collapse=", "), "have variances 2.5 times bigger than the mode variance of the cohort. We have to exclude them."))
   coverageForNormalization = coverage[,-samplesForExclusion]
+  genderOfSamplesUsed = genderOfSamples[-samplesForExclusion]
   if (ncol(coverageForNormalization) < 50) {
     paste("The amount of samples is too small for polymorphic calling!")
   }
@@ -23,7 +24,7 @@ if (length(samplesForExclusion) > 0) {
 
 
 autosomes = which(!bedFile[,1] %in% c("chrX", "chrY"))
-mediansAndSdsPolymorphic = calculateLocationAndScale(bedFile, coverageForNormalization, genderOfSamples, autosomes, polymorphic=T)
+mediansAndSdsPolymorphic = calculateLocationAndScale(bedFile, coverageForNormalization, genderOfSamplesUsed, autosomes, polymorphic=T)
 coverage.normalised.polymorph = mediansAndSdsPolymorphic[[1]]
 mediansOfPolymorphic = mediansAndSdsPolymorphic[[2]][,1]
 rm(mediansAndSdsPolymorphic)
@@ -70,7 +71,7 @@ percentageToBePolymorphism = max(0.025, 5 / ncol(coverage.normalised.polymorph))
 for (l in 1:length(left_borders)) {
   chrom = names(left_borders)[l]
   samplesForAnalysis = 1:ncol(coverage.normalised.polymorph)
-  if (chrom == "chrX") samplesForAnalysis = which(genderOfSamples == "F")
+  if (chrom == "chrX") samplesForAnalysis = which(genderOfSamplesUsed == "F")
   if (chrom == "chrY") next
   
   multipliersSamplesForAnalysis = multipliersSamples[samplesForAnalysis]

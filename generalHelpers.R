@@ -664,3 +664,17 @@ checkForDuplicatesAndRemove <- function(matr, sampleNameToRemain=NULL) {
  return(matr)
 }
 
+
+
+determineAverageDepth <- function(rawCoverage, bedFile) {
+  avgDepth <- apply(as.matrix(rawCoverage[which(!bedFile[,1] %in% c("chrX","chrY")),]), 2, median)
+  avgDepth
+}
+
+
+writeOutLevelOfNoiseVersusCoverage <- function(avgDepth, gcNormalisedCov, bedFile, nameForOutputFile) {
+  namesOfOutputFile = colnames(gcNormalisedCov)
+  noises <- round(apply(gcNormalisedCov[which(!bedFile[,1] %in% c("chrX","chrY")),], 2, mad), digits = 2)
+  tableForOutput <- cbind(namesOfOutputFile, noises, avgDepth)
+  write.table(file = nameForOutputFile, tableForOutput, row.names = F, quote = F, sep="\t")
+}
