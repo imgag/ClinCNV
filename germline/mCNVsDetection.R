@@ -25,9 +25,11 @@ if (length(samplesForExclusion) > 0) {
 autosomes = which(!bedFile[,1] %in% c("chrX", "chrY"))
 mediansAndSdsPolymorphic = calculateLocationAndScale(bedFile, coverageForNormalization, genderOfSamples, autosomes, polymorphic=T)
 coverage.normalised.polymorph = mediansAndSdsPolymorphic[[1]]
-
-
 mediansOfPolymorphic = mediansAndSdsPolymorphic[[2]][,1]
+rm(mediansAndSdsPolymorphic)
+rm(coverageForNormalization)
+
+
 regionsToRemove <- which(mediansOfPolymorphic <= 0.25 | mediansOfPolymorphic >= sqrt(16/2))
 regionsToRemove = unique(c(regionsToRemove, regionsToRemove + 1, regionsToRemove - 1))
 if (length(regionsToRemove) > 0) {

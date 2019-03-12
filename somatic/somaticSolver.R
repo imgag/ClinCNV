@@ -18,7 +18,7 @@ listOfValue <- formilngLogFoldChange(pairs, tmpNormal, tumor, bedFile, genderOfS
 matrixOfLogFold <- listOfValue[[1]]
 
 # QC control
-sampleLevelOfNoise = apply(matrixOfLogFold[which(!bedFile[,1] %in% c("chrX","chrY")),], 2, Qn)
+sampleLevelOfNoise = apply(matrixOfLogFold[which(!bedFile[,1] %in% c("chrX","chrY")),], 2, Sn)
 samplesNotPassedQC = colnames(matrixOfLogFold)[which(sampleLevelOfNoise > 1.0)]
 if (length(samplesNotPassedQC) > 0) {
   print("Samples don't pass our QC - too noisy!")
