@@ -10,18 +10,18 @@ if (!dir.exists(folder_name)) {
 vect_of_norm_likeliks = fast_dt_list(100)
 
 ## MAKING COHORT ONLY OF LOW VARIANCE SAMPLES
-QnSample <- apply(coverage[which(!bedFilePolymorph[,1] %in% c("chrX","chrY")),], 2, Qn)
+QnSample <- apply(coverage[which(!bedFilePolymorph[,1] %in% c("chrX","chrY")),], 2, mad)
 modeOfVariances <- EstimateModeSimple(QnSample)
 samplesForExclusion <- which(QnSample > 2.5 * modeOfVariances)
 print(paste("Samples", paste(colnames(coverage), collapse=", "), "have variances 2.5 times bigger than the mode variance of the cohort. We have to exclude them."))
-coverage = coverage[,-samplesForExclusion]
+coverageForNormalization = coverage[,-samplesForExclusion]
 if (ncol(coverage) < 50) {
   paste("The amount of samples is too small for polymorphic calling!")
 }
 
 
 autosomes = which(!bedFile[,1] %in% c("chrX", "chrY"))
-mediansAndSdsPolymorphic = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes, polymorphic=T)
+mediansAndSdsPolymorphic = calculateLocationAndScale(bedFile, coverageForNormalization, genderOfSamples, autosomes, polymorphic=T)
 coverage.normalised.polymorph = mediansAndSdsPolymorphic[[1]]
 
 
@@ -60,9 +60,9 @@ threshold = 100
 initial_state = 1
 price_per_tile = 5
 resultingMCNVs <- matrix(0, nrow=0, ncol=11)
-copyNumberForReportingGlobal = matrix(0, nrow=0, ncol=3 + ncol(coverage))
-colnames(copyNumberForReportingGlobal) = c("chr", "start", "end", colnames(coverage))
-percentageToBePolymorphism = max(0.025, 5 / ncol(coverage))
+copyNumberForReportingGlobal = matrix(0, nrow=0, ncol=3 + ncol(coverage.normalised.polymorph))
+colnames(copyNumberForReportingGlobal) = c("chr", "start", "end", colnames(coverage.normalised.polymorph))
+percentageToBePolymorphism = max(0.025, 5 / ncol(coverage.normalised.polymorph))
 for (l in 1:length(left_borders)) {
   chrom = names(left_borders)[l]
   samplesForAnalysis = 1:ncol(coverage.normalised.polymorph)
@@ -71,7 +71,7 @@ for (l in 1:length(left_borders)) {
   
   multipliersSamplesForAnalysis = multipliersSamples[samplesForAnalysis]
   copyNumberForReporting = matrix(0, nrow=0, ncol=3 + length(samplesForAnalysis))
-  colnames(copyNumberForReporting) = c("chr", "start", "end", colnames(coverage)[samplesForAnalysis])
+  colnames(copyNumberForReporting) = c("chr", "start", "end", colnames(coverage.normalised.polymorph)[samplesForAnalysis])
   samplesForAnalysisDiscovery = samplesForAnalysis #[which(multipliersSamplesForAnalysis < quantile(multipliersSamplesForAnalysis, 0.95))]
   multipliersSamplesForAnalysisDiscovery = multipliersSamplesForAnalysis #[which(multipliersSamplesForAnalysis < quantile(multipliersSamplesForAnalysis, 0.95))]
   for (k in 1:2) {
@@ -202,7 +202,7 @@ for (l in 1:length(left_borders)) {
     # HERE AND BELOW WE SWITCH FROM DISCOVERY COHORT TO GENOTYPING
     coverageToWorkWith = coverage.normalised.polymorph[which_to_allow,samplesForAnalysis]
     if (nrow(finalMCNVs) > 0) {
-      copyNumberForReportingBefore = matrix(0, nrow=0, ncol=ncol(coverage))
+      copyNumberForReportingBefore = matrix(0, nrow=0, ncol=ncol(coverage.normalised.polymorph))
       finalMCNVsToRemove = c()
       for (i in 1:nrow(finalMCNVs)) {
         mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
