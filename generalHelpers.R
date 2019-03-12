@@ -357,7 +357,8 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
       }
     } else if (found_CNV[4] != 0 & found_CNV[3] - found_CNV[2] < minimum_length_of_CNV) {
       # found CNV is too short!
-      matrix_of_likeliks_local[found_CNV[2]:found_CNV[3],] = as.matrix(matrix_of_likeliks_local[found_CNV[2]:found_CNV[3],] / 2)
+      factor = found_CNV[1] / (threshold - 1)
+      matrix_of_likeliks_local[found_CNV[2]:found_CNV[3],] = as.matrix(matrix_of_likeliks_local[found_CNV[2]:found_CNV[3],] / factor)
 
       matrix_for_calculations <- sweep(matrix_of_likeliks_local[start:end,,drop=F], 1, matrix_of_likeliks_local[start:end, initial_state, drop=F], FUN="-")
       if (!is.null(nrow(matrix_for_calculations))) {
