@@ -214,7 +214,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
 Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
   set.seed(100)
   if (length(which(probes[,1] == "chrX")) > 100 & length(which(probes[,1] == "chrY")) > 10) {
-    matrix_of_values <- cbind(apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrY"),], 2, EstimateModeSimple), apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrX"),], 2, EstimateModeSimple))
+    matrix_of_values <- cbind(apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrY"),], 2, median), apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrX"),], 2, median))
     matrix_of_values[matrix_of_values > 1.5] = 1.5
     clKmeans <- NULL
     clKmeans <- tryCatch({kmeans(matrix_of_values, centers=matrix(c(0,1,sqrt(1/2), sqrt(1/2)), nrow=2))}, 

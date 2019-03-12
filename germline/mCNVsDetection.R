@@ -2,8 +2,23 @@ setwd(opt$folderWithScript)
 source(paste0(opt$folderWithScript, "/germline/mCNVhelpers.R"))
 setwd(opt$out)
 
+folder_name <- paste0(opt$out, "/normal/")
+if (!dir.exists(folder_name)) {
+  dir.create(folder_name)
+}
 
 vect_of_norm_likeliks = fast_dt_list(100)
+
+## MAKING COHORT ONLY OF LOW VARIANCE SAMPLES
+QnSample <- apply(coverage[which(!bedFilePolymorph[,1] %in% c("chrX","chrY")),], 2, Qn)
+modeOfVariances <- EstimateModeSimple(QnSample)
+samplesForExclusion <- which(QnSample > 2.5 * modeOfVariances)
+print(paste("Samples", paste(colnames(coverage), collapse=", "), "have variances 2.5 times bigger than the mode variance of the cohort. We have to exclude them."))
+coverage = coverage[,-samplesForExclusion]
+if (ncol(coverage) < 50) {
+  paste("The amount of samples is too small for polymorphic calling!")
+}
+
 
 autosomes = which(!bedFile[,1] %in% c("chrX", "chrY"))
 mediansAndSdsPolymorphic = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes, polymorphic=T)
@@ -20,6 +35,8 @@ if (length(regionsToRemove) > 0) {
 }
 
 QnSample <- apply(coverage.normalised.polymorph[which(!bedFilePolymorph[,1] %in% c("chrX","chrY")),], 2, Qn)
+
+
 matrixOfMultipliers <- matrix(0, nrow=1000, ncol=ncol(coverage.normalised.polymorph))
 for (i in 1:nrow(matrixOfMultipliers)) {
   vec <- rnorm(ncol(coverage.normalised.polymorph), sd=QnSample)
@@ -51,11 +68,12 @@ for (l in 1:length(left_borders)) {
   samplesForAnalysis = 1:ncol(coverage.normalised.polymorph)
   if (chrom == "chrX") samplesForAnalysis = which(genderOfSamples == "F")
   if (chrom == "chrY") next
+  
   multipliersSamplesForAnalysis = multipliersSamples[samplesForAnalysis]
   copyNumberForReporting = matrix(0, nrow=0, ncol=3 + length(samplesForAnalysis))
   colnames(copyNumberForReporting) = c("chr", "start", "end", colnames(coverage)[samplesForAnalysis])
-  samplesForAnalysisDiscovery = samplesForAnalysis[which(multipliersSamplesForAnalysis < quantile(multipliersSamplesForAnalysis, 0.95))]
-  multipliersSamplesForAnalysisDiscovery = multipliersSamplesForAnalysis[which(multipliersSamplesForAnalysis < quantile(multipliersSamplesForAnalysis, 0.95))]
+  samplesForAnalysisDiscovery = samplesForAnalysis #[which(multipliersSamplesForAnalysis < quantile(multipliersSamplesForAnalysis, 0.95))]
+  multipliersSamplesForAnalysisDiscovery = multipliersSamplesForAnalysis #[which(multipliersSamplesForAnalysis < quantile(multipliersSamplesForAnalysis, 0.95))]
   for (k in 1:2) {
     print(paste("Polymorphic calling at chrom", chrom, "and arm", k, "started"))
     which_to_allow <- "NA"
