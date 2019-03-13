@@ -414,7 +414,7 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
 
 outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfChromPiece, endOfChromPiece, outputFileNameCNVs, 
                                          outputFileNameDots, ID, dotsCoords, reverseFunctionUsedToTransform, cn_states) {
-  maxCopyNumber = 6
+  maxCopyNumber = 8
   if (nrow(toyBedFile) == 0 || length(dotsCoords) == 0) {
     return(0)
   } else {
@@ -424,7 +424,7 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
         file.create(fileName)
         fileConn<-file(fileName)
         writeLines(c("#type=GENE_EXPRESSION",
-                     paste0("#track graphtype=points name=\"", ID, "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:6 yLineMark=2 yLineOnOff=on"),
+                     paste0("#track graphtype=points name=\"", ID, "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:8 yLineMark=2 yLineOnOff=on"),
                      paste("ID", "chr", "start", "end", "CN", "loglik", "value", sep="\t")), fileConn)
         
         close(fileConn)

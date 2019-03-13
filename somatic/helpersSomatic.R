@@ -153,16 +153,15 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
       else next
     }
     shiftsChrom <- apply(matrixOfLogFoldToCheck, 1, EstimateModeForNormalization)
-    fit <- loess(shiftsChrom ~ c(1:length(shiftsChrom)), span=0.8)
-    predictions <- predict(fit, 1:length(shiftsChrom))
+    predictions <- runmed(shiftsChrom, k = 50)
     shifts[whichChrom] = predictions
   }
   shiftsAll <- apply(matrixOfLogFold, 1, EstimateModeForNormalization)
-  png(paste0("plot_with_shifts.png"), width=2000, height=1000)
+  png(paste0(opt$out, "/plot_with_shifts.png"), width=2000, height=1000)
   plot(shiftsAll)
   lines(shifts, col="red", lwd=3)
   dev.off()
-  #matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
+  matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
   return(list(matrixOfLogFold, gendersInFormedMatrix))
 }
 
@@ -824,8 +823,8 @@ probeLevelQC <- function(matrixOfLogFold, sdsOfProbes, sdsOfSomaticSamples, gend
   qnRatios = Qn(ratios)
   medianRatio = median(ratios)
   plot(ratios, col=rgb(0,0,0,0.1), pch=19)
-  points(ratios[which(ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 2)] ~ which(ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 2), col=rgb(1,0,0,0.5), pch=19)
+  points(ratios[which(ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 1)] ~ which(ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 1), col=rgb(1,0,0,0.5), pch=19)
   
   
-  return(which(ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 2))
+  return(which(ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 1))
 }

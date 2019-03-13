@@ -790,9 +790,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             if (length(combinationsOfPurities[,q]) > 1) {
               combinationOfDifferences = combn(uniqueLocalPurities[combinationsOfPurities[,q]], 2)
               allDiffs <- abs(combinationOfDifferences[1,] - combinationOfDifferences[2,])
-              if (min(allDiffs) < 0.0499) {
-                next
-              }
+              #if (min(allDiffs) < 0.0499) {
+              #  next
+              #}
             }
             minResultForCombination = as.numeric(opt$clonePenalty) * m
             for (r in 1:nrow(likeliksFoundCNVsVsPuritiesGlobal)) {
