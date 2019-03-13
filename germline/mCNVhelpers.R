@@ -198,7 +198,7 @@ checkConnectivityComplex = function(j) {
 }
 
 
-findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, multipliersSamples, numberOfClusterAnalysed, plotting, chromX = F) {
+findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, multipliersSamples, numberOfClusterAnalysed, plotting, chromX = F, folder_name_mcnv) {
   startOfmCNV = 2
   endOfmCNV = (nrow(coverageNeededToCheck) - 1)
   if (toyBedFilePolymorphCurrent[1,3] - toyBedFilePolymorphCurrent[1,2] < 250 | nrow(coverageNeededToCheck) < 3) {
@@ -316,7 +316,7 @@ findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, mu
   diagnosticPlot = (length(which(copy_number != as.numeric(names(sort(table(copy_number),decreasing=TRUE)[1])))) >= 0.05 * length(copy_number))
   if (diagnosticPlot == T & plotting) {
     fileName = paste(numberOfClusterAnalysed, toyBedFilePolymorphCurrent[1,1], toyBedFilePolymorphCurrent[1,2], toyBedFilePolymorphCurrent[nrow(toyBedFilePolymorphCurrent),3], sep="_")
-    png(paste0(fileName, ".png"), width=length(copy_number) * 3, height=800)
+    png(paste0(folder_name_mcnv, fileName, ".png"), width=length(copy_number) * 3, height=800)
     plot(coverageSummarised ** 2 * bestDivisor, col="black", pch=21,bg=coloursP[(copy_number + 1)])
     abline(h=bestLoc ** 2 * bestDivisor)
     dev.off()

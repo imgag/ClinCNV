@@ -688,7 +688,7 @@ makeTransparent = function(..., alpha=0.5) {
 
 plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_borders, ends_of_chroms, gender, sample_name) {
   found_CNVs_total[,5] = as.numeric(found_CNVs_total[,5]) / max(as.numeric(found_CNVs_total[,5]))
-  majorClone = max(as.numeric(found_CNVs_total[,5])[which(as.numeric(found_CNVs_total[,5]) < 1)])
+  majorClone = max(as.numeric(found_CNVs_total[,5]))
   linesOnBarplot = list()
   orderOfNames = c(paste0("chr", 1:22), "chrX", "chrY")
   orderInLists = c()
@@ -791,7 +791,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
         }
 
         segments(start, multiplicator* i,  end,multiplicator * i, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[1]], alpha=max(0.3, particularPurity)))
-        if (colorType[2] != 0) {
+        if (colorType[2] != 0 & !(chromStructure[[5]] == "chrY" & gender == "M")) {
           segments( start, multiplicator* i + offsetOfSecondChr,  end, multiplicator * i + offsetOfSecondChr, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[2]], alpha=max(0.3, particularPurity)))
         }
         if (cnv_state == "CNVcomplex3") {

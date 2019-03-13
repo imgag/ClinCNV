@@ -6,6 +6,10 @@ folder_name <- paste0(opt$out, "/normal/")
 if (!dir.exists(folder_name)) {
   dir.create(folder_name)
 }
+folder_name_mcnv <- paste0(opt$out, "/normal/mCNVs/")
+if (!dir.exists(folder_name_mcnv)) {
+  dir.create(folder_name_mcnv)
+}
 
 vect_of_norm_likeliks = fast_dt_list(100)
 
@@ -212,7 +216,7 @@ for (l in 1:length(left_borders)) {
       for (i in 1:nrow(finalMCNVs)) {
         mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                                          toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                                         multipliersSamplesForAnalysis, cluster, F)
+                                         multipliersSamplesForAnalysis, cluster, F, folder_name_mcnv)
         if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < percentageToBePolymorphism * ncol(coverageToWorkWith)) {
           print(i)
           finalMCNVsToRemove = c(finalMCNVsToRemove, i)
@@ -266,11 +270,11 @@ for (l in 1:length(left_borders)) {
         if (chrom != "chrX") {
         mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                                          toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                                         multipliersSamples, cluster, T)
+                                         multipliersSamples, cluster, T, folder_name_mcnv)
         } else {
           mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                                            toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                                           multipliersSamples, cluster, T, T)
+                                           multipliersSamples, cluster, T, T, folder_name_mcnv)
         }
         if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < percentageToBePolymorphism * ncol(coverageToWorkWith)) {
           print(i)
