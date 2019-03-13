@@ -1,7 +1,20 @@
 
 EstimateModeSimple <- function(x) {
-
   density_of_x <-  density(x, kernel="gaussian", bw="SJ")
+  mu = density_of_x$x[which.max(density_of_x$y)]
+  mu
+}
+
+EstimateModeSimpleCov <- function(x) {
+  tmpX = x[which(x > 0.25)]
+  if (length(tmpX) < 10) {
+    tmpX = x[which(x > quantile(x, 0.95))]
+    if (median(tmpX) < 0.25) {
+      return(1)
+    }
+    return(median(tmpX))
+  }
+  density_of_x <-  density(tmpX, kernel="gaussian", bw="SJ")
   mu = density_of_x$x[which.max(density_of_x$y)]
   mu
 }

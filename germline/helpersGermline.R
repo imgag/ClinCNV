@@ -741,7 +741,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
     if (!polymorphic) {
       medians <- apply(coveragesToDealWith[,whichSamplesUsed], 1, medianWithoutHomozygous)
     } else {
-      medians <- apply(coveragesToDealWith[,whichSamplesUsed], 1, EstimateModeSimple)
+      medians <- apply(coveragesToDealWith[,whichSamplesUsed], 1, EstimateModeSimpleCov)
     }
     if (chrom == "chrX" & length(which(genderOfSamples == "F")) <= 0.5 * length(which(genderOfSamples == "M"))) {
       medians = sqrt(2) * medians
