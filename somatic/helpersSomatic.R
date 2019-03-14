@@ -161,7 +161,7 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
   plot(shiftsAll)
   lines(shifts, col="red", lwd=3)
   dev.off()
-  matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
+  #matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
   return(list(matrixOfLogFold, gendersInFormedMatrix))
 }
 
@@ -765,14 +765,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
         if (copy_number_particuar_cnv > 3) {
           colorType = c(3,0)
           if (cnv_state == "CNVcomplex2") {
-            if (copy_number_particuar_cnv == 5) {
               colorType = c(3,2)
-            } else if (copy_number_particuar_cnv >= 6) {
-              colorType = c(3,3)
-            } else
-            {
-              colorType = c(2,2)
-            }
           }
           if (cnv_state == "CNVcomplex3") {
             colorType = c(3,3)

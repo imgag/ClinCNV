@@ -202,7 +202,7 @@ if (!dir.exists(folder_name)) {
 }
 
 allPotentialPurities <- unique(purities)
-penaltyForHigherCN = 20
+penaltyForHigherCN = 10
 clonalityForChecking = 0.4
 print(paste("Work on actual calling started.", Sys.time()))
 
@@ -645,7 +645,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           # BLOCK WITH PENALTIES
           copy_numbers_for_penalties = 3 - local_copy_numbers_used
           copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
-          set_of_unrealistic_states = c("LOHDup", "CNVboth", "CNVcomplex2", "CNVcomplex3")
+          set_of_unrealistic_states = c("LOHDup", "CNVcomplex2", "CNVcomplex3")
           whichAreUnrealistic <- which(local_cnv_states %in% set_of_unrealistic_states)
           penalties = penaltyForHigherCN * abs(copy_numbers_for_penalties)
           penalties[whichAreUnrealistic] = penalties[whichAreUnrealistic] + 20
@@ -809,11 +809,23 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         clonalBestPurities = uniqueLocalPurities[resultBestCombination]
         if (length(clonalBestPurities) == 0) {
           clonalBestPurities = c(0, 1)
-        } 
+          weightsOfClones = c(0,1)
+        } else {
+          matrixForClusterWeight = likeliksFoundCNVsVsPuritiesGlobal[,resultBestCombination]
+          listOfWeights = list()
+          for (pur in clonalBestPurities) {
+            listOfWeights[[as.character(pur)]] = 0
+          }
+          for (r in 1:nrow(matrixForClusterWeight)) {
+            whichWasMin = which.min(matrixForClusterWeight[r,])
+            listOfWeights[[as.character(clonalBestPurities[whichWasMin])]] = listOfWeights[[as.character(clonalBestPurities[whichWasMin])]] + min(matrixForClusterWeight[r,])
+          }
+        }
         
       } else {
         print("No high quality CNVs found in this sample for finding clonality.")
         clonalBestPurities = c(0, 1)
+        weightsOfClones = c(0,1)
       }
       finalIteration = T
     }
@@ -830,7 +842,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           defaultCN = 1
         }
         pvalsSeparateTests = c(NA, NA, NA)
-        onTargetCoords <- which(bedFileForCluster[,1] == found_CNVs_total[i,1] & as.numeric(bedFileForCluster[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileForCluster[,3]) <= as.numeric(found_CNVs_total[i,3]))
+        onTargetCoords <- which(bedFile[,1] == found_CNVs_total[i,1] & as.numeric(bedFile[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFile[,3]) <= as.numeric(found_CNVs_total[i,3]))
         if (length(onTargetCoords) > 1) {
           tumorValue <- median(log2(tumor[onTargetCoords, tumor_sample_no]))
           if (found_CNVs_total[i,1] %in% c("chrX", "chrY")) {
@@ -850,7 +862,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           ) / sdOfNormals, df=length(samplesToUse)) 
         }
         if (sampleInOfftarget) {
-          offTargetCoords <- which(bedFileForClusterOff[,1] == found_CNVs_total[i,1] & as.numeric(bedFileForClusterOff[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileForClusterOff[,3]) <= as.numeric(found_CNVs_total[i,3]))
+          offTargetCoords <- which(bedFileOfftarget[,1] == found_CNVs_total[i,1] & as.numeric(bedFileOfftarget[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileOfftarget[,3]) <= as.numeric(found_CNVs_total[i,3]))
           if (length(offTargetCoords) > 1) {
             tumorValueOff <- median(log2(tumorOff[offTargetCoords, tumor_sample_no_off]))
             if (found_CNVs_total[i,1] %in% c("chrX", "chrY")) {

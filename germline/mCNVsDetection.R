@@ -14,7 +14,7 @@ if (!dir.exists(folder_name_mcnv)) {
 vect_of_norm_likeliks = fast_dt_list(100)
 
 ## MAKING COHORT ONLY OF LOW VARIANCE SAMPLES
-QnSample <- apply(coverage[which(!bedFilePolymorph[,1] %in% c("chrX","chrY")),], 2, mad)
+QnSample <- apply(coverage[which(!bedFile[,1] %in% c("chrX","chrY")),], 2, mad)
 modeOfVariances <- EstimateModeSimple(QnSample)
 samplesForExclusion <- which(QnSample > 2.5 * modeOfVariances)
 if (length(samplesForExclusion) > 0) {
@@ -24,6 +24,9 @@ if (length(samplesForExclusion) > 0) {
   if (ncol(coverageForNormalization) < 50) {
     paste("The amount of samples is too small for polymorphic calling!")
   }
+} else {
+  coverageForNormalization = coverage
+  genderOfSamplesUsed = genderOfSamples
 }
 
 
@@ -216,7 +219,7 @@ for (l in 1:length(left_borders)) {
       for (i in 1:nrow(finalMCNVs)) {
         mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                                          toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                                         multipliersSamplesForAnalysis, cluster, F, folder_name_mcnv)
+                                         multipliersSamplesForAnalysis, cluster, T, F, folder_name_mcnv)
         if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < percentageToBePolymorphism * ncol(coverageToWorkWith)) {
           print(i)
           finalMCNVsToRemove = c(finalMCNVsToRemove, i)
@@ -270,7 +273,7 @@ for (l in 1:length(left_borders)) {
         if (chrom != "chrX") {
         mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                                          toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                                         multipliersSamples, cluster, T, folder_name_mcnv)
+                                         multipliersSamples, cluster, T, F, folder_name_mcnv)
         } else {
           mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                                            toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],

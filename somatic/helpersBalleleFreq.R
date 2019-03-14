@@ -9,7 +9,7 @@ likelihoodOfSNV <- function(a, b, p, overdispersionValue) {
     value = dnorm(dist)
   }
     
-  if (is.nan(value) | value < 10**-10) return(10**-10)
+  if (is.nan(value) | value < 2 ** (-(opt$scoreS + 1) / 2)) return(2 ** (-(opt$scoreS + 1) / 2))
   return((value))
 }
 
