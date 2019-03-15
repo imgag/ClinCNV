@@ -595,9 +595,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           which_to_allow <- "NA"
           if (sampleInOfftarget) {
             if (k == 1) {
-              which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] <= start )
+              which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) <= as.numeric(start) )
             } else {
-              which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] >= end )
+              which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) >= as.numeric(end) )
             }
             toyBedFile = globalBed[which_to_allow,]
             

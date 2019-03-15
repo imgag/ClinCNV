@@ -9,7 +9,7 @@ likelihoodOfSNV <- function(a, b, p, overdispersionValue) {
     value = dnorm(dist)
   }
     
-  if (is.nan(value) | value < 2 ** (-(opt$scoreS + 1) / 2)) return(2 ** (-(opt$scoreS + 1) / 2))
+  if (is.nan(value) | value < 10**-15) return(10**-15)
   return((value))
 }
 
@@ -177,8 +177,8 @@ likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, stateUsed, multiplie
 extractVariancesFromBAF <- function(bafTable, expectedValue) {
   freqs = as.numeric(bafTable[,5])
   depths = as.numeric(bafTable[,6])
-  depths = depths[which(freqs > 0.1 & freqs < 0.9)]
-  freqs = freqs[which(freqs > 0.1 & freqs < 0.9)]
+  depths = depths[which(freqs > expectedValue - 0.1 & freqs < expectedValue + 0.1)]
+  freqs = freqs[which(freqs > expectedValue - 0.1 & freqs < expectedValue + 0.1)]
   if (length(depths) <= 100) {
     return(cbind(rep(1, length(depths)), depths))
   }
@@ -207,7 +207,7 @@ extractVariancesFromBAF <- function(bafTable, expectedValue) {
     return(cbind(rep(1, length(depths)), depths))
   } else {
     vecOfSDs <- rep(0, length(forEstimationFreqs))
-    rollingLength = max(20, round(length(forEstimationFreqs) / 10))
+    rollingLength = max(10, round(length(forEstimationFreqs) / 10))
     overdispersion = rep(0, length(forEstimationFreqs))
     for (i in 1:length(vecOfSDs)) {
       vecOfSDs[i] = Qn(forEstimationFreqs[max(1,i-rollingLength):min(length(vecOfSDs), i+rollingLength)] * forEstimationDepths[i]) ** 2
