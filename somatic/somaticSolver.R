@@ -52,6 +52,7 @@ if (frameworkOff == "offtarget") {
 
   if (length(samplesNotPassedQC) > 0) {
     if (length(which(colnames(matrixOfLogFoldOff) %in% samplesNotPassedQC)) > 0) {
+      gendersInOfftargetMatrix = gendersInOfftargetMatrix[-which(colnames(matrixOfLogFoldOff) %in% samplesNotPassedQC)]
       matrixOfLogFoldOff = matrixOfLogFoldOff[,-which(colnames(matrixOfLogFoldOff) %in% samplesNotPassedQC)]
     }
   }
