@@ -83,7 +83,7 @@ for (l in 1:length(left_borders)) {
   
   multipliersSamplesForAnalysis = multipliersSamples[samplesForAnalysis]
   copyNumberForReporting = matrix(0, nrow=0, ncol=3 + length(samplesForAnalysis))
-  colnames(copyNumberForReporting) = c("chr", "start", "end", colnames(coverage.normalised.polymorph)[samplesForAnalysis])
+  colnames(copyNumberForReporting) = c("chr", "start", "end", colnames(coverage.normalised.polymorph))
   samplesForAnalysisDiscovery = samplesForAnalysis #[which(multipliersSamplesForAnalysis < quantile(multipliersSamplesForAnalysis, 0.95))]
   multipliersSamplesForAnalysisDiscovery = multipliersSamplesForAnalysis #[which(multipliersSamplesForAnalysis < quantile(multipliersSamplesForAnalysis, 0.95))]
   for (k in 1:2) {

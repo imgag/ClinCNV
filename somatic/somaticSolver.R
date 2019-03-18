@@ -810,23 +810,11 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         clonalBestPurities = uniqueLocalPurities[resultBestCombination]
         if (length(clonalBestPurities) == 0) {
           clonalBestPurities = c(0, 1)
-          weightsOfClones = c(0,1)
-        } else {
-          matrixForClusterWeight = likeliksFoundCNVsVsPuritiesGlobal[,resultBestCombination]
-          listOfWeights = list()
-          for (pur in clonalBestPurities) {
-            listOfWeights[[as.character(pur)]] = 0
-          }
-          for (r in 1:nrow(matrixForClusterWeight)) {
-            whichWasMin = which.min(matrixForClusterWeight[r,])
-            listOfWeights[[as.character(clonalBestPurities[whichWasMin])]] = listOfWeights[[as.character(clonalBestPurities[whichWasMin])]] + min(matrixForClusterWeight[r,])
-          }
         }
         
       } else {
         print("No high quality CNVs found in this sample for finding clonality.")
         clonalBestPurities = c(0, 1)
-        weightsOfClones = c(0,1)
       }
       finalIteration = T
     }
