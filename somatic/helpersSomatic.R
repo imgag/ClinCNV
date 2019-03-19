@@ -4,7 +4,10 @@ findSDsOfSamples <- function(pairs, normalCov, tumorCov, bedFileForCalc, borders
   males = genderOfSamplesLocal[which(genderOfSamplesLocal == "M")]
   whichAreMales = which(colnames(normalCov) %in% names(males))
   whichAreFemales = which(colnames(normalCov) %in% names(females))
-  normalCov[which(bedFileForCalc[,1] == "chrX"),whichAreMales] = 2 * normalCov[which(bedFileForCalc[,1] == "chrX"),whichAreMales]
+  chrX = which(bedFileForCalc[,1] == "chrX")
+  for (i in 1:length(chrX)) {
+    normalCov[chrX[i],whichAreMales] = sample(normalCov[chrX[i],whichAreFemales], length(whichAreMales), replace = T)
+  }
   chrY = which(bedFileForCalc[,1] == "chrY")
   for (i in 1:length(chrY)) {
     normalCov[chrY[i],whichAreFemales] = sample(normalCov[chrY[i],whichAreMales], length(whichAreFemales), replace = T)
@@ -425,7 +428,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
     }
     if (length(coverageInsideOff) < 4 & length(coverageInsideOn) > 4) {
       sdOn = sd(trimmedCoverageInsideOn)
-      if (sdOn > 2 * sdOfSomaticOn) {
+      if (sdOn > 3 * sdOfSomaticOn) {
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
         print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]),  "; level of noise", print(sdOn / sdOfSomaticOn), "due to large amount of noise in on target reads"))
         next
@@ -433,14 +436,14 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
     } else {
       if (length(coverageInsideOff) > length(coverageInsideOn)) {
         sdOff = sd(trimmedCoverageInsideOff)
-        if (sdOff > 2 * sdOfSomaticOff) {
+        if (sdOff > 3 * sdOfSomaticOff) {
           cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
           print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "; level of noise", print(sdOff / sdOfSomaticOff), "due to large amount of noise in off target reads"))
           next
         }
       } else {
         sdOn = sd(trimmedCoverageInsideOn)
-        if (sdOn > 2 * sdOfSomaticOn) {
+        if (sdOn > 3 * sdOfSomaticOn) {
           cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
           print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]),"; level of noise", print(sdOn / sdOfSomaticOn), "due to large amount of noise in on target reads"))
           next
@@ -816,8 +819,8 @@ probeLevelQC <- function(matrixOfLogFold, sdsOfProbes, sdsOfSomaticSamples, gend
   qnRatios = Qn(ratios)
   medianRatio = median(ratios)
   plot(ratios, col=rgb(0,0,0,0.1), pch=19)
-  points(ratios[which(ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 1)] ~ which(ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 1), col=rgb(1,0,0,0.5), pch=19)
+  points(ratios[which((ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 0.5) & bedFile[,1] != "chrY")] ~ which((ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 0.5) & bedFile[,1] != "chrY"), col=rgb(1,0,0,0.5), pch=19)
   
   
-  return(which(ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 1))
+  return(which((ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 0.5) & bedFile[,1] != "chrY"))
 }
