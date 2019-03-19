@@ -212,7 +212,7 @@ colnames(bedFile) <- c("chr.X", "start", "end", "gc", "genes")
 bedFile <- bedFile[order(bedFile$chr.X, as.numeric(bedFile$start)),]
 presentedChromsOn = unique(bedFile[,1])
 numberOfElemsInEachChromosome = sapply(1:length(presentedChromsOn), function(i) {
-   if (length(which(bedFile[,1] == presentedChromsOn[i])) > 10) {
+   if (length(which(bedFile[,1] == presentedChromsOn[i])) > 5) {
      return(T)
    } else {
      return(F)
@@ -226,7 +226,7 @@ for (i in 1:20) {
   if(sum(tableOfValues[which(tableOfValues > 100)]) / sum(tableOfValues) > 0.95) break 
 }
 bedFile[,4] <- round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i
-whichBedIsNA <- which(is.na(bedFile[,4]) | bedFile[,3] - bedFile[,2] < 80 | which(!bedFile[,1] %in% presentedChromsOn[numberOfElemsInEachChromosome]))
+whichBedIsNA <- which(is.na(bedFile[,4]) | bedFile[,3] - bedFile[,2] < 80 | (!bedFile[,1] %in% presentedChromsOn[numberOfElemsInEachChromosome]))
 if (length(whichBedIsNA) > 0)
   bedFile = bedFile[-whichBedIsNA,]
 

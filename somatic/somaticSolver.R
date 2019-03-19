@@ -207,6 +207,7 @@ penaltyForHigherCN = 10
 clonalityForChecking = 0.4
 print(paste("Work on actual calling started.", Sys.time()))
 
+normalNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][2]})
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
 
@@ -328,7 +329,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       
       #### CORRECTION - IF THE SAMPLE HAS TOO MANY CNAS, WE EXPECT SOME SHIFT THERE
-      if (frameworkDataTypes == "covdepthBAF") {
+      if (frameworkDataTypes == "covdepthBAF" & sample_name %in% normalNames) {
         sampleName2 <- strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1]
         tumorNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][1]})
         position <- which(tumorNames == sampleName2)
@@ -417,7 +418,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       ### ADD LIKELIHOODS
       bAlleleFreqsTumor = NULL
       bAlleleFreqsNormal = NULL
-      normalNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][2]})
       if (frameworkDataTypes == "covdepthBAF" & sample_name %in% normalNames) {
         print("Started BAF calculation")
         print(Sys.time())
