@@ -658,7 +658,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
           
           # BAFs from this chromosome
-          if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0) {
+          if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0 & sampe_name %in% normalNames) {
             bafsFromThisChr = which(bAlleleFreqsNormal[,1] == chrom)
             listOfCNVsThatDoNotPass = returnListOfCNVsThatDoNotPass(foundCNVs, bAlleleFreqsNormal[bafsFromThisChr,], bAlleleFreqsTumor[bafsFromThisChr,], 
                                                                   clonalityForChecking, local_purities, local_cn_states, toyBedFile,
