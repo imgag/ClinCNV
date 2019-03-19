@@ -820,7 +820,6 @@ probeLevelQC <- function(matrixOfLogFold, sdsOfProbes, sdsOfSomaticSamples, gend
   medianRatio = median(ratios)
   plot(ratios, col=rgb(0,0,0,0.1), pch=19)
   points(ratios[which((ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 0.5) & bedFile[,1] != "chrY")] ~ which((ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 0.5) & bedFile[,1] != "chrY"), col=rgb(1,0,0,0.5), pch=19)
-  
-  
+
   return(which((ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 0.5) & bedFile[,1] != "chrY"))
 }

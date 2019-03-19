@@ -210,8 +210,10 @@ print(paste("Work on actual calling started.", Sys.time()))
 normalNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][2]})
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
+  overdispersionNormal = NULL
 
   germline_sample_no = which(colnames(tmpNormal) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])
+  germline_sample_name = colnames(tmpNormal)[germline_sample_no]
   tumor_sample_no = which(colnames(tumor) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1])
   if (strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] %in% colnames(tumorOff)) {
     tumor_sample_no_off = which(colnames(tumorOff) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1])
@@ -329,7 +331,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       
       #### CORRECTION - IF THE SAMPLE HAS TOO MANY CNAS, WE EXPECT SOME SHIFT THERE
-      if (frameworkDataTypes == "covdepthBAF" & sample_name %in% normalNames) {
+      if (frameworkDataTypes == "covdepthBAF" & germline_sample_name %in% normalNames) {
         sampleName2 <- strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1]
         tumorNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][1]})
         position <- which(tumorNames == sampleName2)
@@ -418,7 +420,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       ### ADD LIKELIHOODS
       bAlleleFreqsTumor = NULL
       bAlleleFreqsNormal = NULL
-      if (frameworkDataTypes == "covdepthBAF" & sample_name %in% normalNames) {
+      if (frameworkDataTypes == "covdepthBAF" & germline_sample_name %in% normalNames) {
         print("Started BAF calculation")
         print(Sys.time())
         
@@ -658,7 +660,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
           
           # BAFs from this chromosome
-          if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0 & sampe_name %in% normalNames) {
+          if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0 & germline_sample_name %in% normalNames) {
             bafsFromThisChr = which(bAlleleFreqsNormal[,1] == chrom)
             listOfCNVsThatDoNotPass = returnListOfCNVsThatDoNotPass(foundCNVs, bAlleleFreqsNormal[bafsFromThisChr,], bAlleleFreqsTumor[bafsFromThisChr,], 
                                                                   clonalityForChecking, local_purities, local_cn_states, toyBedFile,
