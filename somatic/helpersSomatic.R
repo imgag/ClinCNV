@@ -823,3 +823,17 @@ probeLevelQC <- function(matrixOfLogFold, sdsOfProbes, sdsOfSomaticSamples, gend
 
   return(which((ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 0.5) & bedFile[,1] != "chrY"))
 }
+
+
+
+returnCoordsThatNeedToBeNull = function(bedFile, fileNameWithGermlineVars) {
+  coordsToMakeNull = c()
+  if(file.exists(fileNameWithGermlineVars)) {
+      germlineVars <- read.table(fileNameWithGermlineVars, stringsAsFactors = F)
+      if (nrow(germlineVars) > 0)
+        for (j in 1:nrow(germlineVars)) {
+          coordsToMakeNull = c(coordsToMakeNull, which(bedFile[,1] == germlineVars[j,1] & as.numeric(bedFile[,2]) >= as.numeric(germlineVars[j,2]) & as.numeric(bedFile[,3]) <= as.numeric(germlineVars[j,3])))
+        }
+  }
+  return(coordsToMakeNull)
+}

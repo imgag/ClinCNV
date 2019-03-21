@@ -135,8 +135,8 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
       for (j in 1:ncol(coverages)) {
         tumorName = colnames(coverages)[j]
         position <- which(substring(names(allowedChroms), 1, nchar(tumorName)) == tumorName)
+        allowedChromosomesAutosomesOnly = c()
         if (length(position) == 1) {
-          allowedChromosomesAutosomesOnly = c()
           for (allowedArm in allowedChroms[[position]]) {
             splittedValue <- strsplit(allowedArm, "-")
             chrom = splittedValue[[1]][1]
@@ -148,9 +148,10 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
                                                                                                info[,3] <= endOfArm))
             }
           }
-        } else {
+        } 
+        if (length(allowedChromosomesAutosomesOnly) == 0)
           allowedChromosomesAutosomesOnly = which(!info[,1] %in% c("chrX", "chrY"))
-        }
+        
         vector_of_gcs_in_allowed_chroms = intersect(vector_of_gc, allowedChromosomesAutosomesOnly)
         borderOfDistnace = 0.00
         while (length(vector_of_gcs_in_allowed_chroms) < 20) {
@@ -492,43 +493,43 @@ lengthBasedNormalization = function(coverage, bedFile, allowedChroms="") {
   orderOfLengths = order(lengthBed)
   chroms <- bedFile[orderOfLengths, 1]
   lengthBedOrdered = lengthBed[orderOfLengths]
-  chromsToRemoveSex = which(!chroms %in% c("chrX", "chrY"))
+  chromsToRemainSex = which(!chroms %in% c("chrX", "chrY"))
   
   
   for (j in 1:ncol(coverage)) {
-    
+    chromsToRemain = c()
     if (allowedChroms == "") {
-      chromsToRemove = chromsToRemoveSex
+      chromsToRemain = chromsToRemainSex
     } else {
       tumorName = colnames(coverage)[j]
       position <- which(startsWith(names(allowedChroms), prefix=tumorName))
+      chromsToRemain = c()
       if (length(position) == 1) {
-        chromsToRemove = c()
         for (allowedArm in allowedChroms[[position]]) {
           splittedValue <- strsplit(allowedArm, "-")
           chrom = splittedValue[[1]][1]
           if (!chrom %in% c("chrX", "chrY", "X", "Y")) {
             startOfArm = as.numeric(splittedValue[[1]][2])
             endOfArm = as.numeric(splittedValue[[1]][3])
-            chromsToRemove = union(chromsToRemove, which(bedFile[,1] == chrom &
+            chromsToRemain = union(chromsToRemain, which(bedFile[,1] == chrom &
                                                            bedFile[,2] >= startOfArm &
                                                            bedFile[,3] <= endOfArm))
           }
         }
-      } else {
-        chromsToRemove = chromsToRemoveSex
-      }
+      } 
+      if (length(chromsToRemain) == 0 | length(chromsToRemain) > 0.9 * nrow(bedFile))
+        chromsToRemain = chromsToRemainSex
     }
-    lengthBedOrderedLocal = lengthBedOrdered[chromsToRemove]
+    lengthBedOrderedLocal = lengthBedOrdered[chromsToRemain]
     
     
     
     
     coverageForNormalization = coverage[orderOfLengths,j]
     medians <- rep(1, length(lengthBed))
-    if (length(chromsToRemove) > 0.1 * nrow(bedFile)) {
+    if (length(chromsToRemain) > 0.1 * nrow(bedFile)) {
       listOfMedians = list()
-      coverageForNormalizationWithoutBadRegions = coverageForNormalization[chromsToRemove]
+      coverageForNormalizationWithoutBadRegions = coverageForNormalization[chromsToRemain]
       zerosInData = which(coverageForNormalizationWithoutBadRegions < 0.001)
       coverageForNormalizationWithoutZeros = coverageForNormalizationWithoutBadRegions
       if (length(zerosInData > 0)) {

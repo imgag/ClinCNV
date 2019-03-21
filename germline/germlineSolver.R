@@ -122,7 +122,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     }
   }
   if (opt$mosaicism) {
-    fineForMosaicism = 1
+    fineForMosaicism = 0.5
     matrix_of_likeliks_for_FDR_mosaic[,which(cn_states_mosaicism %% 1 != 0)] = matrix_of_likeliks_for_FDR_mosaic[,which(cn_states_mosaicism %% 1 != 0)] + fineForMosaicism
   }
   matrix_of_likeliks <- matrix_of_likeliks_for_FDR
@@ -247,11 +247,12 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             
           }
           
-          toyCoverageGermline = coverage.normalised[which_to_allow_ontarget,sam_no]
           toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
+          toyCoverageGermline = coverage.normalised[which_to_allow_ontarget,sam_no]
           toyCoverageGermlineCohort = coverage.normalised[which_to_allow_ontarget,]
           
           ### CHECKING FOR MOSAICISM!
+          if (length(which_to_allow_ontarget) > 10) {
           positionsToRemove = c()
           if (nrow(found_CNVs) > 0) {
             for (z in 1:nrow(found_CNVs)) {
@@ -275,6 +276,9 @@ for (sam_no in 1:ncol(coverage.normalised)) {
               if (!armFinalized)
               next
             }
+          } else {
+            armFinalized = T
+          }
           } else {
             armFinalized = T
           }
@@ -376,6 +380,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   }
   
   pvaluesForCNVs <- rep(NA, nrow(found_CNVs_total))
+  if (nrow(found_CNVs_total) > 0) {
   for (i in 1:nrow(found_CNVs_total)) {
     coordsInBedOn = which(bedFileFiltered[,1] == found_CNVs_total[i,1] & as.numeric(bedFileFiltered[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileFiltered[,3]) <= as.numeric(found_CNVs_total[i,3]))
     if (length(coordsInBedOn) > 0) {
@@ -389,6 +394,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   pvaluesForCNVs = p.adjust(pvaluesForCNVs, method="fdr")
   found_CNVs_total = cbind(found_CNVs_total, format(round(pvaluesForCNVs, 5), scientific = F))
   colnames(found_CNVs_total)[ncol(found_CNVs_total)] = "qvalue"
+  }
   
   ### FDR
   if (as.numeric(opt$fdrGermline) != 0) {

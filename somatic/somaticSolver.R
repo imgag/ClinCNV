@@ -203,8 +203,8 @@ if (!dir.exists(folder_name)) {
 }
 
 allPotentialPurities <- unique(purities)
-penaltyForHigherCN = 10
-clonalityForChecking = 0.4
+penaltyForHigherCN = 20
+clonalityForChecking = 0.5
 print(paste("Work on actual calling started.", Sys.time()))
 
 normalNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][2]})
@@ -230,7 +230,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     closestBedRegions <- c()
     vectorsWithRegionCoordsFilled = F
   }
-  
   
   print(paste("We are working on sample name:", sample_name))
   print(Sys.time())
@@ -563,6 +562,16 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       }
       print(paste("Block before CNV detection finished", Sys.time()))
       
+      fileNameWithGermlineVars <- paste0(opt$out, "/normal/", germline_sample_name, "/", germline_sample_name, "_cnvs.tsv")
+        if (sampleInOfftarget) {
+          coordsToMakeNull = returnCoordsThatNeedToBeNull(globalBed, fileNameWithGermlineVars)
+          if (length(coordsToMakeNull) > 0)
+            globalMatrOfLikeliks[coordsToMakeNull,] = 0
+        } else {
+          coordsToMakeNull = returnCoordsThatNeedToBeNull(bedFileForCluster, fileNameWithGermlineVars)
+          if (length(coordsToMakeNull) > 0)
+            matrix_of_likeliks[coordsToMakeNull,] = 0
+        }
       
       
       
