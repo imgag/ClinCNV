@@ -143,7 +143,7 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
   uniqueChroms = unique(currentBedFile[,1])
   shifts = rep(0, nrow(matrixOfLogFold))
   for (i in 1:length(uniqueChroms)) {
-    whichChrom = which(currentBedFile[,] == uniqueChroms[i])
+    whichChrom = which(currentBedFile[,1] == uniqueChroms[i])
     matrixOfLogFoldToCheck = matrixOfLogFold[whichChrom,]
     if (uniqueChroms == "chrX") {
       if (length(which(genderOfSamplesInCluster == "F")) > 10)

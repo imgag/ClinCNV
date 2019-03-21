@@ -150,7 +150,7 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
             }
           }
         } 
-        if (length(allowedChromosomesAutosomesOnly) < 0.1 * nrow(bedFile))
+        if (length(allowedChromosomesAutosomesOnly) < 0.1 * nrow(info))
           allowedChromosomesAutosomesOnly = which(!info[,1] %in% c("chrX", "chrY"))
         
         vector_of_gcs_in_allowed_chroms = intersect(vector_of_gc, allowedChromosomesAutosomesOnly)
@@ -505,7 +505,8 @@ lengthBasedNormalization = function(coverage, bedFile, allowedChroms="") {
       tumorName = colnames(coverage)[j]
       position <- which(startsWith(names(allowedChroms), prefix=tumorName))
       chromsToRemain = c()
-      if (length(position) == 1 & !is.null(allowedChroms[[position]])) {
+      if (length(position) == 1 ) {
+        if (!is.null(allowedChroms[[position]]))
         for (allowedArm in allowedChroms[[position]]) {
           splittedValue <- strsplit(allowedArm, "-")
           chrom = splittedValue[[1]][1]

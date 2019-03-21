@@ -204,7 +204,7 @@ if (!dir.exists(folder_name)) {
 
 allPotentialPurities <- unique(purities)
 penaltyForHigherCN = 20
-clonalityForChecking = 0.5
+clonalityForChecking = 0.4
 print(paste("Work on actual calling started.", Sys.time()))
 
 normalNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][2]})
@@ -376,11 +376,11 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                 endOfArm = as.numeric(splittedValue[[1]][3])
                 lengthOfRolling = min(100, round((endOfArm - startOfArm)/5))
                 allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(globalBed[,1] == chrom &
-                                                                                                 globalBed[,2] >= startOfArm &
-                                                                                                 globalBed[,3] <= endOfArm))
+                                                                                                 as.numeric(globalBed[,2]) >= startOfArm &
+                                                                                                 as.numeric(globalBed[,3]) <= endOfArm))
                 smoothedLogFold = c(smoothedLogFold, runmed(globalLogFold[which(globalBed[,1] == chrom &
-                                                                                   globalBed[,2] >= startOfArm &
-                                                                                   globalBed[,3] <= endOfArm)], k = lengthOfRolling))
+                                                                                   as.numeric(globalBed[,2]) >= startOfArm &
+                                                                                   as.numeric(globalBed[,3]) <= endOfArm)], k = lengthOfRolling))
               }
             }
             #globalLogFoldAllowedChroms = globalLogFold[allowedChromosomesAutosomesOnly]
