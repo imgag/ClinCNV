@@ -149,7 +149,7 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
             }
           }
         } 
-        if (length(allowedChromosomesAutosomesOnly) == 0)
+        if (length(allowedChromosomesAutosomesOnly) < 0.1 * nrow(bedFile))
           allowedChromosomesAutosomesOnly = which(!info[,1] %in% c("chrX", "chrY"))
         
         vector_of_gcs_in_allowed_chroms = intersect(vector_of_gc, allowedChromosomesAutosomesOnly)
@@ -517,7 +517,7 @@ lengthBasedNormalization = function(coverage, bedFile, allowedChroms="") {
           }
         }
       } 
-      if (length(chromsToRemain) == 0 | length(chromsToRemain) > 0.9 * nrow(bedFile))
+      if (length(chromsToRemain) == 0 | length(chromsToRemain) < 0.1 * nrow(bedFile))
         chromsToRemain = chromsToRemainSex
     }
     lengthBedOrderedLocal = lengthBedOrdered[chromsToRemain]
