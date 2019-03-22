@@ -669,6 +669,8 @@ for (cluster in unique(clustering)) {
     samplesToAnalyse = which(clustering == cluster)
     genderOfSamples = genderOfSamplesCohort[samplesToAnalyse]
     tmpNormal = normal[,which(clustering == cluster)]
+    if (frameworkOff == "offtarget")
+      tmpNormalOff = normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))]
     if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
       if (!opt$normalSample %in% colnames(tmpNormal)) {
         next

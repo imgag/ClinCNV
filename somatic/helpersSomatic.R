@@ -885,7 +885,7 @@ findDeviationInNormalCoverage <- function(germline_sample_name, tumor_sample_nam
                          as.numeric(bedFileForCluster[,2]) >= as.numeric(found_CNVs_total[i,2]) & 
                          as.numeric(bedFileForCluster[,3]) <= as.numeric(found_CNVs_total[i,3]))
     valuesInSampleOn = tmpNormal[coordsInOn,which(colnames(tmpNormal) == germline_sample_name)]
-    valuesCohortOn = tmpNormal[coordsInOn,-which(colnames(tmpNormal) == germline_sample_name)]
+    valuesCohortOn = (tmpNormal[coordsInOn,which(colnames(tmpNormal) != germline_sample_name),drop=F])
     valuesInSampleOff = c()
     valuesCohortOff = matrix(0, nrow=0, ncol=ncol(tmpNormal) - 1)
     if (!is.null(bedFileForClusterOff)) {
@@ -893,9 +893,18 @@ findDeviationInNormalCoverage <- function(germline_sample_name, tumor_sample_nam
                            as.numeric(bedFileForClusterOff[,2]) >= as.numeric(found_CNVs_total[i,2]) & 
                            as.numeric(bedFileForClusterOff[,3]) <= as.numeric(found_CNVs_total[i,3]))
       valuesInSampleOff = tmpNormalOff[coordsInOff,which(colnames(tmpNormalOff) == germline_sample_name)]
-      valuesCohortOff = tmpNormalOff[coordsInOff,-which(colnames(tmpNormalOff) == germline_sample_name)]
+      valuesCohortOff = (tmpNormalOff[coordsInOff,which(colnames(tmpNormalOff) != germline_sample_name),drop=F])
     }
     valuesSample = median(c(valuesInSampleOn, valuesInSampleOff))
+    if (ncol(valuesCohortOff) > 5 & nrow(valuesCohortOff) > 0) {
+      valuesCohortOn = valuesCohortOn[,which(colnames(valuesCohortOn) %in% colnames(valuesCohortOff)),drop=F]
+      valuesCohortOff = valuesCohortOff[,which(colnames(valuesCohortOff) %in% colnames(valuesCohortOn)),drop=F]
+      valuesCohortOn = valuesCohortOn[,order(colnames(valuesCohortOn)),drop=F]
+      valuesCohortOff = valuesCohortOff[,order(colnames(valuesCohortOff)),drop=F]
+    } else {
+      valuesCohortOff = matrix(0, nrow=0, ncol=ncol(tmpNormal) - 1)
+      valuesInSampleOff = c()
+    }
     valuesCohort <- apply(rbind(valuesCohortOn, valuesCohortOff), 2, median)
     prob = 2 * pt(-abs(   
       valuesSample - median(valuesCohort)
@@ -903,10 +912,56 @@ findDeviationInNormalCoverage <- function(germline_sample_name, tumor_sample_nam
     if (prob < 0.01 & abs(valuesSample - median(valuesCohort)) > 0.025) {
       shifts = rbind(shifts, matrix(c(valuesSample / median(valuesCohort), F) , ncol=2))
       print(paste0("Potential normal-specific CNVS! Shift of coverage: ", valuesSample - median(valuesCohort)))
-      print(found_CNVs_total[i,])
+      print(paste(found_CNVs_total[i,1:6], collapse="  "))
     } else {
       shifts = rbind(shifts, matrix(c(valuesSample / median(valuesCohort), T) , ncol=2))
     }
   }
   return(shifts)
+}
+
+
+returnAreasFreeOfCNVsForAdditionalAnalysis <- function(found_CNVs_total, sample_gender, bedFileForCluster, bedFileForClusterOff=NULL) {
+  uniqueChroms = unique(bedFileForCluster[,1])
+  areasFreeOfCNVs <- matrix(nrow=0, ncol=5)
+  colnames(areasFreeOfCNVs) = c("chr", "start", "end", "CN", "number_of_regions")
+  for (i in 1:length(uniqueChroms)) {
+    defaultCN = 2
+    if (sample_gender == "M" & uniqueChroms[i] %in% c("chrX","chrY")) {
+      defaultCN = 1
+    }
+    if (sample_gender == "F" & uniqueChroms[i] %in% c("chrY")) {
+      next
+    }
+    sortedCNVs <- found_CNVs_total[which(found_CNVs_total[,1] == uniqueChroms[i]),,drop=F]
+    sortedCNVs = sortedCNVs[order(as.numeric(sortedCNVs[,2])),,drop=F]
+    startOfVariant = 0
+    #if (nrow(sortedCNVs) > 0) {
+      for (j in 1:(nrow(sortedCNVs) + 1)) {
+        startOfNeutralSite = startOfVariant
+        if (j <= nrow(sortedCNVs)) {
+        endOfNeutralSite = as.numeric(sortedCNVs[j,2])
+        endOfCNV = as.numeric(sortedCNVs[j,3])
+        } else {
+          endOfNeutralSite = max(as.numeric(bedFileForCluster[which(bedFileForCluster[,1] == uniqueChroms[i]),3]))
+          if (!is.null(bedFileForClusterOff)) {
+            endOfNeutralSite = max(endOfNeutralSite, max(as.numeric(bedFileForClusterOff[which(bedFileForClusterOff[,1] == uniqueChroms[i]),3])))
+          }
+        }
+        formedVariant = c(uniqueChroms[i], startOfNeutralSite, endOfNeutralSite, defaultCN, length(
+          which(bedFileForCluster[,1] == uniqueChroms[i] & as.numeric(bedFileForCluster[,2]) >= startOfNeutralSite & as.numeric(bedFileForCluster[,3]) <= endOfNeutralSite)))
+        if (!is.null(bedFileForClusterOff)) {
+          formedVariant[5] = as.numeric(formedVariant[5]) + length(
+            which(bedFileForClusterOff[,1] == uniqueChroms[i] & as.numeric(bedFileForClusterOff[,2]) >= startOfNeutralSite & as.numeric(bedFileForClusterOff[,3]) <= endOfNeutralSite))
+        }
+        if (j <= nrow(sortedCNVs)) {
+        startOfVariant = endOfCNV
+        }
+        areasFreeOfCNVs = rbind(areasFreeOfCNVs, formedVariant)
+      }
+    #}
+    
+  }
+  areasFreeOfCNVs = areasFreeOfCNVs[which(as.numeric(areasFreeOfCNVs[,5]) > 1),,drop=F]
+  return(areasFreeOfCNVs)
 }

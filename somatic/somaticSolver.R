@@ -52,7 +52,7 @@ if (length(probesToRemove) > 0) {
 }
 
 if (frameworkOff == "offtarget") {
-  listOfTmpNormalAndTmpTumor = normalizeToCommonMedian(normalOff, tumorOff, bedFileForClusterOff, genderOfSamples)
+  listOfTmpNormalAndTmpTumor = normalizeToCommonMedian(tmpNormalOff, tumorOff, bedFileForClusterOff, genderOfSamples)
   tmpNormalOff = listOfTmpNormalAndTmpTumor[[1]]
   tmpTumorOff = listOfTmpNormalAndTmpTumor[[2]]
   listOfValueOff <- formilngLogFoldChange(pairs, tmpNormalOff[,which(colnames(tmpNormalOff) %in% colnames(tmpNormal))], tmpTumorOff, bedFileForClusterOff, genderOfSamples)
@@ -214,7 +214,8 @@ if (!dir.exists(folder_name)) {
 }
 
 allPotentialPurities <- unique(purities)
-penaltyForHigherCN = 20
+penaltyForHigherCN = 10
+penaltyForHigherCNoneTile = 0.2
 clonalityForChecking = 0.4
 print(paste("Work on actual calling started.", Sys.time()))
 
@@ -672,6 +673,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           set_of_unrealistic_states = c("LOHDup", "CNVcomplex2", "CNVcomplex3")
           whichAreUnrealistic <- which(local_cnv_states %in% set_of_unrealistic_states)
           penalties = penaltyForHigherCN * abs(copy_numbers_for_penalties)
+          toyMatrixOfLikeliks = sweep(toyMatrixOfLikeliks, 2, abs(copy_numbers_for_penalties) * penaltyForHigherCNoneTile, FUN="+")
           penalties[whichAreUnrealistic] = penalties[whichAreUnrealistic] + 20
           if (length(local_cn_states) - length(blocked_states) > 1) {
             found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states, penalties))
@@ -976,6 +978,17 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     }
     found_CNVs_total = found_CNVs_total[order(found_CNVs_total[,1], as.numeric(found_CNVs_total[,2])),]
     write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
+    
+    # For some additional analysis we need to provide areas free of CNVs
+    if (sampleInOfftarget) {
+      areasFreeOfCNVs <- returnAreasFreeOfCNVsForAdditionalAnalysis(found_CNVs_total, genderOfSamples[germline_sample_no], bedFileForCluster, bedFileForClusterOff)
+    } else {
+      areasFreeOfCNVs <- returnAreasFreeOfCNVsForAdditionalAnalysis(found_CNVs_total, genderOfSamples[germline_sample_no], bedFileForCluster)
+    }
+    if (nrow(areasFreeOfCNVs) > 0) {
+    fileToOut <- paste0(folder_name, sample_name, paste0("/CNneutral_", sample_name, ".txt"))
+    write.table(areasFreeOfCNVs, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
+    }
   }
 }
 
