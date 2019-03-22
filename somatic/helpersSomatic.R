@@ -909,12 +909,14 @@ findDeviationInNormalCoverage <- function(germline_sample_name, tumor_sample_nam
     prob = 2 * pt(-abs(   
       valuesSample - median(valuesCohort)
     ) / Qn(valuesCohort), df=length(valuesCohort)) 
+    ratio = valuesSample / median(valuesCohort)
+    if (found_CNVs_total[i,1] %in% c("chrX", "chrY")) ratio = 1
     if (prob < 0.01 & abs(valuesSample - median(valuesCohort)) > 0.025) {
-      shifts = rbind(shifts, matrix(c(valuesSample / median(valuesCohort), F) , ncol=2))
+      shifts = rbind(shifts, matrix(c(ratio, F) , ncol=2))
       print(paste0("Potential normal-specific CNVS! Shift of coverage: ", valuesSample - median(valuesCohort)))
       print(paste(found_CNVs_total[i,1:6], collapse="  "))
     } else {
-      shifts = rbind(shifts, matrix(c(valuesSample / median(valuesCohort), T) , ncol=2))
+      shifts = rbind(shifts, matrix(c(ratio, T) , ncol=2))
     }
   }
   return(shifts)
