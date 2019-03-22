@@ -13,14 +13,18 @@ vect_of_t_likeliks <- fast_dt_list(as.numeric(opt$degreesOfFreedomStudent))
 
 
 print(paste("Work on data preparation for somatic samples started (log-fold change matrices plus parameters estimation)", Sys.time()))
+listOfTmpNormalAndTmpTumor = normalizeToCommonMedian(tmpNormal, tumor, bedFileForCluster, genderOfSamples)
+tmpNormal = listOfTmpNormalAndTmpTumor[[1]] 
+tmpTumor = listOfTmpNormalAndTmpTumor[[2]] 
+rm(listOfTmpNormalAndTmpTumor)
 
-listOfValue <- formilngLogFoldChange(pairs, tmpNormal, tumor, bedFileForCluster, genderOfSamples)
+listOfValue <- formilngLogFoldChange(pairs, tmpNormal, tmpTumor, bedFileForCluster, genderOfSamples)
 matrixOfLogFold <- listOfValue[[1]]
 gendersInOntargetMatrix = listOfValue[[2]]
 
 
 
-matrixWithSdsList <- findSDsOfSamples(pairs, tmpNormal, tumor, bedFileForCluster, bordersOfChroms, genderOfSamples)
+matrixWithSdsList <- findSDsOfSamples(pairs, tmpNormal, tmpTumor, bedFileForCluster, bordersOfChroms, genderOfSamples)
 matrixWithSds = matrixWithSdsList[[1]]
 sdsOfSomaticSamples <- matrixWithSds[4,]
 sdsOfProbes <- matrixWithSdsList[[2]]
@@ -43,10 +47,15 @@ if (length(probesToRemove) > 0) {
   sdsOfProbes = sdsOfProbes[-probesToRemove]
   matrixOfLogFold = matrixOfLogFold[-probesToRemove,]
   bedFileForCluster = bedFileForCluster[-probesToRemove,]
+  tmpNormal = tmpNormal[-probesToRemove,]
+  tmpTumor = tmpTumor[-probesToRemove,]
 }
 
 if (frameworkOff == "offtarget") {
-  listOfValueOff <- formilngLogFoldChange(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileForClusterOff, genderOfSamples)
+  listOfTmpNormalAndTmpTumor = normalizeToCommonMedian(normalOff, tumorOff, bedFileForClusterOff, genderOfSamples)
+  tmpNormalOff = listOfTmpNormalAndTmpTumor[[1]]
+  tmpTumorOff = listOfTmpNormalAndTmpTumor[[2]]
+  listOfValueOff <- formilngLogFoldChange(pairs, tmpNormalOff[,which(colnames(tmpNormalOff) %in% colnames(tmpNormal))], tmpTumorOff, bedFileForClusterOff, genderOfSamples)
   matrixOfLogFoldOff =  listOfValueOff[[1]]
   gendersInOfftargetMatrix = listOfValueOff[[2]]
 
@@ -61,7 +70,7 @@ if (frameworkOff == "offtarget") {
   
   
   bordersOfChroms <- getBordersOfChromosomes(bedFileForClusterOff)
-  matrixWithSdsOffList <- findSDsOfSamples(pairs, normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))], tumorOff, bedFileForClusterOff, bordersOfChroms, genderOfSamples)
+  matrixWithSdsOffList <- findSDsOfSamples(pairs, tmpNormalOff[,which(colnames(tmpNormalOff) %in% colnames(tmpNormal))], tmpTumorOff, bedFileForClusterOff, bordersOfChroms, genderOfSamples)
   matrixWithSdsOff = matrixWithSdsOffList[[1]]
   sdsOfSomaticSamplesOff <- matrixWithSdsOff[4,]
   sdsOfProbesOff <- matrixWithSdsOffList[[2]]
@@ -71,6 +80,8 @@ if (frameworkOff == "offtarget") {
     sdsOfProbesOff = sdsOfProbesOff[-probesToRemove]
     matrixOfLogFoldOff = matrixOfLogFoldOff[-probesToRemove,]
     bedFileForClusterOff = bedFileForClusterOff[-probesToRemove,]
+    tmpNormalOff = tmpNormalOff[-probesToRemove,]
+    tmpTumorOff = tmpTumorOff[-probesToRemove,]
   }
   #sdsOfProbesOff <- sapply(1:nrow(matrixOfLogFoldOff), function(i) {determineSDsOfSomaticProbe(matrixOfLogFoldOff[i,], i)})
   
@@ -211,12 +222,14 @@ normalNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(all
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
   overdispersionNormal = NULL
+  sampleInOfftarget = F
 
   germline_sample_no = which(colnames(tmpNormal) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])
   germline_sample_name = colnames(tmpNormal)[germline_sample_no]
   tumor_sample_no = which(colnames(tumor) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1])
   if (strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] %in% colnames(tumorOff)) {
     tumor_sample_no_off = which(colnames(tumorOff) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1])
+    tumor_sample_name = strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1]
   }
   if (germline_sample_no == "F") next
 
@@ -245,6 +258,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   if (frameworkOff == "offtarget") {
     if (sample_name %in% colnames(matrixOfLogFoldOff)) {
       sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
+      sampleInOfftarget = T
       multipliersDueToLogOff = c()
       for (cn in cn_states) {
         multipliersDueToLogOff = c(multipliersDueToLogOff, returnMultiplierDueToLog(2,cn,matrixWithSdsOff[1,sam_no_off], matrixWithSdsOff[2,sam_no_off], matrixWithSdsOff[3,sam_no_off]))
@@ -309,15 +323,12 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       }
       price_per_tile = 0.1
       initial_state <- 1
-      sampleInOfftarget=F
-      
+
       
       localSds = sdsOfProbes * (sdsOfSomaticSamples[sam_no])
       if (frameworkOff == "offtarget") {
-        if (sample_name %in% colnames(matrixOfLogFoldOff)) {
-          sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
+        if (sampleInOfftarget) {
           localSdsOff = sdsOfProbesOff * (sdsOfSomaticSamplesOff[sam_no_off])
-          sampleInOfftarget = T
         }
       }
       
@@ -667,6 +678,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           } else {
             found_CNVs = matrix(0, nrow=0, ncol=10)
           }
+
           
           # BAFs from this chromosome
           if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0 & germline_sample_name %in% normalNames) {
@@ -745,7 +757,32 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         }
         
       }
-      
+      ### Sometimes false positive CNV calls can be caused by deviation in coverage in normal - we correct it
+      if (!finalIteration) {
+        if (sampleInOfftarget) {
+          shiftsForCoverageInsideCNVs <- findDeviationInNormalCoverage(germline_sample_name, tumor_sample_name, found_CNVs_total, bedFileForCluster, tmpNormal,
+                                                                      bedFileForClusterOff, tmpNormalOff)
+        } else {
+          shiftsForCoverageInsideCNVs <- findDeviationInNormalCoverage(germline_sample_name, tumor_sample_name, found_CNVs_total, bedFileForCluster, tmpNormal, tmpTumor)
+        }
+        
+        for (m in 1:nrow(shiftsForCoverageInsideCNVs)) {
+          cnvSpecificShift = log2(shiftsForCoverageInsideCNVs[m,1])
+          chrom = found_CNVs_total[m,1]
+          start = as.numeric(found_CNVs_total[m,2])
+          end = as.numeric(found_CNVs_total[m,3])
+          coordsInBedFileOn = which(bedFileForCluster[,1] == chrom & as.numeric(bedFileForCluster[,2]) >= start & as.numeric(bedFileForCluster[,3]) <= end)
+          matrixOfLogFold[coordsInBedFileOn,sam_no] = matrixOfLogFold[coordsInBedFileOn,sam_no] + cnvSpecificShift
+          if (sampleInOfftarget) {
+            coordsInBedFileOff = which(bedFileForClusterOff[,1] == chrom & as.numeric(bedFileForClusterOff[,2]) >= start & as.numeric(bedFileForClusterOff[,3]) <= end)
+            matrixOfLogFoldOff[coordsInBedFileOff,sam_no_off] = matrixOfLogFoldOff[coordsInBedFileOff,sam_no_off] + cnvSpecificShift
+          }
+        }
+        if (length(which(shiftsForCoverageInsideCNVs[,2] == 0)) > 0) {
+          found_CNVs_total = found_CNVs_total[-which(shiftsForCoverageInsideCNVs[,2] == 0),]
+          likeliksFoundCNVsVsPuritiesGlobal = likeliksFoundCNVsVsPuritiesGlobal[-which(shiftsForCoverageInsideCNVs[,2] == 0 & !found_CNVs_total[,1] %in% c("chrX","chrY")),]
+        }
+      }
       
       if (finalIteration == T) {
         if (nrow(found_CNVs_total) > 0){
@@ -843,7 +880,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           defaultCN = 1
         }
         pvalsSeparateTests = c(NA, NA, NA)
-        onTargetCoords <- which(bedFile[,1] == found_CNVs_total[i,1] & as.numeric(bedFile[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFile[,3]) <= as.numeric(found_CNVs_total[i,3]))
+        onTargetCoords <- which(bedFileForCluster[,1] == found_CNVs_total[i,1] & as.numeric(bedFileForCluster[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileForCluster[,3]) <= as.numeric(found_CNVs_total[i,3]))
         if (length(onTargetCoords) > 1) {
           tumorValue <- median(log2(tumor[onTargetCoords, tumor_sample_no]))
           if (found_CNVs_total[i,1] %in% c("chrX", "chrY")) {
@@ -863,7 +900,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           ) / sdOfNormals, df=length(samplesToUse)) 
         }
         if (sampleInOfftarget) {
-          offTargetCoords <- which(bedFileOfftarget[,1] == found_CNVs_total[i,1] & as.numeric(bedFileOfftarget[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileOfftarget[,3]) <= as.numeric(found_CNVs_total[i,3]))
+          offTargetCoords <- which(bedFileForClusterOff[,1] == found_CNVs_total[i,1] & as.numeric(bedFileForClusterOff[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileForClusterOff[,3]) <= as.numeric(found_CNVs_total[i,3]))
           if (length(offTargetCoords) > 1) {
             tumorValueOff <- median(log2(tumorOff[offTargetCoords, tumor_sample_no_off]))
             if (found_CNVs_total[i,1] %in% c("chrX", "chrY")) {
@@ -943,4 +980,5 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
 }
 
 stopCluster(cl)
+
 

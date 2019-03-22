@@ -803,25 +803,28 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
   dev.off()
 }
 
-probeLevelQC <- function(matrixOfLogFold, sdsOfProbes, sdsOfSomaticSamples, genderOfSamplesLocal, bedFile) {
+probeLevelQC <- function(matrixOfLogFoldForCalc, sdsOfProbes, sdsOfSomaticSamples, genderOfSamplesLocal, bedFile) {
   females = which(genderOfSamplesLocal == "F")
   males = which(genderOfSamplesLocal == "M")
-  QNs <- apply(matrixOfLogFold, 1, function(x) {ifelse(length(which(x > log(1/2) & x < log(3/2))) > 10, Qn(x[which(x > log(1/2) & x < log(3/2))]), Qn(x))})
+  #QNs <- apply(matrixOfLogFold, 1, function(x) {ifelse(length(which(x > log(1/2) & x < log(3/2))) > 10, Qn(x[which(x > log(1/2) & x < log(3/2))]), Qn(x))})
+  QNs <- apply(matrixOfLogFoldForCalc, 1, Qn)
   for (i in 1:nrow(bedFile)) {
     if (bedFile[i,1] == "chrX") {
-      QNs = Qn(matrixOfLogFold[i, females])
+      matrixOfLogFoldForCalc[i,males] = sample(matrixOfLogFoldForCalc[i,females], length(males), replace = T)
+      QNs[i] = Qn(matrixOfLogFoldForCalc[i, females])
     }
     if (bedFile[i,1] == "chrY") {
-      QNs = Qn(matrixOfLogFold[i, males])
+      QNs[i] = Qn(matrixOfLogFoldForCalc[i, males])
     }
   }
-  ratios <- (QNs / sdsOfProbes)
+  ratios <- (QNs / (sdsOfProbes * median(sdsOfSomaticSamples)))
   qnRatios = Qn(ratios)
   medianRatio = median(ratios)
   plot(ratios, col=rgb(0,0,0,0.1), pch=19)
-  points(ratios[which((ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 0.5) & bedFile[,1] != "chrY")] ~ which((ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 0.5) & bedFile[,1] != "chrY"), col=rgb(1,0,0,0.5), pch=19)
+  points(ratios[which((ratios > medianRatio + 2.32 * qnRatios | ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX"))] ~
+           which((ratios > medianRatio + 2.32 * qnRatios | ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), col=rgb(1,0,0,0.5), pch=19)
 
-  return(which((ratios > medianRatio + 3 * qnRatios | sdsOfProbes * median(sdsOfSomaticSamples) > 0.5) & bedFile[,1] != "chrY"))
+  return(which((ratios > medianRatio + 2.32 * qnRatios | ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")))
 }
 
 
@@ -836,4 +839,74 @@ returnCoordsThatNeedToBeNull = function(bedFile, fileNameWithGermlineVars) {
         }
   }
   return(coordsToMakeNull)
+}
+
+
+
+normalizeToCommonMedian <- function(normalCov, tumorCov, bedFileForCalc, genderOfSamplesLocal) {
+  normalCov = (normalCov)
+  tumorCov = (tumorCov)
+  mediansOfCoverageAfterNorm = rep(0, nrow(normalCov))
+  whichAutosomes = which(!bedFileForCalc[,1] %in% c("chrX", "chrY"))
+  for (i in whichAutosomes) {
+    mediansOfCoverageAfterNorm[i] = median(normalCov[i,])
+  }
+  females = genderOfSamplesLocal[which(genderOfSamplesLocal == "F")]
+  males = genderOfSamplesLocal[which(genderOfSamplesLocal == "M")]
+  whichAreMales = which(colnames(normalCov) %in% names(males))
+  whichAreFemales = which(colnames(normalCov) %in% names(females))
+  chrX = which(bedFileForCalc[,1] == "chrX")
+  for (i in 1:length(chrX)) {
+    normalCov[chrX[i],whichAreMales] = sample(normalCov[chrX[i],whichAreFemales], length(whichAreMales), replace = T)
+  }
+  for (i in chrX) {
+    mediansOfCoverageAfterNorm[i] = median(normalCov[i,])
+  }
+  chrY = which(bedFileForCalc[,1] == "chrY")
+  for (i in 1:length(chrY)) {
+    normalCov[chrY[i],whichAreFemales] = sample(normalCov[chrY[i],whichAreMales], length(whichAreFemales), replace = T)
+  }
+  for (i in chrY) {
+    mediansOfCoverageAfterNorm[i] = median(normalCov[i,])
+  }
+  normalCov = sweep(normalCov, 1, mediansOfCoverageAfterNorm, FUN="/")
+  tumorCov = sweep(tumorCov, 1, mediansOfCoverageAfterNorm, FUN="/")
+  return(list(normalCov, tumorCov))
+}
+
+
+
+
+findDeviationInNormalCoverage <- function(germline_sample_name, tumor_sample_name, found_CNVs_total, bedFileForCluster, tmpNormal,
+                              bedFileForClusterOff=NULL, tmpNormalOff=NULL) {
+  shifts <- matrix(0, nrow=0, ncol=2)
+  for (i in 1:nrow(found_CNVs_total)) {
+    coordsInOn = which(bedFileForCluster[,1] == found_CNVs_total[i,1] & 
+                         as.numeric(bedFileForCluster[,2]) >= as.numeric(found_CNVs_total[i,2]) & 
+                         as.numeric(bedFileForCluster[,3]) <= as.numeric(found_CNVs_total[i,3]))
+    valuesInSampleOn = tmpNormal[coordsInOn,which(colnames(tmpNormal) == germline_sample_name)]
+    valuesCohortOn = tmpNormal[coordsInOn,-which(colnames(tmpNormal) == germline_sample_name)]
+    valuesInSampleOff = c()
+    valuesCohortOff = matrix(0, nrow=0, ncol=ncol(tmpNormal) - 1)
+    if (!is.null(bedFileForClusterOff)) {
+      coordsInOff = which(bedFileForClusterOff[,1] == found_CNVs_total[i,1] & 
+                           as.numeric(bedFileForClusterOff[,2]) >= as.numeric(found_CNVs_total[i,2]) & 
+                           as.numeric(bedFileForClusterOff[,3]) <= as.numeric(found_CNVs_total[i,3]))
+      valuesInSampleOff = tmpNormalOff[coordsInOff,which(colnames(tmpNormalOff) == germline_sample_name)]
+      valuesCohortOff = tmpNormalOff[coordsInOff,-which(colnames(tmpNormalOff) == germline_sample_name)]
+    }
+    valuesSample = median(c(valuesInSampleOn, valuesInSampleOff))
+    valuesCohort <- apply(rbind(valuesCohortOn, valuesCohortOff), 2, median)
+    prob = 2 * pt(-abs(   
+      valuesSample - median(valuesCohort)
+    ) / Qn(valuesCohort), df=length(valuesCohort)) 
+    if (prob < 0.01 & abs(valuesSample - median(valuesCohort)) > 0.025) {
+      shifts = rbind(shifts, matrix(c(valuesSample / median(valuesCohort), F) , ncol=2))
+      print(paste0("Potential normal-specific CNVS! Shift of coverage: ", valuesSample - median(valuesCohort)))
+      print(found_CNVs_total[i,])
+    } else {
+      shifts = rbind(shifts, matrix(c(valuesSample / median(valuesCohort), T) , ncol=2))
+    }
+  }
+  return(shifts)
 }
