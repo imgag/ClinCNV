@@ -786,8 +786,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
         }
         if (length(which(shiftsForCoverageInsideCNVs[,2] == 0)) > 0) {
-          found_CNVs_total = found_CNVs_total[-which(shiftsForCoverageInsideCNVs[,2] == 0),]
-          likeliksFoundCNVsVsPuritiesGlobal = likeliksFoundCNVsVsPuritiesGlobal[-which(shiftsForCoverageInsideCNVs[,2] == 0 & !found_CNVs_total[,1] %in% c("chrX","chrY")),]
+          found_CNVs_total = found_CNVs_total[-which(shiftsForCoverageInsideCNVs[,2] == 0),,drop=F]
+          likeliksFoundCNVsVsPuritiesGlobal = likeliksFoundCNVsVsPuritiesGlobal[-which(shiftsForCoverageInsideCNVs[,2] == 0 & !found_CNVs_total[,1] %in% c("chrX","chrY")),,drop=F]
         }
         }
       }
@@ -982,7 +982,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     if(opt$debug) {
       print(found_CNVs_total)
     }
-    found_CNVs_total = found_CNVs_total[order(found_CNVs_total[,1], as.numeric(found_CNVs_total[,2])),]
+    found_CNVs_total = found_CNVs_total[order(found_CNVs_total[,1], as.numeric(found_CNVs_total[,2])), , drop=F]
     write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
     
     # For some additional analysis we need to provide areas free of CNVs
