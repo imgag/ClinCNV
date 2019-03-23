@@ -42,7 +42,9 @@ if (length(samplesNotPassedQC) > 0) {
 }
 
 ## QC FOR PROBES
-probesToRemove <- probeLevelQC(matrixOfLogFold, sdsOfProbes, sdsOfSomaticSamples, gendersInOntargetMatrix, bedFileForCluster)
+listOfProbesQC = probeLevelQC(matrixOfLogFold, sdsOfProbes, sdsOfSomaticSamples, gendersInOntargetMatrix, bedFileForCluster)
+probesToRemove <- listOfProbesQC[[1]]
+sdsOfProbes = listOfProbesQC[[2]]
 if (length(probesToRemove) > 0) {
   sdsOfProbes = sdsOfProbes[-probesToRemove]
   matrixOfLogFold = matrixOfLogFold[-probesToRemove,]
@@ -75,7 +77,9 @@ if (frameworkOff == "offtarget") {
   sdsOfSomaticSamplesOff <- matrixWithSdsOff[4,]
   sdsOfProbesOff <- matrixWithSdsOffList[[2]]
   
-  probesToRemove <- probeLevelQC(matrixOfLogFoldOff, sdsOfProbesOff, sdsOfSomaticSamplesOff, gendersInOfftargetMatrix, bedFileForClusterOff)
+  listOfProbesQC <- probeLevelQC(matrixOfLogFoldOff, sdsOfProbesOff, sdsOfSomaticSamplesOff, gendersInOfftargetMatrix, bedFileForClusterOff)
+  probesToRemove <- listOfProbesQC[[1]]
+  sdsOfProbesOff = listOfProbesQC[[2]]
   if (length(probesToRemove) > 0) {
     sdsOfProbesOff = sdsOfProbesOff[-probesToRemove]
     matrixOfLogFoldOff = matrixOfLogFoldOff[-probesToRemove,]
@@ -220,7 +224,7 @@ clonalityForChecking = 0.4
 print(paste("Work on actual calling started.", Sys.time()))
 
 normalNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][2]})
-for (sam_no in 1:ncol(matrixOfLogFold)) {
+for (sam_no in 30:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
   overdispersionNormal = NULL
   sampleInOfftarget = F
@@ -761,6 +765,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       }
       ### Sometimes false positive CNV calls can be caused by deviation in coverage in normal - we correct it
       if (!finalIteration) {
+        if (nrow(found_CNVs_total) > 0) {
         if (sampleInOfftarget) {
           shiftsForCoverageInsideCNVs <- findDeviationInNormalCoverage(germline_sample_name, tumor_sample_name, found_CNVs_total, bedFileForCluster, tmpNormal,
                                                                       bedFileForClusterOff, tmpNormalOff)
@@ -783,6 +788,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         if (length(which(shiftsForCoverageInsideCNVs[,2] == 0)) > 0) {
           found_CNVs_total = found_CNVs_total[-which(shiftsForCoverageInsideCNVs[,2] == 0),]
           likeliksFoundCNVsVsPuritiesGlobal = likeliksFoundCNVsVsPuritiesGlobal[-which(shiftsForCoverageInsideCNVs[,2] == 0 & !found_CNVs_total[,1] %in% c("chrX","chrY")),]
+        }
         }
       }
       

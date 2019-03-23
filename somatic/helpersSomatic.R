@@ -420,6 +420,8 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
     coverageInsideOn = toyLogFoldChange[which(as.numeric(bedFileForMapping[,2]) >= startOfCNV & as.numeric(bedFileForMapping[,3]) <= endOfCNV & 
                                                 (as.numeric(bedFileForMapping[,3] - as.numeric(bedFileForMapping[,2]) < 10000))
     )]
+    trimmedCoverageInsideOn = NULL
+    trimmedCoverageInsideOff = NULL
     if (length(coverageInsideOn) > 4) {
       trimmedCoverageInsideOn = trimValues(coverageInsideOn, 0.05)
     }
@@ -434,7 +436,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
         next
       }
     } else {
-      if (length(coverageInsideOff) > length(coverageInsideOn)) {
+      if (length(coverageInsideOff) > length(coverageInsideOn) & !is.null(trimmedCoverageInsideOff)) {
         sdOff = sd(trimmedCoverageInsideOff)
         if (sdOff > 3 * sdOfSomaticOff) {
           cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
@@ -442,11 +444,13 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
           next
         }
       } else {
-        sdOn = sd(trimmedCoverageInsideOn)
-        if (sdOn > 3 * sdOfSomaticOn) {
-          cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
-          print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]),"; level of noise", print(sdOn / sdOfSomaticOn), "due to large amount of noise in on target reads"))
-          next
+        if (!is.null(trimmedCoverageInsideOn)) {
+          sdOn = sd(trimmedCoverageInsideOn)
+          if (sdOn > 3 * sdOfSomaticOn) {
+            cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
+            print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]),"; level of noise", print(sdOn / sdOfSomaticOn), "due to large amount of noise in on target reads"))
+            next
+          }
         }
       }
     }
@@ -707,7 +711,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
   }
   colForMajor=c("brown","blue","darkblue","red")
   colForMinor = c("brown1", "darkslategray3", "darkslategray4", "lightpink")
-
+  
   multiplicator = 80
   offsetOfSecondChr = (multiplicator / 2.5)
   widthOfLine = ((2.3 / 20) * multiplicator)
@@ -715,18 +719,18 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
   #par(mfrow=c(2,1), mar=c(1.5, 0, 2, 1.5))
   colOfChr = "lightgrey"
   par( mar=c(1.5, 2, 2, 1.5))
-
+  
   chromsToAnalyse = 1:24
-
-
-
+  
+  
+  
   plot(0,0, ylim=c(multiplicator - offsetOfSecondChr, multiplicator *24), xlim=c(0, max(unlist(ends_of_chroms))), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=ifelse(l==1, sample_name, ""))
-
-    legend("right", legend=c( "Major clone Dup 3CN", "Major clone Dup >= 4","Major clone Del",
-                                "Minor clone Dup 3CN","Minor clone Dup >= 4","Minor clone Del"),
-           col=c(colForMajor[2:4],colForMinor[2:4]), cex=1.8, lwd=widthOfLine, box.lty=0)
-
-
+  
+  legend("right", legend=c( "Major clone Dup 3CN", "Major clone Dup >= 4","Major clone Del",
+                            "Minor clone Dup 3CN","Minor clone Dup >= 4","Minor clone Del"),
+         col=c(colForMajor[2:4],colForMinor[2:4]), cex=1.8, lwd=widthOfLine, box.lty=0)
+  
+  
   text(y = multiplicator *1:24 + offsetOfSecondChr / 2, x = rep(0 ** 7, 24), labels=orderOfNames[sort(chromsToAnalyse, decreasing = T)], pos=2, offset = 0.5)
   for (z in sort(chromsToAnalyse, decreasing = T)) {
     i = 25 - which(chromsToAnalyse == z)
@@ -744,7 +748,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
     }
     # DEPICTION OF CNVs
     whichCNVsToPlot = which(found_CNVs_total[,1] == chromStructure[[5]])
-
+    
     if (length(whichCNVsToPlot) > 0) {
       for (numOfCNV in 1:length(whichCNVsToPlot)) {
         m = whichCNVsToPlot[numOfCNV]
@@ -768,7 +772,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
         if (copy_number_particuar_cnv > 3) {
           colorType = c(3,0)
           if (cnv_state == "CNVcomplex2") {
-              colorType = c(3,2)
+            colorType = c(3,2)
           }
           if (cnv_state == "CNVcomplex3") {
             colorType = c(3,3)
@@ -784,7 +788,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
         if (cnv_state == "LOHDup") {
           colorType = c(3,4)
         }
-
+        
         segments(start, multiplicator* i,  end,multiplicator * i, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[1]], alpha=max(0.3, particularPurity)))
         if (colorType[2] != 0 & !(chromStructure[[5]] == "chrY" & gender == "M")) {
           segments( start, multiplicator* i + offsetOfSecondChr,  end, multiplicator * i + offsetOfSecondChr, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[2]], alpha=max(0.3, particularPurity)))
@@ -796,9 +800,9 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
         }
       }
     }
-
-
-
+    
+    
+    
   }
   dev.off()
 }
@@ -821,10 +825,11 @@ probeLevelQC <- function(matrixOfLogFoldForCalc, sdsOfProbes, sdsOfSomaticSample
   qnRatios = Qn(ratios)
   medianRatio = median(ratios)
   plot(ratios, col=rgb(0,0,0,0.1), pch=19)
-  points(ratios[which((ratios > medianRatio + 2.32 * qnRatios | ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX"))] ~
-           which((ratios > medianRatio + 2.32 * qnRatios | ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), col=rgb(1,0,0,0.5), pch=19)
-
-  return(which((ratios > medianRatio + 2.32 * qnRatios | ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")))
+  points(ratios[which(( ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX"))] ~
+           which(( ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), col=rgb(1,0,0,0.5), pch=19)
+  sdsOfProbesCorrected[which(ratios > medianRatio + 2.32 * qnRatios)] = sdsOfProbesCorrected[which(ratios > medianRatio + 2.32 * qnRatios)] * ratios[which(ratios > medianRatio + 2.32 * qnRatios)]
+  
+  return(list(which((ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), sdsOfProbesCorrected))
 }
 
 
@@ -832,11 +837,11 @@ probeLevelQC <- function(matrixOfLogFoldForCalc, sdsOfProbes, sdsOfSomaticSample
 returnCoordsThatNeedToBeNull = function(bedFile, fileNameWithGermlineVars) {
   coordsToMakeNull = c()
   if(file.exists(fileNameWithGermlineVars)) {
-      germlineVars <- read.table(fileNameWithGermlineVars, stringsAsFactors = F)
-      if (nrow(germlineVars) > 0)
-        for (j in 1:nrow(germlineVars)) {
-          coordsToMakeNull = c(coordsToMakeNull, which(bedFile[,1] == germlineVars[j,1] & as.numeric(bedFile[,2]) >= as.numeric(germlineVars[j,2]) & as.numeric(bedFile[,3]) <= as.numeric(germlineVars[j,3])))
-        }
+    germlineVars <- read.table(fileNameWithGermlineVars, stringsAsFactors = F)
+    if (nrow(germlineVars) > 0)
+      for (j in 1:nrow(germlineVars)) {
+        coordsToMakeNull = c(coordsToMakeNull, which(bedFile[,1] == germlineVars[j,1] & as.numeric(bedFile[,2]) >= as.numeric(germlineVars[j,2]) & as.numeric(bedFile[,3]) <= as.numeric(germlineVars[j,3])))
+      }
   }
   return(coordsToMakeNull)
 }
@@ -878,7 +883,7 @@ normalizeToCommonMedian <- function(normalCov, tumorCov, bedFileForCalc, genderO
 
 
 findDeviationInNormalCoverage <- function(germline_sample_name, tumor_sample_name, found_CNVs_total, bedFileForCluster, tmpNormal,
-                              bedFileForClusterOff=NULL, tmpNormalOff=NULL) {
+                                          bedFileForClusterOff=NULL, tmpNormalOff=NULL) {
   shifts <- matrix(0, nrow=0, ncol=2)
   for (i in 1:nrow(found_CNVs_total)) {
     coordsInOn = which(bedFileForCluster[,1] == found_CNVs_total[i,1] & 
@@ -890,8 +895,8 @@ findDeviationInNormalCoverage <- function(germline_sample_name, tumor_sample_nam
     valuesCohortOff = matrix(0, nrow=0, ncol=ncol(tmpNormal) - 1)
     if (!is.null(bedFileForClusterOff)) {
       coordsInOff = which(bedFileForClusterOff[,1] == found_CNVs_total[i,1] & 
-                           as.numeric(bedFileForClusterOff[,2]) >= as.numeric(found_CNVs_total[i,2]) & 
-                           as.numeric(bedFileForClusterOff[,3]) <= as.numeric(found_CNVs_total[i,3]))
+                            as.numeric(bedFileForClusterOff[,2]) >= as.numeric(found_CNVs_total[i,2]) & 
+                            as.numeric(bedFileForClusterOff[,3]) <= as.numeric(found_CNVs_total[i,3]))
       valuesInSampleOff = tmpNormalOff[coordsInOff,which(colnames(tmpNormalOff) == germline_sample_name)]
       valuesCohortOff = (tmpNormalOff[coordsInOff,which(colnames(tmpNormalOff) != germline_sample_name),drop=F])
     }
@@ -939,28 +944,28 @@ returnAreasFreeOfCNVsForAdditionalAnalysis <- function(found_CNVs_total, sample_
     sortedCNVs = sortedCNVs[order(as.numeric(sortedCNVs[,2])),,drop=F]
     startOfVariant = 0
     #if (nrow(sortedCNVs) > 0) {
-      for (j in 1:(nrow(sortedCNVs) + 1)) {
-        startOfNeutralSite = startOfVariant
-        if (j <= nrow(sortedCNVs)) {
+    for (j in 1:(nrow(sortedCNVs) + 1)) {
+      startOfNeutralSite = startOfVariant
+      if (j <= nrow(sortedCNVs)) {
         endOfNeutralSite = as.numeric(sortedCNVs[j,2])
         endOfCNV = as.numeric(sortedCNVs[j,3])
-        } else {
-          endOfNeutralSite = max(as.numeric(bedFileForCluster[which(bedFileForCluster[,1] == uniqueChroms[i]),3]))
-          if (!is.null(bedFileForClusterOff)) {
-            endOfNeutralSite = max(endOfNeutralSite, max(as.numeric(bedFileForClusterOff[which(bedFileForClusterOff[,1] == uniqueChroms[i]),3])))
-          }
-        }
-        formedVariant = c(uniqueChroms[i], startOfNeutralSite, endOfNeutralSite, defaultCN, length(
-          which(bedFileForCluster[,1] == uniqueChroms[i] & as.numeric(bedFileForCluster[,2]) >= startOfNeutralSite & as.numeric(bedFileForCluster[,3]) <= endOfNeutralSite)))
+      } else {
+        endOfNeutralSite = max(as.numeric(bedFileForCluster[which(bedFileForCluster[,1] == uniqueChroms[i]),3]))
         if (!is.null(bedFileForClusterOff)) {
-          formedVariant[5] = as.numeric(formedVariant[5]) + length(
-            which(bedFileForClusterOff[,1] == uniqueChroms[i] & as.numeric(bedFileForClusterOff[,2]) >= startOfNeutralSite & as.numeric(bedFileForClusterOff[,3]) <= endOfNeutralSite))
+          endOfNeutralSite = max(endOfNeutralSite, max(as.numeric(bedFileForClusterOff[which(bedFileForClusterOff[,1] == uniqueChroms[i]),3])))
         }
-        if (j <= nrow(sortedCNVs)) {
-        startOfVariant = endOfCNV
-        }
-        areasFreeOfCNVs = rbind(areasFreeOfCNVs, formedVariant)
       }
+      formedVariant = c(uniqueChroms[i], startOfNeutralSite, endOfNeutralSite, defaultCN, length(
+        which(bedFileForCluster[,1] == uniqueChroms[i] & as.numeric(bedFileForCluster[,2]) >= startOfNeutralSite & as.numeric(bedFileForCluster[,3]) <= endOfNeutralSite)))
+      if (!is.null(bedFileForClusterOff)) {
+        formedVariant[5] = as.numeric(formedVariant[5]) + length(
+          which(bedFileForClusterOff[,1] == uniqueChroms[i] & as.numeric(bedFileForClusterOff[,2]) >= startOfNeutralSite & as.numeric(bedFileForClusterOff[,3]) <= endOfNeutralSite))
+      }
+      if (j <= nrow(sortedCNVs)) {
+        startOfVariant = endOfCNV
+      }
+      areasFreeOfCNVs = rbind(areasFreeOfCNVs, formedVariant)
+    }
     #}
     
   }
