@@ -224,7 +224,7 @@ clonalityForChecking = 0.4
 print(paste("Work on actual calling started.", Sys.time()))
 
 normalNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][2]})
-for (sam_no in 30:ncol(matrixOfLogFold)) {
+for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
   overdispersionNormal = NULL
   sampleInOfftarget = F

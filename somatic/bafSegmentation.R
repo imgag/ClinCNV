@@ -58,8 +58,8 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     colnames(healthySample) <- c("chr", "start", "end", "Feature", "freq", "depth")
     colnames(tumorSample) <- c("chr", "start", "end", "Feature", "freq", "depth")
     
-    healthySample = healthySample[which(healthySample[,6] > max(median(healthySample[,6]) / 10, 40) & healthySample[,6] < quantile(healthySample[,6], 0.975)),]
-    tumorSample = tumorSample[which(as.numeric(tumorSample[,6]) > max(median(tumorSample[,6]) / 10, 40)),]
+    healthySample = healthySample[which(healthySample[,6] > max(median(healthySample[,6]) / 10, 30) & healthySample[,6] < quantile(healthySample[,6], 0.975)),]
+    tumorSample = tumorSample[which(as.numeric(tumorSample[,6]) > max(median(tumorSample[,6]) / 10, 30)),]
     if (nrow(healthySample) < 300 | nrow(tumorSample) < 300) {
       return(list(NULL, NULL))
     }

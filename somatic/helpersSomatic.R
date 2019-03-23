@@ -15,9 +15,9 @@ findSDsOfSamples <- function(pairs, normalCov, tumorCov, bedFileForCalc, borders
   
   normalCovForVarianceMedians = apply(log2(normalCov), 1, median)
   
-  normalCenteredAroundZero = sweep(log2(normalCov), 2, normalCovForVarianceMedians)
+  normalCenteredAroundZero = sweep(log2(normalCov), 1, normalCovForVarianceMedians)
   normalCovForVarianceSD = apply(normalCenteredAroundZero, 2, Qn)
-  normalCenteredAroundZeroAndNormalisedBySD = sweep(normalCenteredAroundZero, 1, normalCovForVarianceSD, FUN="/")
+  normalCenteredAroundZeroAndNormalisedBySD = sweep(normalCenteredAroundZero, 2, normalCovForVarianceSD, FUN="/")
   probeVariance = apply(normalCenteredAroundZeroAndNormalisedBySD, 1, Qn)
   
   matrixOfPairs <- matrix(0, nrow=nrow(normalCov), ncol=0)
@@ -827,6 +827,7 @@ probeLevelQC <- function(matrixOfLogFoldForCalc, sdsOfProbes, sdsOfSomaticSample
   plot(ratios, col=rgb(0,0,0,0.1), pch=19)
   points(ratios[which(( ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX"))] ~
            which(( ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), col=rgb(1,0,0,0.5), pch=19)
+  sdsOfProbesCorrected = sdsOfProbes
   sdsOfProbesCorrected[which(ratios > medianRatio + 2.32 * qnRatios)] = sdsOfProbesCorrected[which(ratios > medianRatio + 2.32 * qnRatios)] * ratios[which(ratios > medianRatio + 2.32 * qnRatios)]
   
   return(list(which((ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), sdsOfProbesCorrected))

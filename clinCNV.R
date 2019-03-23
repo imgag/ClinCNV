@@ -136,6 +136,21 @@ opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
 
+opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/annotated_genes_ssSC_v4_2018_03_23.bed"
+opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/mergedCoverage/panel_v4SH_tumor.cov"
+opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/mergedCoverage/panel_v4SH_normal.cov"
+opt$colNum = 4
+opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/pairsMarch2019.txt"
+opt$out = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/results/"
+opt$reanalyseCohort = F
+opt$bedOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/offtaget_annotated_ssSC_v4_2018_03_23.bed"
+opt$tumorOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/mergedCoverage/panel_v4SH_tumor_off.cov"
+opt$normalOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/mergedCoverage/panel_v4SH_normal_off.cov"
+opt$bafFolder = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/baf/"
+opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/"
+
+
+
 
 
 
