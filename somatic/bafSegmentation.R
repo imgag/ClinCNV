@@ -123,8 +123,10 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     } else { heterozygousAlleleShift = 0.48 }
     print(paste("Heterozygous allele shift for particular sample", heterozygousAlleleShift))
     overdispersionCorrectionNormal = extractVariancesFromBAF(healthySample, heterozygousAlleleShift)
+    print(overdispersionCorrectionNormal)
     #overdispersionCorrectionTumor = extractVariancesFromBAF(tumorSample, heterozygousAlleleShift)
     if (is.null(overdispersionCorrectionNormal)) {
+      clusterExport(cl, c('heterozygousAlleleShift', 'overdispersionFactors'))
       heterozygousPositions <- parApply(cl=cl, healthySample[,5:6], 1, function(vec) {determineHeterozygousPositions(as.numeric(vec[1]), as.numeric(vec[2]), heterozygousAlleleShift)})
     } else {
       overdispersionFactors = rep(0, nrow(healthySample[,5:6]))
