@@ -31,7 +31,9 @@ passPropTestVarCorrection <- function(numOne, numTwo, refOne, refTwo, overdispNo
   pa = numOne / (refOne + numOne)
   pb = numTwo / (refTwo + numTwo)
   overallProp = (numOne + numTwo) / (refOne + refTwo + numOne + numTwo)
-  z = (pa - pb) / sqrt( ((overdispNorm) * overallProp) / (refOne + numOne) + ((overdispTumo) * overallProp) / (refTwo + numTwo) )
+  commonVariance = ( (overallProp * (1 - overallProp) * overdispNorm + overallProp * (1 - overallProp) * overdispTumo) / 2 ) 
+  z = (pa - pb) / sqrt(  commonVariance * ( 1 / (refOne + numOne) + 1 /  (refTwo + numTwo))  )
+  
   pval = 2 * pnorm( -abs(z))
   return(pval)
 }
@@ -55,6 +57,8 @@ determineHeterozygousPositions <- function(freq, depth, probAB=0.48) {
     return(F)
   }
 }
+
+
 
 determineHeterozygousPositionsOverdispersed <- function(freq, depth, probAB=0.48, overdispersionFactors) {
   standardDeviation = sqrt(probAB * (1 - probAB) * depth * overdispersionFactors)
