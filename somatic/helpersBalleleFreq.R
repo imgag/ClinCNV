@@ -212,10 +212,14 @@ extractVariancesFromBAF <- function(bafTable, expectedValue) {
     return(cbind(rep(1, length(depths)), depths))
   } else {
     vecOfSDs <- rep(0, length(forEstimationFreqs))
-    rollingLength = max(40, round(length(forEstimationFreqs) / 10))
+    rollingLength = min(30, round(length(forEstimationFreqs) / 10))
     overdispersion = rep(0, length(forEstimationFreqs))
     for (i in 1:length(vecOfSDs)) {
-      vecOfSDs[i] = Qn(forEstimationFreqs[max(1,i-rollingLength):min(length(vecOfSDs), i+rollingLength)] * forEstimationDepths[i]) ** 2
+      if (length(which(abs(forEstimationDepths - forEstimationDepths[i]) < 0.001)) > 50) {
+        vecOfSDs[i] = Qn(forEstimationFreqs[which(abs(forEstimationDepths - forEstimationDepths[i]) < 0.001)])
+      } else {
+        vecOfSDs[i] = Qn(forEstimationFreqs[max(1,i-rollingLength):min(length(vecOfSDs), i+rollingLength)] * forEstimationDepths[i]) ** 2
+      }
       varPredictedByBinom = forEstimationDepths[i] * expectedValue * (1 - expectedValue)
       overdispersion[i] = (vecOfSDs[i]) / varPredictedByBinom
     }
