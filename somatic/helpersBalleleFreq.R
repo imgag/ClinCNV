@@ -211,7 +211,7 @@ extractVariancesFromBAF <- function(bafTable, expectedValue) {
     return(cbind(rep(1, length(depths)), depths))
   } else {
     vecOfSDs <- rep(0, length(forEstimationFreqs))
-    rollingLength = max(10, round(length(forEstimationFreqs) / 10))
+    rollingLength = max(40, round(length(forEstimationFreqs) / 10))
     overdispersion = rep(0, length(forEstimationFreqs))
     for (i in 1:length(vecOfSDs)) {
       vecOfSDs[i] = Qn(forEstimationFreqs[max(1,i-rollingLength):min(length(vecOfSDs), i+rollingLength)] * forEstimationDepths[i]) ** 2

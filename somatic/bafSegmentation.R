@@ -72,7 +72,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
         currentChrom = healthySample[i,1]
         matrOfBedRegionsInChrom = bedFileForFiltering[which(bedFileForFiltering[,1] == currentChrom),]
       }
-      ifItIsInsideBed <- which(matrOfBedRegionsInChrom[,2] - 50 <= healthySample[i,2] & matrOfBedRegionsInChrom[,3] + 50 >= healthySample[i,3])
+      ifItIsInsideBed <- which(matrOfBedRegionsInChrom[,2] - 100 <= healthySample[i,2] & matrOfBedRegionsInChrom[,3] + 100 >= healthySample[i,3])
       if (length(ifItIsInsideBed) == 0) {
         indicesOfSNVsToRemove <- c(indicesOfSNVsToRemove, i)
       }
