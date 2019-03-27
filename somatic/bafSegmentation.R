@@ -123,20 +123,18 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     } else { heterozygousAlleleShift = 0.48 }
     print(paste("Heterozygous allele shift for particular sample", heterozygousAlleleShift))
     overdispersionCorrectionNormal = extractVariancesFromBAF(healthySample, heterozygousAlleleShift)
-    print(overdispersionCorrectionNormal)
     #overdispersionCorrectionTumor = extractVariancesFromBAF(tumorSample, heterozygousAlleleShift)
     if (is.null(overdispersionCorrectionNormal)) {
-      print("overdispersionCorrectionNormal NULL")
-      clusterExport(cl, c('heterozygousAlleleShift', 'overdispersionFactors'))
-      heterozygousPositions <- parApply(cl=cl, healthySample[,5:6], 1, function(vec) {determineHeterozygousPositions(as.numeric(vec[1]), as.numeric(vec[2]), heterozygousAlleleShift)})
+      #clusterExport(cl, c('heterozygousAlleleShift', 'overdispersionFactors'))
+      heterozygousPositions <- apply(healthySample[,5:6], 1, function(vec) {determineHeterozygousPositions(as.numeric(vec[1]), as.numeric(vec[2]), heterozygousAlleleShift)})
     } else {
       overdispersionFactors = rep(0, nrow(healthySample[,5:6]))
       for (l in 1:nrow(healthySample)) {
         closestDepth = which.min(abs(healthySample[l,6] - overdispersionCorrectionNormal[,2]))
         overdispersionFactors[l] = overdispersionCorrectionNormal[closestDepth,1]
       }
-      clusterExport(cl, c('heterozygousAlleleShift', 'overdispersionFactors'))
-      heterozygousPositions <- parApply(cl=cl, healthySample[,5:6], 1, function(vec) {determineHeterozygousPositionsOverdispersed(as.numeric(vec[1]), as.numeric(vec[2]), heterozygousAlleleShift, overdispersionFactors)})
+      #clusterExport(cl, c('heterozygousAlleleShift', 'overdispersionFactors'))
+      heterozygousPositions <- apply( healthySample[,5:6], 1, function(vec) {determineHeterozygousPositionsOverdispersed(as.numeric(vec[1]), as.numeric(vec[2]), heterozygousAlleleShift, overdispersionFactors)})
     }
     healthySample = healthySample[heterozygousPositions, ]
     tumorSample = tumorSample[heterozygousPositions, ]
