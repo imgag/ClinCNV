@@ -58,8 +58,15 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     colnames(healthySample) <- c("chr", "start", "end", "Feature", "freq", "depth")
     colnames(tumorSample) <- c("chr", "start", "end", "Feature", "freq", "depth")
     
-    healthySample = healthySample[which(healthySample[,6] > max(median(healthySample[,6]) / 10, 30) & healthySample[,6] < quantile(healthySample[,6], 0.975)),]
-    tumorSample = tumorSample[which(as.numeric(tumorSample[,6]) > max(median(tumorSample[,6]) / 10, 30)),]
+    healthySample = healthySample[which(healthySample[,6] > max(median(healthySample[,6]) / 10, 20) & healthySample[,6] < quantile(healthySample[,6], 0.975)),]
+    healthyFeatures <- healthySample$Feature
+    tumorFeatures <- tumorSample$Feature
+    healthyFeatures = healthyFeatures[!(duplicated(healthyFeatures) | duplicated(healthyFeatures, fromLast = TRUE)) ]
+    tumorFeatures = tumorFeatures[!(duplicated(tumorFeatures) | duplicated(tumorFeatures, fromLast = TRUE)) ]
+    featuresPresentedInBoth <- intersect(healthyFeatures, tumorFeatures)
+    
+    tumorSample = tumorSample[which(tumorSample$Feature %in% featuresPresentedInBoth),]
+    tumorSample = tumorSample[which(as.numeric(tumorSample[,6]) + as.numeric(healthySample[,6]) > max(median(tumorSample[,6]) / 10, 40)),]
     if (nrow(healthySample) < 300 | nrow(tumorSample) < 300) {
       return(list(NULL, NULL))
     }
@@ -72,7 +79,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
         currentChrom = healthySample[i,1]
         matrOfBedRegionsInChrom = bedFileForFiltering[which(bedFileForFiltering[,1] == currentChrom),]
       }
-      ifItIsInsideBed <- which(matrOfBedRegionsInChrom[,2] - 100 <= healthySample[i,2] & matrOfBedRegionsInChrom[,3] + 100 >= healthySample[i,3])
+      ifItIsInsideBed <- which(as.numeric(matrOfBedRegionsInChrom[,2]) - 100 <= as.numeric(healthySample[i,2]) & as.numeric(matrOfBedRegionsInChrom[,3]) + 100 >= as.numeric(healthySample[i,3]))
       if (length(ifItIsInsideBed) == 0) {
         indicesOfSNVsToRemove <- c(indicesOfSNVsToRemove, i)
       }
@@ -108,7 +115,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     healthySample = healthySample[order(healthySample[,1], healthySample[,2]),]
     
     # Determining positions which are heterozygous 
-    potentiallyHeterozygous = as.numeric(healthySample[which(!(healthySample[,1] %in% c("chrX","chrY","X","Y")) & as.numeric(healthySample[,6]) > 25),5])
+    potentiallyHeterozygous = as.numeric(healthySample[which(!(healthySample[,1] %in% c("chrX","chrY","X","Y")) & as.numeric(healthySample[,6]) > 20),5])
     potentiallyHeterozygous <- potentiallyHeterozygous[which(potentiallyHeterozygous > 0.25 & potentiallyHeterozygous < 0.75)]
     print(summary(potentiallyHeterozygous))
     if (!is.na(potentiallyHeterozygous)) {
@@ -125,6 +132,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
         closestDepth = which.min(abs(healthySample[l,6] - overdispersionCorrectionNormal[,2]))
         overdispersionFactors[l] = overdispersionCorrectionNormal[closestDepth,1]
       }
+      clusterExport(cl, c('heterozygousAlleleShift', 'overdispersionFactors'))
       heterozygousPositions <- parApply(cl=cl, healthySample[,5:6], 1, function(vec) {determineHeterozygousPositionsOverdispersed(as.numeric(vec[1]), as.numeric(vec[2]), heterozygousAlleleShift, overdispersionFactors)})
     }
     healthySample = healthySample[heterozygousPositions, ]
