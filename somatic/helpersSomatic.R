@@ -825,12 +825,12 @@ probeLevelQC <- function(matrixOfLogFoldForCalc, sdsOfProbes, sdsOfSomaticSample
   qnRatios = Qn(ratios)
   medianRatio = median(ratios)
   plot(ratios, col=rgb(0,0,0,0.1), pch=19)
-  points(ratios[which(( ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX"))] ~
-           which(( ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), col=rgb(1,0,0,0.5), pch=19)
+  points(ratios[which(( ratios < medianRatio - 3 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX"))] ~
+           which(( ratios < medianRatio - 3 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), col=rgb(1,0,0,0.5), pch=19)
   sdsOfProbesCorrected = sdsOfProbes
-  sdsOfProbesCorrected[which(ratios > medianRatio + 2.32 * qnRatios)] = sdsOfProbesCorrected[which(ratios > medianRatio + 2.32 * qnRatios)] * ratios[which(ratios > medianRatio + 2.32 * qnRatios)]
+  sdsOfProbesCorrected[which(ratios > medianRatio + 3 * qnRatios)] = sdsOfProbesCorrected[which(ratios > medianRatio + 3 * qnRatios)] * ratios[which(ratios > medianRatio + 3 * qnRatios)]
   
-  return(list(which((ratios < medianRatio - 2.32 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), sdsOfProbesCorrected))
+  return(list(which((ratios < medianRatio - 3 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), sdsOfProbesCorrected))
 }
 
 
@@ -838,11 +838,18 @@ probeLevelQC <- function(matrixOfLogFoldForCalc, sdsOfProbes, sdsOfSomaticSample
 returnCoordsThatNeedToBeNull = function(bedFile, fileNameWithGermlineVars) {
   coordsToMakeNull = c()
   if(file.exists(fileNameWithGermlineVars)) {
+    tryCatch({
     germlineVars <- read.table(fileNameWithGermlineVars, stringsAsFactors = F)
     if (nrow(germlineVars) > 0)
       for (j in 1:nrow(germlineVars)) {
         coordsToMakeNull = c(coordsToMakeNull, which(bedFile[,1] == germlineVars[j,1] & as.numeric(bedFile[,2]) >= as.numeric(germlineVars[j,2]) & as.numeric(bedFile[,3]) <= as.numeric(germlineVars[j,3])))
       }
+    }
+    , error = function(err) {
+      print(err)
+      
+    }
+    )
   }
   return(coordsToMakeNull)
 }
@@ -850,30 +857,30 @@ returnCoordsThatNeedToBeNull = function(bedFile, fileNameWithGermlineVars) {
 
 
 normalizeToCommonMedian <- function(normalCov, tumorCov, bedFileForCalc, genderOfSamplesLocal) {
-  normalCov = (normalCov)
-  tumorCov = (tumorCov)
-  mediansOfCoverageAfterNorm = rep(0, nrow(normalCov))
+  normalCovForCalc = (normalCov)
+  #tumorCovForCalc = (tumorCov)
+  mediansOfCoverageAfterNorm = rep(0, nrow(normalCovForCalc))
   whichAutosomes = which(!bedFileForCalc[,1] %in% c("chrX", "chrY"))
   for (i in whichAutosomes) {
-    mediansOfCoverageAfterNorm[i] = median(normalCov[i,])
+    mediansOfCoverageAfterNorm[i] = median(normalCovForCalc[i,])
   }
   females = genderOfSamplesLocal[which(genderOfSamplesLocal == "F")]
   males = genderOfSamplesLocal[which(genderOfSamplesLocal == "M")]
-  whichAreMales = which(colnames(normalCov) %in% names(males))
-  whichAreFemales = which(colnames(normalCov) %in% names(females))
+  whichAreMales = which(colnames(normalCovForCalc) %in% names(males))
+  whichAreFemales = which(colnames(normalCovForCalc) %in% names(females))
   chrX = which(bedFileForCalc[,1] == "chrX")
   for (i in 1:length(chrX)) {
-    normalCov[chrX[i],whichAreMales] = sample(normalCov[chrX[i],whichAreFemales], length(whichAreMales), replace = T)
+    normalCovForCalc[chrX[i],whichAreMales] = sample(normalCovForCalc[chrX[i],whichAreFemales], length(whichAreMales), replace = T)
   }
   for (i in chrX) {
-    mediansOfCoverageAfterNorm[i] = median(normalCov[i,])
+    mediansOfCoverageAfterNorm[i] = median(normalCovForCalc[i,])
   }
   chrY = which(bedFileForCalc[,1] == "chrY")
   for (i in 1:length(chrY)) {
-    normalCov[chrY[i],whichAreFemales] = sample(normalCov[chrY[i],whichAreMales], length(whichAreFemales), replace = T)
+    normalCovForCalc[chrY[i],whichAreFemales] = sample(normalCovForCalc[chrY[i],whichAreMales], length(whichAreFemales), replace = T)
   }
   for (i in chrY) {
-    mediansOfCoverageAfterNorm[i] = median(normalCov[i,])
+    mediansOfCoverageAfterNorm[i] = 2 * median(normalCovForCalc[i,])
   }
   normalCov = sweep(normalCov, 1, mediansOfCoverageAfterNorm, FUN="/")
   tumorCov = sweep(tumorCov, 1, mediansOfCoverageAfterNorm, FUN="/")
