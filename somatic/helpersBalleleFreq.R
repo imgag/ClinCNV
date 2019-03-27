@@ -43,7 +43,7 @@ passPropTestVarCorrection <- function(numOne, numTwo, refOne, refTwo, overdispNo
 
 
 
-determineHeterozygousPositions <- function(freq, depth, probAB=0.48) {
+determineHeterozygousPositions <- function(freq, depth, probAB=0.48, threshold = 0.01) {
   prob = pbinom(round(freq * depth), prob=probAB, size=depth)
   if (is.na(prob)) {
     print("NA in B-allele")
@@ -51,7 +51,7 @@ determineHeterozygousPositions <- function(freq, depth, probAB=0.48) {
     print(depth)
     return(F)
   }
-  if ((prob > 0.01 & prob < 0.99)) {
+  if ((prob > threshold & prob < 1 - threshold)) {
     return(T)
   } else {
     return(F)
@@ -181,8 +181,9 @@ likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, stateUsed, multiplie
 extractVariancesFromBAF <- function(bafTable, expectedValue) {
   freqs = as.numeric(bafTable[,5])
   depths = as.numeric(bafTable[,6])
-  depths = depths[which(freqs > expectedValue - 0.1 & freqs < expectedValue + 0.1)]
-  freqs = freqs[which(freqs > expectedValue - 0.1 & freqs < expectedValue + 0.1)]
+  pbinoms <- sapply(1:length(freqs), function(i) {determineHeterozygousPositions(freqs[i], depths[i], expectedValue, 0.005)})
+  depths = depths[which(pbinoms == T)]
+  freqs = freqs[which(pbinoms == T)]
   if (length(depths) <= 100) {
     return(cbind(rep(1, length(depths)), depths))
   }
