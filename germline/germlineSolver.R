@@ -266,7 +266,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           if (length(positionsToRemove) > 0) {
             toyCoverageGermlineWithoutNonMosaicCNVs = toyCoverageGermlineWithoutNonMosaicCNVs[-positionsToRemove]
           }
-          rollingThrowCoverage = runmed(toyCoverageGermlineWithoutNonMosaicCNVs, max(3, opt$lengthG * 2))
+          rollingThrowCoverage = runmed(toyCoverageGermlineWithoutNonMosaicCNVs, max(10, opt$lengthG * 2))
           standDevOfRolling = Qn(rollingThrowCoverage)
           locationOfRolling = median(rollingThrowCoverage)
           if (max(abs(rollingThrowCoverage - locationOfRolling)) > max(3 * standDevOfRolling, 0.2) & !chrom %in% c("chrX", "chrY")) {

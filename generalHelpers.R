@@ -296,6 +296,16 @@ maxSubArraySum <- function(x){
   return(c(bestSoFar, bestStartIndexSoFar, bestStopIndexSoFar))
 }
 
+intersectionOfTwoIntervals = function(start1, end1, start2, end2) {
+  if (end1 < start2 | end2 < start1) {
+    return(-1)
+  } else {
+    first = max(start1, start2)
+    second = min(end1, end2)
+    return(second - first)
+  }
+}
+
 find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, min_CNV_len, blocked_states) {
   # sweeping the likelihoods
   subset_matrix <- -1 * matrix_of_likeliks_local[j:k,,drop=F]
@@ -310,6 +320,23 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, 
   }
   detectedCNVs = matrix(detectedCNVs, ncol=3)
   resultCNV = detectedCNVs[which.max(detectedCNVs[,1]),]
+
+  while (resultCNV[1] > threshold & resultCNV[3] - resultCNV[2] < min_CNV_len) {
+    start = resultCNV[2]
+    end = resultCNV[3]
+    factor = resultCNV[1] / (threshold - 1)
+    matrix_of_likeliks_local[(j + resultCNV[2] - 1):(j + resultCNV[3] - 1),] = as.matrix(matrix_of_likeliks_local[(j + resultCNV[2] - 1):(j + resultCNV[3] - 1),] / factor)
+    subset_matrix <- -1 * matrix_of_likeliks_local[j:k,,drop=F]
+    matrix_of_BFs <- sweep(subset_matrix, 1, subset_matrix[,main_state], FUN="-")
+    statesToRecalculate = c()
+    for (i in 1:nrow(detectedCNVs)) {
+      if (intersectionOfTwoIntervals(detectedCNVs[i,2], detectedCNVs[i,3], start, end) >= 0) {
+        statesToRecalculate = c(statesToRecalculate, i)
+        detectedCNVs[i,] = maxSubArraySum(matrix_of_BFs[,sequence_for_iteration[i]])
+      }
+    }
+    resultCNV = detectedCNVs[which.max(detectedCNVs[,1]),]
+  }
   if (resultCNV[1] > threshold) {
     resultCNV[2] = j + resultCNV[2] - 1
     resultCNV[3] = j + resultCNV[3] - 1
@@ -318,10 +345,7 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, 
     resultCNV = coords_of_CNVs
   }
   coords_of_CNVs = unname(resultCNV)
-  if (coords_of_CNVs != c(0,0,0,0)) {
-    return(coords_of_CNVs)
-  }
-  return(c(0,0,0,0))
+  return(list(coords_of_CNVs, matrix_of_likeliks_local))
 }
 
 
@@ -337,7 +361,9 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
     allowed_length = max(3, minimum_length_of_CNV)
     flag_not_found_or_too_short = F
     if (end - start > allowed_length){
-      found_CNV = find_one_CNV(start, end, current_region_to_look_for_CNVs[4], threshold, matrix_of_likeliks_local, minimum_length_of_CNV, blocked_states)
+      listOfFoundCNVs = find_one_CNV(start, end, current_region_to_look_for_CNVs[4], threshold, matrix_of_likeliks_local, minimum_length_of_CNV, blocked_states)
+      found_CNV = listOfFoundCNVs[[1]]
+      matrix_of_likeliks_local = listOfFoundCNVs[[2]]
       if (found_CNV[4] == 0)
         flag_not_found_or_too_short = T
     } else {

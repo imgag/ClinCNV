@@ -326,7 +326,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       } else {
         threshold = opt$scoreS
       }
-      price_per_tile = 0.1
+      price_per_tile = 0.01
       initial_state <- 1
       
       
@@ -654,7 +654,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
           blocked_states = c()
           if (length(toyLogFoldChange) > opt$lengthS) {
-            arrayOfMediansOfToyLogFold = runmed(toyLogFoldChange, round(opt$lengthS/ 2))
+            arrayOfMediansOfToyLogFold = runmed(toyLogFoldChange, round(opt$lengthS))
             #arrayOfMediansOfToyLogFold <- sapply(1:(length(toyLogFoldChange) - opt$lengthS), function(i) {median(toyLogFoldChange[i:(i + opt$lengthS)])})
             if (!finalIteration) {
               diffsFromCoverage <- sapply(1:length(local_cn_states), function(i) {min(abs(log2(local_cn_states[i] / local_cn_states[initial_state]) - (arrayOfMediansOfToyLogFold)))})
