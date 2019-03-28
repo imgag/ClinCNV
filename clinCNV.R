@@ -140,12 +140,10 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
-# TESTING FOR MARK
-opt$normal = "/Users/gdemidov/Downloads/vc_clincnv_germline_71O5lM.cov"
-opt$bed = "/Users/gdemidov/Downloads/roi_annotated.bed"
-opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/"
-opt$superRecall = 5
-opt$out = "/Users/gdemidov/Tuebingen/For_Mark/"
+
+
+
+
 
 
 

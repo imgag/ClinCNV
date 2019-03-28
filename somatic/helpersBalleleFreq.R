@@ -44,6 +44,7 @@ passPropTestVarCorrection <- function(numOne, numTwo, refOne, refTwo, overdispNo
 
 
 determineHeterozygousPositions <- function(freq, depth, probAB=0.48, threshold = 0.01) {
+  if (freq < probAB - 0.1 | freq > probAB + 0.1) return(F)
   prob = pbinom(round(freq * depth), prob=probAB, size=depth)
   if (is.na(prob)) {
     print("NA in B-allele")
@@ -61,6 +62,7 @@ determineHeterozygousPositions <- function(freq, depth, probAB=0.48, threshold =
 
 
 determineHeterozygousPositionsOverdispersed <- function(freq, depth, probAB=0.48, overdispersionFactors) {
+  if (freq < probAB - 0.1 | freq > probAB + 0.1) return(F)
   standardDeviation = sqrt(probAB * (1 - probAB) * depth * overdispersionFactors)
   prob = 2 * pnorm( -abs(round(freq * depth) - round(probAB * depth)) / standardDeviation)
   if (is.na(prob)) {
@@ -69,7 +71,7 @@ determineHeterozygousPositionsOverdispersed <- function(freq, depth, probAB=0.48
     print(depth)
     return(F)
   }
-  if ((prob > 0.1)) {
+  if ((prob > 0.05)) {
     return(T)
   } else {
     return(F)
