@@ -76,18 +76,23 @@ determineHeterozygousPositionsOverdispersed <- function(freq, depth, probAB=0.48
   }
 }
 
+roundUpToDegree = function(num, digits) {
+  num = round(num * degree) / degree
+}
 
 
-
-likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, stateUsed, multiplierOfSNVsDueToMapping, pList, overdispersionValue) {
+likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, stateUsed, multiplierOfSNVsDueToMapping, pList, degreeOfRoughness, overdispersionValue) {
+  roundUpToDegree = function(num, digits) {
+    round(num * digits) / digits
+  }
   multiplierDueToMapping = multiplierOfSNVsDueToMapping / 0.5
   overallNumberOfReads <- (1 - pur) * 2 + pur * (cn)
   pListChanged = F
   if (cn != 0 & cn != 2 & stateUsed == "CNV") {
     numberOfReadsSupportiveOne1 <- (1 - pur) + pur * (cn - 1)
     numberOfReadsSupportiveOne2 <- 1 # (1 - pur) + pur * 1
-    pUsed1=round(multiplierDueToMapping * min(0.99, numberOfReadsSupportiveOne1 / overallNumberOfReads), digits=2)
-    pUsed2=round(multiplierDueToMapping * max(0.01, numberOfReadsSupportiveOne2 / overallNumberOfReads), digits=2)
+    pUsed1=roundUpToDegree(multiplierDueToMapping * min(0.99, numberOfReadsSupportiveOne1 / overallNumberOfReads), digits=degreeOfRoughness)
+    pUsed2=roundUpToDegree(multiplierDueToMapping * max(0.01, numberOfReadsSupportiveOne2 / overallNumberOfReads), digits=degreeOfRoughness)
     if (!as.character(pUsed1) %in% names(pList)) {
       pList[[as.character(pUsed1)]] = likelihoodOfSNV(value, depth, pUsed1, overdispersionValue)
       pListChanged=T
@@ -103,14 +108,14 @@ likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, stateUsed, multiplie
     finalLikelihood = log(likelihoodOfSNV(value, depth, multiplierDueToMapping * 0.5, overdispersionValue))
   } else if (stateUsed %in% c("LOH", "LOHDup")) {
     if (cn == 2) {
-     pUsed1=round(multiplierDueToMapping * max(0.01, 0.5 - pur/2), digits=2)
-      pUsed2=round(multiplierDueToMapping * min(0.99, 0.5 + pur/2), digits=2)
+     pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, 0.5 - pur/2), digits=degreeOfRoughness)
+      pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, 0.5 + pur/2), digits=degreeOfRoughness)
     } else if (cn == 3) {
-      pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 2 * pur) / (2 + pur)), digits=2)
-      pUsed2=round(multiplierDueToMapping * min(0.99, (1 - pur) / (2 + pur)), digits=2)
+      pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 2 * pur) / (2 + pur)), digits=degreeOfRoughness)
+      pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 - pur) / (2 + pur)), digits=degreeOfRoughness)
     } else if (cn == 4) {
-      pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 3 * pur) / (2 + 2 * pur)), digits=2)
-      pUsed2=round(multiplierDueToMapping * min(0.99, (1 - pur) / (2 + 2 * pur)), digits=2)
+      pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 3 * pur) / (2 + 2 * pur)), digits=degreeOfRoughness)
+      pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 - pur) / (2 + 2 * pur)), digits=degreeOfRoughness)
     }
     if (!as.character(pUsed1) %in% names(pList)) {
       pList[[as.character(pUsed1)]] = likelihoodOfSNV(value, depth, pUsed1, overdispersionValue)
@@ -123,7 +128,7 @@ likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, stateUsed, multiplie
     finalLikelihood = log(0.5 * pList[[as.character(pUsed1)]] + 
                             0.5 * pList[[as.character(pUsed2)]])
   }  else if (stateUsed == "CNVboth" | stateUsed == "normal") {
-    pUsed = round((multiplierDueToMapping * 0.5), digits=2)
+    pUsed = roundUpToDegree((multiplierDueToMapping * 0.5), digits=degreeOfRoughness)
     if (!as.character(pUsed) %in% names(pList)) {
       pList[[as.character(pUsed)]] = (likelihoodOfSNV(value, depth, pUsed, overdispersionValue))
       pListChanged=T
@@ -131,27 +136,27 @@ likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, stateUsed, multiplie
     finalLikelihood = log(pList[[as.character(pUsed)]])
   } else if (stateUsed == "CNVcomplex2" | stateUsed == "CNVcomplex3") {
     if (cn == 5) {
-      pUsed1=round(multiplierDueToMapping * max(0.01, (1 + pur) / (2 + 3 * pur)), digits=2)
-      pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 3* pur)), digits=2)
+      pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + pur) / (2 + 3 * pur)), digits=degreeOfRoughness)
+      pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 3* pur)), digits=degreeOfRoughness)
 
     } else if (cn == 6) {
-      pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 1 * pur) / (2 + 4 * pur)), digits=2)
-      pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 3 * pur) / (2 + 4 * pur)), digits=2)
+      pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 1 * pur) / (2 + 4 * pur)), digits=degreeOfRoughness)
+      pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 + 3 * pur) / (2 + 4 * pur)), digits=degreeOfRoughness)
     } else if (cn == 7) {
       if (stateUsed == "CNVcomplex3") {
-        pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 3 * pur) / (2 + 5 * pur)), digits=2)
-        pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 5 * pur)), digits=2)
+        pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 3 * pur) / (2 + 5 * pur)), digits=degreeOfRoughness)
+        pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 5 * pur)), digits=degreeOfRoughness)
       } else {
-        pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 4 * pur) / (2 + 5 * pur)), digits=2)
-        pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 1 * pur) / (2 + 5 * pur)), digits=2)
+        pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 4 * pur) / (2 + 5 * pur)), digits=degreeOfRoughness)
+        pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 + 1 * pur) / (2 + 5 * pur)), digits=degreeOfRoughness)
     }
     } else if (cn == 8) {
       if (stateUsed == "CNVcomplex3") {
-        pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 4 * pur) / (2 + 6 * pur)), digits=2)
-        pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 6 * pur)), digits=2)
+        pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 4 * pur) / (2 + 6 * pur)), digits=degreeOfRoughness)
+        pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 6 * pur)), digits=degreeOfRoughness)
       } else {
-        pUsed1=round(multiplierDueToMapping * max(0.01, (1 + 1 * pur) / (2 + 6 * pur)), digits=2)
-        pUsed2=round(multiplierDueToMapping * min(0.99, (1 + 5 * pur) / (2 + 6 * pur)), digits=2)
+        pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 1 * pur) / (2 + 6 * pur)), digits=degreeOfRoughness)
+        pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 + 5 * pur) / (2 + 6 * pur)), digits=degreeOfRoughness)
       }
     }
     if (!as.character(pUsed1) %in% names(pList)) {
