@@ -457,6 +457,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
     varsInside = which(as.numeric(bafNormalChr[,2]) >= startOfCNV & as.numeric(bafNormalChr[,3]) <= endOfCNV)
     if (as.numeric(puritiesOfStates[found_CNVs[q,4]]) < clonalityForChecking) {
       if (length(varsInside) < 5) {
+        print(paste("We remove potential CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "due to absence of BAF there"))
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
       } else {
         pvalsOfVariants <- rep(1, length(varsInside))
@@ -478,9 +479,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
       }
     }
     if (as.numeric(puritiesOfStates[found_CNVs[q,4]]) > clonalityForChecking) {
-      if (length(varsInside) < 5) {
-        cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
-      } else {
+      if (length(varsInside) >= 5) {
         pvalsOfVariants <- rep(1, length(varsInside))
         for (l in 1:length(varsInside)) {
           var = varsInside[l]
