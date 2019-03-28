@@ -446,6 +446,10 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         if (length(position) == 1) {
           bAlleleFreqsTumor <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] ]]
           bAlleleFreqsNormal <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2] ]]
+          degreeOfRoughness = round(median(bAlleleFreqsTumor[,6]))
+          if (finalIteration) {
+            degreeOfRoughness = round(quantile(bAlleleFreqsTumor[,6], 0.9))
+          }
           if (genderOfSamples[germline_sample_no] == "M") {
             bAlleleFreqsTumor = bAlleleFreqsTumor[which(!bAlleleFreqsTumor[,1] %in% c("chrX", "chrY")),]
             bAlleleFreqsNormal = bAlleleFreqsNormal[which(!bAlleleFreqsNormal[,1] %in% c("chrX", "chrY")),]
@@ -524,10 +528,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                   pur = local_purities[j]
                   cn = local_copy_numbers_used[j]
                   stateUsed = local_cnv_states[j]
-                  degreeOfRoughness = 20
-                  if (finalIteration) {
-                    degreeOfRoughness = 100
-                  }
                   listOfLikelikAndPList = likelihoodOfSNVBasedOnCN(altAlleleDepth, overallDepth, pur, cn, stateUsed, multiplierOfSNVsDueToMapping, pList, degreeOfRoughness, overdispersionValue)
                   
                   likelihood = -2 * listOfLikelikAndPList[[1]]
