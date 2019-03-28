@@ -326,7 +326,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       } else {
         threshold = opt$scoreS
       }
-      price_per_tile = 0.01
+      price_per_tile = 0.025
       initial_state <- 1
       
       
@@ -667,6 +667,10 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               blocked_states = c(setdiff(c(1,2), initial_state),
                                  which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
             }
+            if (genderOfSamples[germline_sample_no] == "M" & chrom %in% c("chrX","chrY")) {
+              blocked_states = c(blocked_states, which(local_cnv_states %in% c("LOH", "LOHDup", "CNVcomplex2", "CNVcomplex3", "CNVboth")))
+            }
+            blocked_states = unique(blocked_states)
             if (initial_state %in% blocked_states) {
               blocked_states = blocked_states[-which(blocked_states == initial_state)]
             }
@@ -674,6 +678,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               blocked_states <- c()
             }
           }
+
           # BLOCK WITH PENALTIES
           copy_numbers_for_penalties = 3 - local_copy_numbers_used
           copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
