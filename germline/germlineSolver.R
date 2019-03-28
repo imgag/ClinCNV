@@ -223,7 +223,17 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             }
             armFinalized = T
           }
-          
+          if (opt$superRecall < opt$scoreG) {
+            if (nrow(found_CNVs) > 0) {
+              for (z in 1:nrow(found_CNVs)) {
+                startOfCNV = found_CNVs[z,2]
+                endOfCNV = found_CNVs[z,3]
+                toyMatrixOfLikeliks[max(1, startOfCNV - 1):min(endOfCNV + 1, nrow(toyMatrixOfLikeliks)),] = 0
+              }
+            }
+            found_CNVs_recall <- as.matrix(find_all_CNVs(0, opt$superRecall, 0, initial_state, toyMatrixOfLikeliks, initial_state))
+          }
+          found_CNVs = rbind(found_CNVs, found_CNVs_recall)
 
           
           # Due to inroduction of covariances intermediate probes we need to remap our variants back to the original bedFileFiltered
@@ -325,7 +335,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
             reverseFunctionUsedToTransform = function(x, chrom) {return((2 * x ** 2))}
             outputSegmentsAndDotsFromListOfCNVs(toybedFileFiltered, found_CNVs, start, end, outputFileNameCNVs, 
-                                                outputFileNameDots, sample_name, toyCoverageGermline, reverseFunctionUsedToTransform, local_cn_states)
+                                                outputFileNameDots, sample_name, toyCoverageGermline, reverseFunctionUsedToTransform, local_cn_states, localSds)
             if(opt$debug) {
               print("END OF IGV PLOTTING")
             }

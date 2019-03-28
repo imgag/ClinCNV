@@ -441,7 +441,7 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
 
 
 outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfChromPiece, endOfChromPiece, outputFileNameCNVs, 
-                                         outputFileNameDots, ID, dotsCoords, reverseFunctionUsedToTransform, cn_states) {
+                                         outputFileNameDots, ID, dotsCoords, reverseFunctionUsedToTransform, cn_states, sdsOfDots=c()) {
   maxCopyNumber = 8
   if (nrow(toyBedFile) == 0 || length(dotsCoords) == 0) {
     return(0)
@@ -451,9 +451,15 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
       if (!file.exists(fileName)) {
         file.create(fileName)
         fileConn<-file(fileName)
+        if (length(sdsOfDots) != nrow(toyBedFile) | fileName != outputFileNameDots) {
         writeLines(c("#type=GENE_EXPRESSION",
                      paste0("#track graphtype=points name=\"", ID, "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:8 yLineMark=2 yLineOnOff=on"),
                      paste("ID", "chr", "start", "end", "CN", "loglik", "value", sep="\t")), fileConn)
+        } else {
+          writeLines(c("#type=GENE_EXPRESSION",
+                       paste0("#track graphtype=points name=\"", ID, "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:8 yLineMark=2 yLineOnOff=on"),
+                       paste("ID", "chr", "start", "end", "CN", "loglik", "variance", "value", sep="\t")), fileConn)
+        }
         
         close(fileConn)
       }
@@ -487,7 +493,9 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
       start = toyBedFile[i,2]
       end = toyBedFile[i,3]
       valueToDisplay = min(maxCopyNumber, copyNumberValues[i])
-      copyNumberSegment = matrix(c(ID, chromosome, start, end, copyNumberValues[i], likelihoods[i], valueToDisplay), nrow=1, ncol=7)
+      if (length(sdsOfDots) != length(copyNumberValues)) {
+        copyNumberSegment = matrix(c(ID, chromosome, start, end, copyNumberValues[i], likelihoods[i], sdsOfDots[i], valueToDisplay), nrow=1, ncol=7)
+      }
       write(paste(copyNumberSegment[1,], collapse="\t"), file=outputFileNameDots, append=TRUE)
     }
   }
