@@ -737,7 +737,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                 reverseFunctionUsedToTransform = function(x, chroms) {return(2 ** (x + 1))}
               }
               outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
-                                                  outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, local_cn_states)
+                                                  outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, local_cn_states, toySds)
             }
             if(opt$debug) {
               print(paste("End of IGV plotting", Sys.time()))

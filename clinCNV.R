@@ -140,8 +140,7 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
-
-
+ 
 
 
 
