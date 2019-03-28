@@ -454,9 +454,8 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
         }
       }
     }
-    
+    varsInside = which(as.numeric(bafNormalChr[,2]) >= startOfCNV & as.numeric(bafNormalChr[,3]) <= endOfCNV)
     if (as.numeric(puritiesOfStates[found_CNVs[q,4]]) < clonalityForChecking) {
-      varsInside = which(as.numeric(bafNormalChr[,2]) >= startOfCNV & as.numeric(bafNormalChr[,3]) <= endOfCNV)
       if (length(varsInside) < 5) {
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
       } else {
@@ -478,7 +477,32 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
         }
       }
     }
+    if (as.numeric(puritiesOfStates[found_CNVs[q,4]]) > clonalityForChecking) {
+      if (length(varsInside) < 5) {
+        cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
+      } else {
+        pvalsOfVariants <- rep(1, length(varsInside))
+        for (l in 1:length(varsInside)) {
+          var = varsInside[l]
+          numOne = round(as.numeric(bafNormalChr[var,5]) * as.numeric(bafNormalChr[var,6]))
+          numTwo = round(as.numeric(bafTumorChr[var,5]) * as.numeric(bafTumorChr[var,6]))
+          refOne = as.numeric(bafNormalChr[var,6]) - numOne
+          refTwo = as.numeric(bafTumorChr[var,6]) - numTwo
+          overdispNorm = overdispersionNormalChr[var]
+          overdispTumo = overdispersionTumorChr[var]
+          pvalsOfVariants[l] = min(1, passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo))
+        }
+        mergedPvals = pchisq((sum(log(pvalsOfVariants))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
+        if (pbinom(length(which(pvalsOfVariants < 0.05)),  length(varsInside), 0.05, lower.tail = F) < 0.001 & mergedPvals < 0.0001) {
+          if (q %in% cnvsThatShowNoBAFdeviation) {
+            print(paste("We remain CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], " - it was filtered out but BAF shows that something is wrong"))
+            cnvsThatShowNoBAFdeviation = setdiff(cnvsThatShowNoBAFdeviation, q)
+          }
+        }
+      }
+    }
   }
+  cnvsThatShowNoBAFdeviation = unique(cnvsThatShowNoBAFdeviation)
   return(cnvsThatShowNoBAFdeviation)
 }
 

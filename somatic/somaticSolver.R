@@ -524,7 +524,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                   pur = local_purities[j]
                   cn = local_copy_numbers_used[j]
                   stateUsed = local_cnv_states[j]
-                  degreeOfRoughness = 15
+                  degreeOfRoughness = 20
                   if (finalIteration) {
                     degreeOfRoughness = 100
                   }
