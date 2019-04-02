@@ -150,6 +150,10 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
+
+
+
+
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -681,15 +685,17 @@ for (cluster in unique(clustering)) {
     samplesToAnalyse = which(clustering == cluster)
     genderOfSamples = genderOfSamplesCohort[samplesToAnalyse]
     tmpNormal = normal[,which(clustering == cluster)]
-    if (frameworkOff == "offtarget")
+    if (frameworkOff == "offtarget") {
       tmpNormalOff = normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))]
+      bedFileForClusterOff = bedFileOfftarget
+    }
     if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
       if (!opt$normalSample %in% colnames(tmpNormal)) {
         next
       }
     }
     bedFileForCluster = bedFile
-    bedFileForClusterOff = bedFileOfftarget
+    
     source(paste0(opt$folderWithScript, "/somatic/somaticSolver.R"),local=TRUE)
 }
 

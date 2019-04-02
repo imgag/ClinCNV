@@ -223,7 +223,11 @@ penaltyForHigherCNoneTile = 0.2
 clonalityForChecking = 0.4
 print(paste("Work on actual calling started.", Sys.time()))
 
+if (frameworkDataTypes == "covdepthBAF") {
 normalNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][2]})
+} else {
+  normalNames = c()
+}
 for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
   overdispersionNormal = NULL
@@ -232,6 +236,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   germline_sample_no = which(colnames(tmpNormal) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])
   germline_sample_name = colnames(tmpNormal)[germline_sample_no]
   tumor_sample_no = which(colnames(tumor) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1])
+  if (!frameworkOff == "ontarget")
   if (strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] %in% colnames(tumorOff)) {
     tumor_sample_no_off = which(colnames(tumorOff) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1])
     tumor_sample_name = strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1]
@@ -296,6 +301,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       local_cn_states <- cn_states
       local_multipliersDueToLog <- multipliersDueToLog
       local_cnv_states <- statesUsed
+      if (frameworkOff == "offtarget")
       if (sample_name %in% colnames(matrixOfLogFoldOff))
         local_multipliersDueToLogOff <- multipliersDueToLogOff
       
@@ -307,6 +313,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         local_cn_states <- cn_states[-indices_to_remove_by_purity]
         local_multipliersDueToLog <- multipliersDueToLog[-indices_to_remove_by_purity]
         local_cnv_states = local_cnv_states[-indices_to_remove_by_purity]
+        if (frameworkOff == "offtarget")
         if (sample_name %in% colnames(matrixOfLogFoldOff))
           local_multipliersDueToLogOff <- local_multipliersDueToLogOff[-indices_to_remove_by_purity]
       }
