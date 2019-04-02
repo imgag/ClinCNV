@@ -66,7 +66,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     featuresPresentedInBoth <- intersect(healthyFeatures, tumorFeatures)
     
     tumorSample = tumorSample[which(tumorSample$Feature %in% featuresPresentedInBoth),]
-    tumorSample = tumorSample[which(as.numeric(tumorSample[,6]) + as.numeric(healthySample[,6]) >  60 & as.numeric(tumorSample[,6]) > max(median(tumorSample[,6]) / 10, 10)),]
+    tumorSample = tumorSample[which(as.numeric(tumorSample[,6]) + as.numeric(healthySample[,6]) >  60 & as.numeric(tumorSample[,6]) > max(median(tumorSample[,6]) / 10, 15)),]
     if (nrow(healthySample) < 300 | nrow(tumorSample) < 300) {
       return(list(NULL, NULL))
     }

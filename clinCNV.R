@@ -533,7 +533,10 @@ orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
 bedFile = bedFile[orderOfBedFile,]
 normal = normal[orderOfBedFile,]
 
-
+#for (i in 1:nrow(trios)){
+#  if (clustering[which(names(clustering) == trios[i,1])] != clustering[which(names(clustering) == trios[i,2])] )
+#    print(i)
+#}
 
 print(paste("Gender estimation started", Sys.time()))
 genderOfSamplesCohort <- Determine.gender(sqrt(normal), bedFile)

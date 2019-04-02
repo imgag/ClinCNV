@@ -223,6 +223,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             }
             armFinalized = T
           }
+          found_CNVs_recall = NULL
           if (opt$superRecall < opt$scoreG) {
             if (nrow(found_CNVs) > 0) {
               for (z in 1:nrow(found_CNVs)) {
@@ -233,7 +234,9 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             }
             found_CNVs_recall <- as.matrix(find_all_CNVs(0, opt$superRecall, 0, initial_state, toyMatrixOfLikeliks, initial_state))
           }
-          found_CNVs = rbind(found_CNVs, found_CNVs_recall)
+          if (!is.null(found_CNVs_recall)) {
+            found_CNVs = rbind(found_CNVs, found_CNVs_recall)
+          }
 
           
           # Due to inroduction of covariances intermediate probes we need to remap our variants back to the original bedFileFiltered

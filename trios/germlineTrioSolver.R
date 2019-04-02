@@ -3,7 +3,7 @@
 cn_states <- 0:6
 
 
-
+vect_of_norm_likeliks <- fast_dt_list(as.numeric(opt$degreesOfFreedomStudent))
 
 
 
@@ -52,7 +52,9 @@ vectors_of_cn_states = unique(vectors_of_cn_states)
 
 setwd(opt$folderWithScript)
 source("./trios/helpersTrio.R")
-
+no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
+cl<-makeCluster(no_cores, type="FORK")
+registerDoParallel(cl)
 for (trioRow in 1:nrow(trios)) {
   child_number <- which(colnames(coverage.normalised) == trios[trioRow, 1])
   mother_number  <- which(colnames(coverage.normalised) == trios[trioRow, 2])
@@ -80,14 +82,14 @@ for (trioRow in 1:nrow(trios)) {
   initial_state <- 1
   
   
-  localSdsChild = sdsOfProbes * esimtatedVarianceFromSampleNoise[child_number] * multiplicator
-  localSdsMother = sdsOfProbes * esimtatedVarianceFromSampleNoise[mother_number] * multiplicator
-  localSdsFather = sdsOfProbes * esimtatedVarianceFromSampleNoise[father_number] * multiplicator
+  localSdsChild = sdsOfProbes * sdsOfGermlineSamples[child_number] 
+  localSdsMother = sdsOfProbes * sdsOfGermlineSamples[mother_number] 
+  localSdsFather = sdsOfProbes * sdsOfGermlineSamples[father_number] 
   
   if (!dir.exists(paste0(folder_name, sample_name))) {
     dir.create(paste0(folder_name, sample_name))
   } else {
-    if (opt$reanalyseCohort == F) {
+    if (!is.null(opt$reanalyseCohort)) {
       next
     }
   }
@@ -104,13 +106,54 @@ for (trioRow in 1:nrow(trios)) {
   matrix_of_likeliks_mother <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised), mother_number, localSdsMother, coverage.normalised, sqrt(cn_states_mother / 2))
   matrix_of_likeliks_father <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised), father_number, localSdsFather, coverage.normalised, sqrt(cn_states_father / 2))
   
-  matrix_of_likeliks = matrix(0, nrow=nrow(matrix_of_likeliks_child), ncol=nrow(vectors_of_cn_states))
+  globalBed = bedFile
+  matrix_of_likeliks_child_full = matrix_of_likeliks_child
+  matrix_of_likeliks_mother_full = matrix_of_likeliks_mother
+  matrix_of_likeliks_father_full = matrix_of_likeliks_father
+  coverageChildFull = coverage.normalised[,child_number]
+  coverageMotherFull = coverage.normalised[,mother_number]
+  coverageFatherFull = coverage.normalised[,father_number]
+  if (frameworkOff == "offtargetGermline") {
+    child_number_off <- which(colnames(coverage.normalised.off) == trios[trioRow, 1])
+    mother_number_off  <- which(colnames(coverage.normalised.off) == trios[trioRow, 2])
+    father_number_off  <- which(colnames(coverage.normalised.off) == trios[trioRow, 3])
+    if (length(child_number_off) == 1 | length(father_number_off) == 1 | length(mother_number_off) == 1) {
+      localSdsChildOff = sdsOfProbesOff * sdsOfGermlineSamplesOff[child_number] 
+      localSdsMotherOff = sdsOfProbesOff * sdsOfGermlineSamplesOff[mother_number] 
+      localSdsFatherOff = sdsOfProbesOff * sdsOfGermlineSamplesOff[father_number] 
+      matrix_of_likeliks_child_off <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised.off), child_number, localSdsChild, coverage.normalised.off, sqrt(cn_states_child / 2))
+      matrix_of_likeliks_mother_off <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised.off), mother_number, localSdsMother, coverage.normalised.off, sqrt(cn_states_mother / 2))
+      matrix_of_likeliks_father_off <- form_matrix_of_likeliks_one_sample(1, ncol(coverage.normalised.off), father_number, localSdsFather, coverage.normalised.off, sqrt(cn_states_father / 2))
+      
+      matrix_of_likeliks_child_full = rbind(matrix_of_likeliks_child, matrix_of_likeliks_child_off)
+      matrix_of_likeliks_mother_full = rbind(matrix_of_likeliks_mother, matrix_of_likeliks_mother_off)
+      matrix_of_likeliks_father_full = rbind(matrix_of_likeliks_father, matrix_of_likeliks_father_off)
+      
+      globalBed = rbind(bedFile, bedFileOfftarget)
+      
+      orderOfGlobalBed = order(globalBed[,1], as.numeric(globalBed[,2]))
+      matrix_of_likeliks_child_full = matrix_of_likeliks_child_full[orderOfGlobalBed,]
+      matrix_of_likeliks_mother_full = matrix_of_likeliks_mother_full[orderOfGlobalBed,]
+      matrix_of_likeliks_father_full = matrix_of_likeliks_father_full[orderOfGlobalBed,]
+      globalBed = globalBed[orderOfGlobalBed,]
+      
+      coverageChildFull = c(coverageChildFull, coverage.normalised.off[,child_number_off] )
+      coverageMotherFull = c(coverageMotherFull, coverage.normalised.off[,mother_number_off] )
+      coverageFatherFull = c(coverageFatherFull, coverage.normalised.off[,father_number_off] )
+      coverageChildFull = coverageChildFull[orderOfGlobalBed]
+      coverageMotherFull = coverageMotherFull[orderOfGlobalBed]
+      coverageFatherFull = coverageFatherFull[orderOfGlobalBed]
+    }
+  } 
+
+  
+  matrix_of_likeliks = matrix(0, nrow=nrow(matrix_of_likeliks_child_full), ncol=nrow(vectors_of_cn_states))
   for (i in 1:nrow(vectors_of_cn_states)) {
     child_state = which(cn_states_child == vectors_of_cn_states[i,1])
     mother_state = which(cn_states_mother == vectors_of_cn_states[i,2])
     father_state = which(cn_states_father == vectors_of_cn_states[i,3])
     
-    matrix_of_likeliks[,i] = matrix_of_likeliks_child[,child_state] + matrix_of_likeliks_mother[,mother_state] + matrix_of_likeliks_father[,father_state]
+    matrix_of_likeliks[,i] = matrix_of_likeliks_child_full[,child_state] + matrix_of_likeliks_mother_full[,mother_state] + matrix_of_likeliks_father_full[,father_state]
   }
   
   matrix_of_likeliks_read_depth_only = matrix_of_likeliks
@@ -151,12 +194,12 @@ for (trioRow in 1:nrow(trios)) {
         output_of_plots <-  paste0(folder_name, sample_name)
         which_to_allow <- "NA"
         if (k == 1) {
-          which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] <= as.numeric(start) )
+          which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] <= as.numeric(start) )
         } else {
-          which_to_allow = which(bedFile[,1] == chrom & bedFile[,2] >= as.numeric(end) )
+          which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] >= as.numeric(end) )
         }
         toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
-        toyBedFile = bedFile[which_to_allow,]
+        toyBedFile = globalBed[which_to_allow,]
         found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, initial_state))
         
         
@@ -164,29 +207,29 @@ for (trioRow in 1:nrow(trios)) {
         
         ### IGV PLOTTING
         
-        toyLogFoldChangeChild = coverage.normalised[which_to_allow,child_number]
+        toyLogFoldChangeChild = coverageChildFull[which_to_allow]
         toySizesOfPointsFromLocalSdsChild = sizesOfPointsFromLocalSds[which_to_allow]
         outputFileNameCNVsChild <- paste0(folder_name, sample_name, "/", child_name, "_cnvs.seg")
         outputFileNameDotsChild <- paste0(folder_name, sample_name, "/", child_name, "_cov.seg")
-        reverseFunctionUsedToTransform = function(x) {return((2 * x ** 2))}
+        reverseFunctionUsedToTransform = function(x, chrom) {return((2 * x ** 2))}
         outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVsChild, 
-                                            outputFileNameDotsChild, child_name, toyLogFoldChangeChild, reverseFunctionUsedToTransform, local_vectors_of_cn_states[,1])
+                                            outputFileNameDotsChild, paste0(child_name, "_kid"), toyLogFoldChangeChild, reverseFunctionUsedToTransform, local_vectors_of_cn_states[,1])
         
-        toyLogFoldChangeMother = coverage.normalised[which_to_allow,mother_number]
+        toyLogFoldChangeMother = coverageMotherFull[which_to_allow]
         toySizesOfPointsFromLocalSdsMother = sizesOfPointsFromLocalSds[which_to_allow]
         outputFileNameCNVsMother <- paste0(folder_name, sample_name, "/", mother_name, "_cnvs.seg")
         outputFileNameDotsMother <- paste0(folder_name, sample_name, "/", mother_name, "_cov.seg")
-        reverseFunctionUsedToTransform = function(x) {return((2 * x ** 2))}
+        reverseFunctionUsedToTransform = function(x, chrom) {return((2 * x ** 2))}
         outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVsMother, 
-                                            outputFileNameDotsMother, mother_name, toyLogFoldChangeMother, reverseFunctionUsedToTransform, local_vectors_of_cn_states[,2])
+                                            outputFileNameDotsMother, paste0(mother_name, "_mother"), toyLogFoldChangeMother, reverseFunctionUsedToTransform, local_vectors_of_cn_states[,2])
         
-        toyLogFoldChangeFather = coverage.normalised[which_to_allow,father_number]
+        toyLogFoldChangeFather = coverageFatherFull[which_to_allow]
         toySizesOfPointsFromLocalSdsFather = sizesOfPointsFromLocalSds[which_to_allow]
         outputFileNameCNVsFather <- paste0(folder_name, sample_name, "/", father_name, "_cnvs.seg")
         outputFileNameDotsFather <- paste0(folder_name, sample_name, "/", father_name, "_cov.seg")
-        reverseFunctionUsedToTransform = function(x) {return((2 * x ** 2))}
+        reverseFunctionUsedToTransform = function(x, chrom) {return((2 * x ** 2))}
         outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVsFather, 
-                                            outputFileNameDotsFather, father_name, toyLogFoldChangeFather, reverseFunctionUsedToTransform, local_vectors_of_cn_states[,3])
+                                            outputFileNameDotsFather, paste0(father_name, "_father"), toyLogFoldChangeFather, reverseFunctionUsedToTransform, local_vectors_of_cn_states[,3])
         
         if(opt$debug) {
           print("END OF IGV PLOTTING")
@@ -201,9 +244,9 @@ for (trioRow in 1:nrow(trios)) {
           matrixOfScoresSonMomFather <- matrix(0, ncol=3, nrow=0)
           for (s in 1:nrow(found_CNVs)) {
             statesOfCNVsInTrio = local_vectors_of_cn_states[found_CNVs[s,4],]
-            likeliksKid = sum(matrix_of_likeliks_child[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],statesOfCNVsInTrio[1] + 1]) - sum(matrix_of_likeliks_child[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],local_vectors_of_cn_states[1,1] + 1])
-            likeliksMadre = sum(matrix_of_likeliks_mother[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],statesOfCNVsInTrio[2] + 1]) - sum(matrix_of_likeliks_mother[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],local_vectors_of_cn_states[1,2] + 1])
-            likeliksPadre = sum(matrix_of_likeliks_father[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],statesOfCNVsInTrio[3] + 1]) - sum(matrix_of_likeliks_father[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],local_vectors_of_cn_states[1,3] + 1])
+            likeliksKid = sum(matrix_of_likeliks_child_full[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],statesOfCNVsInTrio[1] + 1]) - sum(matrix_of_likeliks_child_full[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],local_vectors_of_cn_states[1,1] + 1])
+            likeliksMadre = sum(matrix_of_likeliks_mother_full[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],statesOfCNVsInTrio[2] + 1]) - sum(matrix_of_likeliks_mother_full[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],local_vectors_of_cn_states[1,2] + 1])
+            likeliksPadre = sum(matrix_of_likeliks_father_full[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],statesOfCNVsInTrio[3] + 1]) - sum(matrix_of_likeliks_father_full[which_to_allow,][found_CNVs[s,2]:found_CNVs[s,3],local_vectors_of_cn_states[1,3] + 1])
             matrixOfScoresSonMomFather = rbind(matrixOfScoresSonMomFather, matrix(c(-1 * round(likeliksKid, 2), round(-1 * likeliksMadre, 2),  round(-1 * likeliksPadre, 2)), nrow=1))
           }
           

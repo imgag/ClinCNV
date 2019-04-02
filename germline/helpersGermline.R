@@ -439,26 +439,8 @@ returnClustering <- function(minNumOfElemsInCluster) {
   if (nrow(coverageForClustering) > 20000) {
     coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 20000),]
   }
-  coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) {runmed(x, 2)}))
-  matrixOfDistForMDS = as.matrix(dist(t(coverageForClustering), method="manhattan"))
   
-  fit <- isoMDS(as.dist(matrixOfDistForMDS), k=2) # k is the number of dim
-  x <- trimValues(fit$points[,1], 0.01)
-  y <- trimValues(fit$points[,2], 0.01)
 
-  
-  if (ncol(normal) < 2 * minNumOfElemsInCluster) {
-    print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
-    
-    setwd(opt$out)
-    png(filename="clusteringSolution.png", width=1024, height=1024)
-    plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
-         main="Metric MDS", type="n")
-    text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
-    dev.off()
-    return(list(clustering, outliersFromClustering))
-  }
-  
   if (!is.null(opt$triosFile)) {
     samplesActuallyPlayingRole = c()
     for (trioRow in 1:nrow(trios)) {
@@ -473,12 +455,32 @@ returnClustering <- function(minNumOfElemsInCluster) {
       } else {
         samplesActuallyPlayingRole = c(samplesActuallyPlayingRole, c(child_number, mother_number, father_number))
         coverageToReplace = apply(coverageForClustering[,c(child_number, mother_number, father_number)], 1, median)
-        coverageForClustering[,child_number] = coverageToReplace
-        coverageForClustering[,mother_number] = coverageToReplace
-        coverageForClustering[,father_number] = coverageToReplace
+        coverageForClustering[,child_number] = coverageToReplace + rnorm(length(coverageToReplace), sd=0.001)
+        coverageForClustering[,mother_number] = coverageToReplace + rnorm(length(coverageToReplace), sd=0.001)
+        coverageForClustering[,father_number] = coverageToReplace + rnorm(length(coverageToReplace), sd=0.001)
       }
     }
-  } 
+  } else {
+    coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) {runmed(x, 2)}))
+  }
+  matrixOfDistForMDS = as.matrix(dist(t(coverageForClustering), method="manhattan"))
+  
+  fit <- isoMDS(as.dist(matrixOfDistForMDS), k=2) # k is the number of dim
+  x <- trimValues(fit$points[,1], 0.01)
+  y <- trimValues(fit$points[,2], 0.01)
+  
+  
+  if (ncol(normal) < 2 * minNumOfElemsInCluster) {
+    print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
+    
+    setwd(opt$out)
+    png(filename="clusteringSolution.png", width=1024, height=1024)
+    plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
+         main="Metric MDS", type="n")
+    text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
+    dev.off()
+    return(list(clustering, outliersFromClustering))
+  }
   
   coordsAfterMDS = t((rbind(x, y)))
   distMatrix = dist(t((rbind(x, y))))
