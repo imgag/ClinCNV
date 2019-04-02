@@ -936,15 +936,17 @@ findDeviationInNormalCoverage <- function(germline_sample_name, tumor_sample_nam
       valuesCohortOff = (tmpNormalOff[coordsInOff,which(colnames(tmpNormalOff) != germline_sample_name),drop=F])
     }
     valuesSample = median(c(valuesInSampleOn, valuesInSampleOff))
-    valuesCohortOff = matrix(0, nrow=0, ncol=ncol(tmpNormal) - 1)
     valuesInSampleOff = c()
-    if (!is.null(bedFileForClusterOff))
-    if (ncol(valuesCohortOff) > 5 & nrow(valuesCohortOff) > 0) {
-      valuesCohortOn = valuesCohortOn[,which(colnames(valuesCohortOn) %in% colnames(valuesCohortOff)),drop=F]
-      valuesCohortOff = valuesCohortOff[,which(colnames(valuesCohortOff) %in% colnames(valuesCohortOn)),drop=F]
-      valuesCohortOn = valuesCohortOn[,order(colnames(valuesCohortOn)),drop=F]
-      valuesCohortOff = valuesCohortOff[,order(colnames(valuesCohortOff)),drop=F]
-    } 
+    if (!is.null(bedFileForClusterOff)) {
+      if (ncol(valuesCohortOff) > 5 & nrow(valuesCohortOff) > 0) {
+        valuesCohortOn = valuesCohortOn[,which(colnames(valuesCohortOn) %in% colnames(valuesCohortOff)),drop=F]
+        valuesCohortOff = valuesCohortOff[,which(colnames(valuesCohortOff) %in% colnames(valuesCohortOn)),drop=F]
+        valuesCohortOn = valuesCohortOn[,order(colnames(valuesCohortOn)),drop=F]
+        valuesCohortOff = valuesCohortOff[,order(colnames(valuesCohortOff)),drop=F]
+      } 
+    } else {
+      valuesCohortOff = matrix(0, nrow=0, ncol=ncol(tmpNormal) - 1)
+    }
     valuesCohort <- apply(rbind(valuesCohortOn, valuesCohortOff), 2, median)
     prob = 2 * pt(-abs(   
       valuesSample - median(valuesCohort)

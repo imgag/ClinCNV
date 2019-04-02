@@ -785,7 +785,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             shiftsForCoverageInsideCNVs <- findDeviationInNormalCoverage(germline_sample_name, tumor_sample_name, found_CNVs_total, bedFileForCluster, tmpNormal,
                                                                          bedFileForClusterOff, tmpNormalOff)
           } else {
-            shiftsForCoverageInsideCNVs <- findDeviationInNormalCoverage(germline_sample_name, tumor_sample_name, found_CNVs_total, bedFileForCluster, tmpNormal, tmpTumor)
+            shiftsForCoverageInsideCNVs <- findDeviationInNormalCoverage(germline_sample_name, tumor_sample_name, found_CNVs_total, bedFileForCluster, tmpNormal)
           }
           
           for (m in 1:nrow(shiftsForCoverageInsideCNVs)) {
