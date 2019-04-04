@@ -994,12 +994,12 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     fileConn<-file(fileToOut)
     writeLines(c(paste("##"," QC ", 0, ", gender of sample:", genderOfSamples[germline_sample_no], "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
     close(fileConn)
+
     if(opt$debug) {
       print(found_CNVs_total)
     }
     found_CNVs_total = found_CNVs_total[order(found_CNVs_total[,1], as.numeric(found_CNVs_total[,2])), , drop=F]
     write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
-    
     # For some additional analysis we need to provide areas free of CNVs
     if (sampleInOfftarget) {
       areasFreeOfCNVs <- returnAreasFreeOfCNVsForAdditionalAnalysis(found_CNVs_total, genderOfSamples[germline_sample_no], bedFileForCluster, bedFileForClusterOff)
@@ -1011,6 +1011,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       write.table(areasFreeOfCNVs, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
     }
   }
+
 }
 
 stopCluster(cl)
