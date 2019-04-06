@@ -66,7 +66,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     featuresPresentedInBoth <- intersect(healthyFeatures, tumorFeatures)
     
     tumorSample = tumorSample[which(tumorSample$Feature %in% featuresPresentedInBoth),]
-    tumorSample = tumorSample[which(as.numeric(tumorSample[,6]) + as.numeric(healthySample[,6]) >  60 & as.numeric(tumorSample[,6]) > max(median(tumorSample[,6]) / 20, 15)),]
+    tumorSample = tumorSample[which(as.numeric(tumorSample[,6]) + as.numeric(healthySample[,6]) >  60 & as.numeric(tumorSample[,6]) > max(median(tumorSample[,6]) / 20, 20)),]
     if (nrow(healthySample) < 300 | nrow(tumorSample) < 300) {
       return(list(NULL, NULL))
     }
@@ -230,8 +230,10 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
       counter = counter + 1
     }
   }
-  absoluteMinimumOfAllowedChroms = sort(evaluated)[3]
   indicesOfAllowedChroms = which(evaluated < binomialConfidences)
+  print(evaluated)
+  print(binomialConfidences)
+  print(indicesOfAllowedChroms)
   if (length(indicesOfAllowedChroms) < 2) {
     indicesOfAllowedChroms = which(evaluated < sort(evaluated)[3])
   }
