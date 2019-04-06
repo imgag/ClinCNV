@@ -217,7 +217,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
       }
       
       if (length(rowsFromChrom) > 15) {
-        evaluationOfChorm = (length(which(pvalues[rowsFromChrom] < thresholdOfNonNormalVariant))) / (length(rowsFromChrom))
+        evaluationOfChorm = (0.95 * length(which(pvalues[rowsFromChrom] < thresholdOfNonNormalVariant))) / (length(rowsFromChrom))
         binomialConfidences[counter] = 0.05 + qnorm(0.9) * sqrt(0.05 * 0.95 / length(rowsFromChrom))
       } else {
         evaluationOfChorm = 1.0
