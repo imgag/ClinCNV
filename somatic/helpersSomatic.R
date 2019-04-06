@@ -473,7 +473,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
           pvalsOfVariants[l] = min(1, passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo))
         }
         mergedPvals = pchisq((sum(log(pvalsOfVariants))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
-        if ((pbinom(length(which(pvalsOfVariants < 0.01)),  length(varsInside), pvalueShift, lower.tail = F) > 10 ** -4 | length(which(pvalsOfVariants < 0.05)) / length(varsInside) < 0.1) | 
+        if ((pbinom(length(which(pvalsOfVariants < 0.01)),  length(varsInside), pvalueShift, lower.tail = F) > 10 ** -4 | length(which(pvalsOfVariants < 0.01)) / length(varsInside) < 0.05) | 
             mergedPvals > 10 ** -4) {
           cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
           print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], "due to 1) low clonality AND 2) absence of clear signal from BAF"))
@@ -495,7 +495,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
         }
         mergedPvals = pchisq((sum(log(pvalsOfVariants))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
         if (pbinom(length(which(pvalsOfVariants < 0.01)),  length(varsInside), pvalueShift, lower.tail = F) < 10 ** -4 & 
-            length(which(pvalsOfVariants < 0.05)) / (length(varsInside)) > 0.1 &
+            length(which(pvalsOfVariants < 0.01)) / (length(varsInside)) > 0.05 &
             mergedPvals < 10 ** -4) {
           if (q %in% cnvsThatShowNoBAFdeviation) {
             print(paste("We remain CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], " - it was filtered out but BAF shows that something is wrong"))
