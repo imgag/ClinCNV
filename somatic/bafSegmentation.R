@@ -217,7 +217,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
       }
       
       if (length(rowsFromChrom) > 15) {
-        evaluationOfChorm = (0.9 * length(which(pvalues[rowsFromChrom] < thresholdOfNonNormalVariant))) / (length(rowsFromChrom))
+        evaluationOfChorm = (0.8 * length(which(pvalues[rowsFromChrom] < thresholdOfNonNormalVariant))) / (length(rowsFromChrom))
         binomialConfidences[counter] = 0.05 + qnorm(0.95) * sqrt(0.05 * 0.95 / length(rowsFromChrom))
       } else {
         evaluationOfChorm = 1.0
@@ -237,7 +237,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   if (length(indicesOfAllowedChroms) < 2) {
     indicesOfAllowedChroms = which(evaluated < sort(evaluated)[3])
   }
-  pvalueShift = min(0.1, max(2 * mean(evaluated[indicesOfAllowedChroms]), 0.025))
+  pvalueShift = min(0.1, max(mean(evaluated[indicesOfAllowedChroms]), 0.025))
   colVec <- rep("red", length(evaluated))
   indicesOfAllowedButNotBestChroms = which(evaluated > 0.05 & evaluated < sort(evaluated)[6])
   colVec[indicesOfAllowedChroms] = "darkgreen"
