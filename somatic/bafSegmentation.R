@@ -191,7 +191,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   trackToWriteOut <- cbind(healthySample[,c(1,2,3)], pvalues, values)
   colnames(trackToWriteOut)[4] = "Features"
   
-  thresholdOfNonNormalVariant = 0.05 # pvalue, if lower = BAF is different in normal and tumor
+  thresholdOfNonNormalVariant = 0.01 # pvalue, if lower = BAF is different in normal and tumor
   chroms = paste0("chr", 1:22)
   chroms = c(chroms, "chrX")
   numberOfSNVs = rep(0, 2 * length(left_borders))
@@ -217,7 +217,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
       }
       
       if (length(rowsFromChrom) > 15) {
-        evaluationOfChorm = (0.8 * length(which(pvalues[rowsFromChrom] < thresholdOfNonNormalVariant))) / (length(rowsFromChrom))
+        evaluationOfChorm = (length(which(pvalues[rowsFromChrom] < thresholdOfNonNormalVariant))) / (length(rowsFromChrom))
         binomialConfidences[counter] = 0.05 + qnorm(0.95) * sqrt(0.05 * 0.95 / length(rowsFromChrom))
       } else {
         evaluationOfChorm = 1.0
@@ -230,13 +230,10 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
       counter = counter + 1
     }
   }
-  indicesOfAllowedChroms = which(evaluated < binomialConfidences)
-  print(evaluated)
-  print(binomialConfidences)
-  print(indicesOfAllowedChroms)
-  if (length(indicesOfAllowedChroms) < 2) {
-    indicesOfAllowedChroms = which(evaluated < sort(evaluated)[3])
-  }
+  indicesOfAllowedChroms = which(evaluated < 0.05)
+  #print(evaluated)
+  #print(binomialConfidences)
+  #print(indicesOfAllowedChroms)
   pvalueShift = min(0.1, max(mean(evaluated[indicesOfAllowedChroms]), 0.025))
   colVec <- rep("red", length(evaluated))
   indicesOfAllowedButNotBestChroms = which(evaluated > 0.05 & evaluated < sort(evaluated)[6])
