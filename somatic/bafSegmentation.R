@@ -58,7 +58,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     colnames(healthySample) <- c("chr", "start", "end", "Feature", "freq", "depth")
     colnames(tumorSample) <- c("chr", "start", "end", "Feature", "freq", "depth")
     
-    healthySample = healthySample[which(healthySample[,6] > max(median(healthySample[,6]) / 10, 30) & healthySample[,6] < quantile(healthySample[,6], 0.975)),]
+    healthySample = healthySample[which(healthySample[,6] > max(median(healthySample[,6]) / 20, 30) & healthySample[,6] < quantile(healthySample[,6], 0.975)),]
     healthyFeatures <- healthySample$Feature
     tumorFeatures <- tumorSample$Feature
     healthyFeatures = healthyFeatures[!(duplicated(healthyFeatures) | duplicated(healthyFeatures, fromLast = TRUE)) ]
@@ -66,7 +66,7 @@ returnBAlleleFreqs <- function(healthySampleName, tumorSampleName, folderBAF, be
     featuresPresentedInBoth <- intersect(healthyFeatures, tumorFeatures)
     
     tumorSample = tumorSample[which(tumorSample$Feature %in% featuresPresentedInBoth),]
-    tumorSample = tumorSample[which(as.numeric(tumorSample[,6]) + as.numeric(healthySample[,6]) >  60 & as.numeric(tumorSample[,6]) > max(median(tumorSample[,6]) / 10, 15)),]
+    tumorSample = tumorSample[which(as.numeric(tumorSample[,6]) + as.numeric(healthySample[,6]) >  60 & as.numeric(tumorSample[,6]) > max(median(tumorSample[,6]) / 20, 15)),]
     if (nrow(healthySample) < 300 | nrow(tumorSample) < 300) {
       return(list(NULL, NULL))
     }
@@ -191,13 +191,14 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   trackToWriteOut <- cbind(healthySample[,c(1,2,3)], pvalues, values)
   colnames(trackToWriteOut)[4] = "Features"
   
-  thresholdOfNonNormalVariant = 0.01 # pvalue, if lower = BAF is different in normal and tumor
+  thresholdOfNonNormalVariant = 0.05 # pvalue, if lower = BAF is different in normal and tumor
   chroms = paste0("chr", 1:22)
   chroms = c(chroms, "chrX")
   numberOfSNVs = rep(0, 2 * length(left_borders))
   evaluated = rep(0, 2 * length(left_borders))
   namesOfChromArms <- rep(0, 2 * length(left_borders))
   plotLabels <- rep(0, 2 * length(left_borders))
+  binomialConfidences = rep(0, 2 * length(left_borders))
   counter = 1
   for (l in 1:length(left_borders)) {
     chrom = names(left_borders)[l]
@@ -217,17 +218,24 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
       
       if (length(rowsFromChrom) > 15) {
         evaluationOfChorm = (length(which(pvalues[rowsFromChrom] < thresholdOfNonNormalVariant))) / (length(rowsFromChrom))
+        binomialConfidences[counter] = 0.05 + qnorm(0.9) * sqrt(0.05 * 0.95 / length(rowsFromChrom))
       } else {
         evaluationOfChorm = 1.0
+        binomialConfidences[counter]  = 0.05
       }
       
       evaluated[counter] = evaluationOfChorm
       numberOfSNVs[counter] = length(rowsFromChrom)
-      
+
       counter = counter + 1
     }
   }
-  indicesOfAllowedChroms = which(evaluated < max(sort(evaluated)[3], 0.05))
+  absoluteMinimumOfAllowedChroms = sort(evaluated)[3]
+  indicesOfAllowedChroms = which(evaluated < binomialConfidences)
+  if (length(indicesOfAllowedChroms) < 2) {
+    indicesOfAllowedChroms = which(evaluated < sort(evaluated)[3])
+  }
+  pvalueShift = min(0.1, max(2 * mean(evaluated[indicesOfAllowedChroms]), 0.025))
   colVec <- rep("red", length(evaluated))
   indicesOfAllowedButNotBestChroms = which(evaluated > 0.05 & evaluated < sort(evaluated)[6])
   colVec[indicesOfAllowedChroms] = "darkgreen"
@@ -242,9 +250,11 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   setwd(file.path(folderBAF, "result", subDir))
   png(paste0(tumorSampleName, "_", healthySampleName, ".png"), width=1400, height=600)
   op <- par(mar=c(11,4,4,2))
-  x <- barplot(evaluated, col=colVec, main=paste(tumorSampleName, healthySampleName), ylim=c(0,1), xaxt="n")
+  x <- barplot(evaluated, col=colVec, main=paste(tumorSampleName, healthySampleName, "expected proportion of BAF with p < 0.05:", round(pvalueShift, digits=3)), ylim=c(0,1), xaxt="n")
   text(x-2.5, par("usr")[3] - 0.15, labels = plotLabels, srt = 45, pos = 1, xpd = TRUE)
   par(mar=c(5.1, 4.1, 4.1, 2.1), mgp=c(3, 1, 0), las=0)
+  abline(h=0.05, lwd=2)
+  abline(h=0.1, lwd=2, col="red")
   dev.off()
   
   png("overdispersion.png", width=1024, height=1024)
@@ -267,7 +277,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   trackToWriteOut <- cbind(tumorSample[,c(1,2,3,4,5)])
   write.table(trackToWriteOut, file=tumorBafFilename, quote = F, row.names = F, sep="\t", append=T)
   
-  return(list(allowedChroms, overdispersionFactorsNornm, overdispersionFactorsTum))
+  return(list(allowedChroms, overdispersionFactorsNornm, overdispersionFactorsTum, pvalueShift))
 }
 
 
@@ -276,6 +286,7 @@ returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF, b
   bAlleleFreqsAllSamples <- list()
   overdispersionNormal = list()
   overdispersionTumor = list()
+  pvalueShift = list()
   for (i in 1:ncol(normalCov)) {
     sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
     for (sampleName1 in sampleNames1) {
@@ -289,6 +300,7 @@ returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF, b
         allowedChromsBaf[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]] = listOfValues[[1]]
         overdispersionNormal[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]] = listOfValues[[2]]
         overdispersionTumor[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]] = listOfValues[[3]]
+        pvalueShift[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]] = listOfValues[[4]]
         bAlleleFreqsAllSamples[[paste(colnames(tumorCov)[sampleName2], colnames(normalCov)[i], sep="-")]] = bAlleleFreqs
       } else {
         print("BAF did not work well")
@@ -298,7 +310,7 @@ returnAllowedChromsBaf <- function(pairs, normalCov, tumorCov, inputFolderBAF, b
       }
     }
   }
-  return(list(allowedChromsBaf, bAlleleFreqsAllSamples, overdispersionNormal, overdispersionTumor))
+  return(list(allowedChromsBaf, bAlleleFreqsAllSamples, overdispersionNormal, overdispersionTumor, pvalueShift))
 }
 
 mergeClustersCloseToEachOther <- function(means, volumes, radius = 0.05) {

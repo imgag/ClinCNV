@@ -463,6 +463,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
           overdispersionNormal = overdispersionsNormal[[position]]
           overdispersionTumor = overdispersionsTumor[[position]]
+          pvalueShift = pvaluesShifts[[position]]
           # calculate median correction factor
           allowedChromosomesAutosomesOnly = which(!bAlleleFreqsTumor[,1] %in% c("X","Y","chrX","chrY"))
           multiplierOfSNVsDueToMapping <- median(as.numeric(bAlleleFreqsNormal[allowedChromosomesAutosomesOnly,5]))
@@ -708,6 +709,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                                                                     clonalityForChecking, local_purities, local_cn_states, toyBedFile,
                                                                     overdispersionNormal[bafsFromThisChr],
                                                                     overdispersionTumor[bafsFromThisChr],
+                                                                    pvalueShift,
                                                                     toyLogFoldChange,
                                                                     median(sdsOfProbes) * (sdsOfSomaticSamples[sam_no]),
                                                                     ifelse(sampleInOfftarget, median(sdsOfProbesOff) * (sdsOfSomaticSamplesOff[sam_no_off]), -1)
@@ -984,6 +986,10 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       found_CNVs_total = cbind(found_CNVs_total, matrix(CIsOnTarget[,3:2], ncol=2), matrix(CIsOnTargetOff[,3:2], ncol=2), BAFsignature, format(round(overallPvalues,5), scientific = F))
       #colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD", "Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "BAF_Normal", "BAF_tumor", "BAF_pval"))
       colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "BAF_Normal", "BAF_tumor", "BAF_qval_fdr", "Overall_qvalue"))
+    }
+    # HOMOZYGOUSITY FILTER - IF THERE ARE TOO MANY HOMOZYGOUS, WE REMOVE THEM
+    if (length(which(found_CNVs_total[,4] == 0)) > 5 & length(which(found_CNVs_total[,4] == 0)) > 0.5 * nrow(found_CNVs_total)) {
+      found_CNVs_total = found_CNVs_total[which(found_CNVs_total[,4] != 0 | found_CNVs_total[,8] > 20),]
     }
     if (length(pvalsForQC > 1)) {
       finalPValue <- 0

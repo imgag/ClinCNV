@@ -402,6 +402,7 @@ if (frameworkDataTypes == "covdepthBAF") {
   bAlleleFreqsAllSamples <- listOfValues[[2]]
   overdispersionsNormal = listOfValues[[3]]
   overdispersionsTumor = listOfValues[[4]]
+  pvaluesShifts = listOfValues[[5]]
   if (length(allowedChromsBaf) == 0) {
     print("Apparently none of your baf files match with sample pairs you've provided. We can not use any bafs from now on and rely only on coverage.")
     frameworkDataTypes = "covdepth"
