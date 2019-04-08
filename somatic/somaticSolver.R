@@ -811,6 +811,12 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       if (finalIteration == T) {
         if (nrow(found_CNVs_total) > 0){
+          # HOMOZYGOUSITY FILTER - IF THERE ARE TOO MANY HOMOZYGOUS, WE REMOVE THEM
+          if (length(which(as.numeric(found_CNVs_total[,4]) == 0)) > 5 & length(which(as.numeric(found_CNVs_total[,4]) == 0)) > 0.5 * nrow(found_CNVs_total)) {
+            print("Short homozygous deletions will be filtered out due to large amount of homozygous deletions")
+            print(found_CNVs_total[which(!(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 20)),])
+            found_CNVs_total = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 20),]
+          }
           makeBarplot(allPotentialPurities, found_CNVs_total)
           plotChromosomalLevelInstabs(found_CNVs_total, left_borders, right_borders, ends_of_chroms, genderOfSamples[germline_sample_no], sample_name)
         }
@@ -986,10 +992,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       found_CNVs_total = cbind(found_CNVs_total, matrix(CIsOnTarget[,3:2], ncol=2), matrix(CIsOnTargetOff[,3:2], ncol=2), BAFsignature, format(round(overallPvalues,5), scientific = F))
       #colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD", "Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "BAF_Normal", "BAF_tumor", "BAF_pval"))
       colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "BAF_Normal", "BAF_tumor", "BAF_qval_fdr", "Overall_qvalue"))
-    }
-    # HOMOZYGOUSITY FILTER - IF THERE ARE TOO MANY HOMOZYGOUS, WE REMOVE THEM
-    if (length(which(as.numeric(found_CNVs_total[,4]) == 0)) > 5 & length(which(as.numeric(found_CNVs_total[,4]) == 0)) > 0.5 * nrow(found_CNVs_total)) {
-      found_CNVs_total = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 20),]
     }
     if (length(pvalsForQC > 1)) {
       finalPValue <- 0
