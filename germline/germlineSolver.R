@@ -400,7 +400,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     coordsInBedOn = which(bedFileFiltered[,1] == found_CNVs_total[i,1] & as.numeric(bedFileFiltered[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileFiltered[,3]) <= as.numeric(found_CNVs_total[i,3]))
     if (length(coordsInBedOn) > 0) {
     valueOfSample = median(coverage.normalised[coordsInBedOn,sam_no])
-    if (!chr %in% c("chrX","chrY")) {
+    if (!chrom %in% c("chrX","chrY")) {
       valueOfOthers = apply(coverage.normalised[coordsInBedOn,-sam_no,drop=F],2,median)
     } else {
       valueOfOthers = apply(coverage.normalised[coordsInBedOn,which(genderOfSamples == genderOfSamples[sam_no]),drop=F],2,median)
