@@ -235,6 +235,9 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   #print(binomialConfidences)
   #print(indicesOfAllowedChroms)
   pvalueShift = min(0.1, max(mean(evaluated[indicesOfAllowedChroms]), 0.01))
+  if (is.nan(pvalueShift)) {
+    pvalueShift = 0.1
+  }
   colVec <- rep("red", length(evaluated))
   indicesOfAllowedButNotBestChroms = which(evaluated > 0.05 & evaluated < sort(evaluated)[6])
   colVec[indicesOfAllowedChroms] = "darkgreen"
