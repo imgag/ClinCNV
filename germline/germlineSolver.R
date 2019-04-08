@@ -93,6 +93,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   
   localSds = sdsOfProbes * sdsOfGermlineSamples[sam_no]
   localSds[which(localSds == 0)] = median(localSds)
+  sdsForOutput = localSds
   
   if (sam_no_off) {
     localSdsOff = sdsOfProbesOff * sdsOfGermlineSamplesOff[sam_no_off]
@@ -142,6 +143,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     if (opt$mosaicism) {
       globalMatrixOfLikeliksMosaic = rbind(matrix_of_likeliks_for_FDR_mosaic, matrix_of_likeliks_off_mosaic)[orderOfBed,]
     }
+    sdsForOutput = c(localSds, localSdsOff)[orderOfBed]
   } else {
     globalBed = bedFileFiltered
     globalMatrixOfLikeliks = matrix_of_likeliks
@@ -338,7 +340,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
             reverseFunctionUsedToTransform = function(x, chrom) {return((2 * x ** 2))}
             outputSegmentsAndDotsFromListOfCNVs(toybedFileFiltered, found_CNVs, start, end, outputFileNameCNVs, 
-                                                outputFileNameDots, sample_name, toyCoverageGermline, reverseFunctionUsedToTransform, local_cn_states, localSds)
+                                                outputFileNameDots, sample_name, toyCoverageGermline, reverseFunctionUsedToTransform, local_cn_states, sdsForOutput[which_to_allow])
             if(opt$debug) {
               print("END OF IGV PLOTTING")
             }
@@ -374,11 +376,11 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           }
         }
       }
-      if (nrow(found_CNVs_total) > opt$maxNumGermCNVs & iterations != maxIteration) {
+      if (length(which(as.numeric(found_CNVs_total[,5]) > threshold)) > opt$maxNumGermCNVs & iterations != maxIteration) {
         break
       }
     }
-    if (nrow(found_CNVs_total) < opt$maxNumGermCNVs) {
+    if (length(which(as.numeric(found_CNVs_total[,5]) > threshold))  < opt$maxNumGermCNVs) {
       numberOfCNVsIsSufficientlySmall = T
       break
     } else {
@@ -482,8 +484,11 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   finalPValue = 1.0
   fileToOut <- paste0(folder_name, sample_name, paste0("/", sample_name, "_cnvs.tsv"))
   fileConn<-file(fileToOut)
-  writeLines(c(paste("##number of iterations:", iterations, ", gender of sample:", genderOfSamples[sam_no], ", was it outlier after clustering?", outliersByClustering[sam_no], collapse = " "), 
-               paste("##fraction of outliers:", round(median(vectorWithNumberOfOutliers), digits=3), collapse = " ")), fileConn)
+  writeLines(c(
+    paste("##gender of sample:", genderOfSamples[sam_no], collapse = " "),
+    paste("##number of iterations:", iterations, ", quality used at final iteration:", threshold, collapse = " "), 
+    paste("##was it outlier after clustering?", outliersByClustering[sam_no], collapse = " "),
+    paste("##fraction of outliers:", round(median(vectorWithNumberOfOutliers), digits=3), collapse = " ")), fileConn)
   close(fileConn)
   found_CNVs_total[,7] = (format(as.numeric(found_CNVs_total[,7]), nsmall=3))
   found_CNVs_total[,8] = (format(as.numeric(found_CNVs_total[,8]), nsmall=3))
