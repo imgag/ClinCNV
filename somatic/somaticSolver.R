@@ -988,8 +988,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "BAF_Normal", "BAF_tumor", "BAF_qval_fdr", "Overall_qvalue"))
     }
     # HOMOZYGOUSITY FILTER - IF THERE ARE TOO MANY HOMOZYGOUS, WE REMOVE THEM
-    if (length(which(found_CNVs_total[,4] == 0)) > 5 & length(which(found_CNVs_total[,4] == 0)) > 0.5 * nrow(found_CNVs_total)) {
-      found_CNVs_total = found_CNVs_total[which(found_CNVs_total[,4] != 0 | found_CNVs_total[,8] > 20),]
+    if (length(which(as.numeric(found_CNVs_total[,4]) == 0)) > 5 & length(which(as.numeric(found_CNVs_total[,4]) == 0)) > 0.5 * nrow(found_CNVs_total)) {
+      found_CNVs_total = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 20),]
     }
     if (length(pvalsForQC > 1)) {
       finalPValue <- 0
