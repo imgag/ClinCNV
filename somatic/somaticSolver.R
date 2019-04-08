@@ -814,8 +814,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           # HOMOZYGOUSITY FILTER - IF THERE ARE TOO MANY HOMOZYGOUS, WE REMOVE THEM
           if (length(which(as.numeric(found_CNVs_total[,4]) == 0)) > 5 & length(which(as.numeric(found_CNVs_total[,4]) == 0)) > 0.5 * nrow(found_CNVs_total)) {
             print("Short homozygous deletions will be filtered out due to large amount of homozygous deletions")
-            print(found_CNVs_total[which(!(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 20)),])
-            found_CNVs_total = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 20),]
+            print(found_CNVs_total[which(!(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 10)),])
+            found_CNVs_total = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 10),]
           }
           makeBarplot(allPotentialPurities, found_CNVs_total)
           plotChromosomalLevelInstabs(found_CNVs_total, left_borders, right_borders, ends_of_chroms, genderOfSamples[germline_sample_no], sample_name)
