@@ -494,9 +494,9 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
       end = toyBedFile[i,3]
       valueToDisplay = min(maxCopyNumber, copyNumberValues[i])
       if (length(sdsOfDots) == length(copyNumberValues)) {
-        copyNumberSegment = matrix(c(ID, chromosome, start, end, sdsOfDots[i], valueToDisplay), nrow=1, ncol=6)
+        copyNumberSegment = matrix(c(ID, chromosome, start, end, round(as.numeric(sdsOfDots[i]), digits = 4), valueToDisplay), nrow=1, ncol=6)
       } else {
-        copyNumberSegment = matrix(c(ID, chromosome, start, end, likelihoods[i], valueToDisplay), nrow=1, ncol=6)
+        copyNumberSegment = matrix(c(ID, chromosome, start, end, round(as.numeric(likelihoods[i]), digits = 2), valueToDisplay), nrow=1, ncol=6)
       }
       write(paste(copyNumberSegment[1,], collapse="\t"), file=outputFileNameDots, append=TRUE)
     }
