@@ -484,7 +484,7 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
           #copyNumberValues[dotsWithinCNV] = cn_states[elem[4]]
           likelihoods[dotsWithinCNV] = elem[1]
           valueToDisplay = min(maxCopyNumber, cn_states[elem[4]])
-          copyNumberSegment = matrix(c(ID, chromosome, toyBedFile[elem[2], 2], toyBedFile[elem[3], 3], -1 * elem[1], valueToDisplay), nrow=1, ncol=6)
+          copyNumberSegment = matrix(c(ID, chromosome, toyBedFile[elem[2], 2], toyBedFile[elem[3], 3], round(-1 * elem[1], digits=2), valueToDisplay), nrow=1, ncol=6)
           write(paste(copyNumberSegment[1,], collapse="\t"), file=outputFileNameCNVs, append=TRUE)
         }
       }
