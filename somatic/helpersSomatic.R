@@ -144,24 +144,23 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
   shifts = rep(0, nrow(matrixOfLogFold))
   for (i in 1:length(uniqueChroms)) {
     whichChrom = which(currentBedFile[,1] == uniqueChroms[i])
-    matrixOfLogFoldToCheck = matrixOfLogFold[whichChrom,]
-    if (uniqueChroms == "chrX") {
+    matrixOfLogFoldToCheck = matrixOfLogFold[whichChrom,,drop=F]
+    if (uniqueChroms[i] == "chrX") {
       if (length(which(genderOfSamplesInCluster == "F")) > 10)
-        matrixOfLogFoldToCheck = matrixOfLogFoldToCheck[which(genderOfSamplesInCluster == "F")]
+        matrixOfLogFoldToCheck = matrixOfLogFoldToCheck[,which(genderOfSamplesInCluster == "F"),drop=F]
       else next
     }
-    if (uniqueChroms == "chrY") {
+    if (uniqueChroms[i] == "chrY") {
       if (length(which(genderOfSamplesInCluster == "M")) > 10)
-        matrixOfLogFoldToCheck = matrixOfLogFoldToCheck[which(genderOfSamplesInCluster == "M")]
+        matrixOfLogFoldToCheck = matrixOfLogFoldToCheck[,which(genderOfSamplesInCluster == "M"),drop=F]
       else next
     }
     shiftsChrom <- apply(matrixOfLogFoldToCheck, 1, EstimateModeForNormalization)
-    predictions <- runmed(shiftsChrom, k = 50)
+    predictions <- runmed(shiftsChrom, k = 51)
     shifts[whichChrom] = predictions
   }
-  shiftsAll <- apply(matrixOfLogFold, 1, EstimateModeForNormalization)
   png(paste0(opt$out, "/plot_with_shifts.png"), width=2000, height=1000)
-  plot(shiftsAll)
+  plot(shifts)
   lines(shifts, col="red", lwd=3)
   dev.off()
   #matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
@@ -855,7 +854,7 @@ probeLevelQC <- function(matrixOfLogFoldForCalc, sdsOfProbes, sdsOfSomaticSample
   points(ratios[which(( ratios < medianRatio - 3 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX"))] ~
            which(( ratios < medianRatio - 3 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), col=rgb(1,0,0,0.5), pch=19)
   sdsOfProbesCorrected = sdsOfProbes
-  sdsOfProbesCorrected[which(ratios > medianRatio + 3 * qnRatios)] = sdsOfProbesCorrected[which(ratios > medianRatio + 3 * qnRatios)] * ratios[which(ratios > medianRatio + 3 * qnRatios)]
+  #sdsOfProbesCorrected[which(ratios > medianRatio + 3 * qnRatios)] = sdsOfProbesCorrected[which(ratios > medianRatio + 3 * qnRatios)] * ratios[which(ratios > medianRatio + 3 * qnRatios)]
   toRemove = which((ratios < medianRatio - 3 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX"))
   toRemove = union(toRemove, which(sdsOfProbes < 0.0001))
   return(list(toRemove, sdsOfProbesCorrected))

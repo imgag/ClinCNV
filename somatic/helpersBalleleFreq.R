@@ -6,7 +6,7 @@ likelihoodOfSNV <- function(a, b, p, overdispersionValue) {
   } else{
     varBinom = p * (1-p) * b * overdispersionValue
     dist = (a - p * b) / sqrt(varBinom)
-    value = dnorm(dist)
+    value = return_likelik(dist)
   }
     
   if (is.nan(value) | value < 10**-15) return(10**-15)
@@ -82,107 +82,141 @@ roundUpToDegree = function(num, digits) {
   num = round(num * degree) / degree
 }
 
-
-likelihoodOfSNVBasedOnCN <- function(value, depth, pur, cn, stateUsed, multiplierOfSNVsDueToMapping, pList, degreeOfRoughness, overdispersionValue) {
+whichPTouse = function(purities, cnstates, statesUsed, multiplierOfSNVsDueToMapping, degreeOfRoughness) {
+  multiplierDueToMapping = multiplierOfSNVsDueToMapping / 0.5
+  whichPUsed = list()
   roundUpToDegree = function(num, digits) {
     round(num * digits) / digits
   }
-  multiplierDueToMapping = multiplierOfSNVsDueToMapping / 0.5
-  overallNumberOfReads <- (1 - pur) * 2 + pur * (cn)
-  pListChanged = F
-  if (cn != 0 & cn != 2 & stateUsed == "CNV") {
-    numberOfReadsSupportiveOne1 <- (1 - pur) + pur * (cn - 1)
-    numberOfReadsSupportiveOne2 <- 1 # (1 - pur) + pur * 1
-    pUsed1=roundUpToDegree(multiplierDueToMapping * min(0.99, numberOfReadsSupportiveOne1 / overallNumberOfReads), digits=degreeOfRoughness)
-    pUsed2=roundUpToDegree(multiplierDueToMapping * max(0.01, numberOfReadsSupportiveOne2 / overallNumberOfReads), digits=degreeOfRoughness)
-    if (!as.character(pUsed1) %in% names(pList)) {
-      pList[[as.character(pUsed1)]] = likelihoodOfSNV(value, depth, pUsed1, overdispersionValue)
-      pListChanged=T
+  probs = c()
+  upperThreshold = 0.99
+  lowerThreshold = 0.01
+  for (j in 1:length(cnstates)) {
+    cn = cnstates[j]
+    stateUsed = statesUsed[j]
+    pur = purities[j]
+    
+    pUsed1 = NULL
+    pUsed2 = NULL
+    pUsed3 = NULL
+    overallNumberOfReads <- (1 - pur) * 2 + pur * (cn)
+    if (cn != 0 & cn != 2 & stateUsed == "CNV") {
+      pUsed1=roundUpToDegree(multiplierDueToMapping * min(upperThreshold, ((1 - pur) + pur * (cn - 1)) / overallNumberOfReads), digits=degreeOfRoughness)
+      pUsed2=roundUpToDegree(multiplierDueToMapping * max(0.01, 1 / overallNumberOfReads), digits=degreeOfRoughness)
+    } else if (cn == 0) {
+      if (pur < 0.8) {
+        pUsed1 = roundUpToDegree(0.5 * multiplierDueToMapping, degreeOfRoughness)
+      } else {
+        pUsed1 = roundUpToDegree(multiplierDueToMapping * lowerThreshold, degreeOfRoughness)
+        pUsed2 = roundUpToDegree(multiplierDueToMapping * upperThreshold, degreeOfRoughness)
+        pUsed3 = roundUpToDegree(0.5 * multiplierDueToMapping, degreeOfRoughness)
+      }
+    } else if (stateUsed %in% c("LOH", "LOHDup")) {
+      if (cn == 2) {
+        pUsed1=roundUpToDegree(multiplierDueToMapping * max(lowerThreshold, 0.5 - pur/2), digits=degreeOfRoughness)
+        pUsed2=roundUpToDegree(multiplierDueToMapping * min(upperThreshold, 0.5 + pur/2), digits=degreeOfRoughness)
+      } else if (cn == 3) {
+        pUsed1=roundUpToDegree(multiplierDueToMapping * max(lowerThreshold, (1 + 2 * pur) / (2 + pur)), digits=degreeOfRoughness)
+        pUsed2=roundUpToDegree(multiplierDueToMapping * min(upperThreshold, (1 - pur) / (2 + pur)), digits=degreeOfRoughness)
+      } else if (cn == 4) {
+        pUsed1=roundUpToDegree(multiplierDueToMapping * max(lowerThreshold, (1 + 3 * pur) / (2 + 2 * pur)), digits=degreeOfRoughness)
+        pUsed2=roundUpToDegree(multiplierDueToMapping * min(upperThreshold, (1 - pur) / (2 + 2 * pur)), digits=degreeOfRoughness)
+      }
+    } else if (stateUsed == "CNVboth" | stateUsed == "normal") {
+      pUsed1 = roundUpToDegree((multiplierDueToMapping * 0.5), digits=degreeOfRoughness)
+    } else if (stateUsed == "CNVcomplex2" | stateUsed == "CNVcomplex3") {
+      if (cn == 5) {
+        pUsed1=roundUpToDegree(multiplierDueToMapping * max(lowerThreshold, (1 + pur) / (2 + 3 * pur)), digits=degreeOfRoughness)
+        pUsed2=roundUpToDegree(multiplierDueToMapping * min(upperThreshold, (1 + 2 * pur) / (2 + 3* pur)), digits=degreeOfRoughness)
+        
+      } else if (cn == 6) {
+        pUsed1=roundUpToDegree(multiplierDueToMapping * max(lowerThreshold, (1 + 1 * pur) / (2 + 4 * pur)), digits=degreeOfRoughness)
+        pUsed2=roundUpToDegree(multiplierDueToMapping * min(upperThreshold, (1 + 3 * pur) / (2 + 4 * pur)), digits=degreeOfRoughness)
+      } else if (cn == 7) {
+        if (stateUsed == "CNVcomplex3") {
+          pUsed1=roundUpToDegree(multiplierDueToMapping * max(lowerThreshold, (1 + 3 * pur) / (2 + 5 * pur)), digits=degreeOfRoughness)
+          pUsed2=roundUpToDegree(multiplierDueToMapping * min(upperThreshold, (1 + 2 * pur) / (2 + 5 * pur)), digits=degreeOfRoughness)
+        } else {
+          pUsed1=roundUpToDegree(multiplierDueToMapping * max(lowerThreshold, (1 + 4 * pur) / (2 + 5 * pur)), digits=degreeOfRoughness)
+          pUsed2=roundUpToDegree(multiplierDueToMapping * min(upperThreshold, (1 + 1 * pur) / (2 + 5 * pur)), digits=degreeOfRoughness)
+        }
+      } else if (cn == 8) {
+        if (stateUsed == "CNVcomplex3") {
+          pUsed1=roundUpToDegree(multiplierDueToMapping * max(lowerThreshold, (1 + 4 * pur) / (2 + 6 * pur)), digits=degreeOfRoughness)
+          pUsed2=roundUpToDegree(multiplierDueToMapping * min(upperThreshold, (1 + 2 * pur) / (2 + 6 * pur)), digits=degreeOfRoughness)
+        } else {
+          pUsed1=roundUpToDegree(multiplierDueToMapping * max(lowerThreshold, (1 + 1 * pur) / (2 + 6 * pur)), digits=degreeOfRoughness)
+          pUsed2=roundUpToDegree(multiplierDueToMapping * min(upperThreshold, (1 + 5 * pur) / (2 + 6 * pur)), digits=degreeOfRoughness)
+        }
+      }
+    } 
+    whichProbUsed = c()
+    if (!is.null(pUsed1)) {
+      probs <- c(probs, pUsed1)
+      whichProbUsed <- c(whichProbUsed, pUsed1)
     }
-    firstLikelihood = (pList[[as.character(pUsed1)]])
-    if (!as.character(pUsed2) %in% names(pList)) {
-      pList[[as.character(pUsed2)]] = (likelihoodOfSNV(value, depth, pUsed2, overdispersionValue))
-      pListChanged=T
+    if (!is.null(pUsed2)) {
+      probs <- c(probs, pUsed2)
+      whichProbUsed <- c(whichProbUsed, pUsed2)
     }
-    secondLikelihood = (pList[[as.character(pUsed2)]])
-    finalLikelihood = log(0.5 * firstLikelihood + 0.5 * secondLikelihood)
-  } else if (cn == 0) {
-    finalLikelihood = log(likelihoodOfSNV(value, depth, multiplierDueToMapping * 0.5, overdispersionValue))
-  } else if (stateUsed %in% c("LOH", "LOHDup")) {
-    if (cn == 2) {
-     pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, 0.5 - pur/2), digits=degreeOfRoughness)
-      pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, 0.5 + pur/2), digits=degreeOfRoughness)
-    } else if (cn == 3) {
-      pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 2 * pur) / (2 + pur)), digits=degreeOfRoughness)
-      pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 - pur) / (2 + pur)), digits=degreeOfRoughness)
-    } else if (cn == 4) {
-      pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 3 * pur) / (2 + 2 * pur)), digits=degreeOfRoughness)
-      pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 - pur) / (2 + 2 * pur)), digits=degreeOfRoughness)
+    if (!is.null(pUsed3)) {
+      probs <- c(probs, pUsed3)
+      whichProbUsed <- c(whichProbUsed, pUsed3)
     }
-    if (!as.character(pUsed1) %in% names(pList)) {
-      pList[[as.character(pUsed1)]] = likelihoodOfSNV(value, depth, pUsed1, overdispersionValue)
-      pListChanged=T
-    }
-    if (!as.character(pUsed2) %in% names(pList)) {
-      pList[[as.character(pUsed2)]] = (likelihoodOfSNV(value, depth, pUsed2, overdispersionValue))
-      pListChanged=T
-    }
-    finalLikelihood = log(0.5 * pList[[as.character(pUsed1)]] + 
-                            0.5 * pList[[as.character(pUsed2)]])
-  }  else if (stateUsed == "CNVboth" | stateUsed == "normal") {
-    pUsed = roundUpToDegree((multiplierDueToMapping * 0.5), digits=degreeOfRoughness)
-    if (!as.character(pUsed) %in% names(pList)) {
-      pList[[as.character(pUsed)]] = (likelihoodOfSNV(value, depth, pUsed, overdispersionValue))
-      pListChanged=T
-    }
-    finalLikelihood = log(pList[[as.character(pUsed)]])
-  } else if (stateUsed == "CNVcomplex2" | stateUsed == "CNVcomplex3") {
-    if (cn == 5) {
-      pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + pur) / (2 + 3 * pur)), digits=degreeOfRoughness)
-      pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 3* pur)), digits=degreeOfRoughness)
+    whichPUsed[[j]] = whichProbUsed
+  } 
+  return(whichPUsed)
+}
 
-    } else if (cn == 6) {
-      pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 1 * pur) / (2 + 4 * pur)), digits=degreeOfRoughness)
-      pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 + 3 * pur) / (2 + 4 * pur)), digits=degreeOfRoughness)
-    } else if (cn == 7) {
-      if (stateUsed == "CNVcomplex3") {
-        pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 3 * pur) / (2 + 5 * pur)), digits=degreeOfRoughness)
-        pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 5 * pur)), digits=degreeOfRoughness)
+fillInPList = function(value, depth, whichPUsed, overdispersionValue) {
+  pList = list()
+  probs = sort(unique(unlist(whichPUsed)))
+  distances = abs(probs - value / depth)
+  startingCoords = which.min(distances)
+  pList[[as.character(probs[startingCoords])]] = likelihoodOfSNV(value, depth, probs[startingCoords], overdispersionValue)
+  mimimumLikelik = 10**-15
+  thresholdForComparison = 10**-14
+  if (startingCoords < length(probs)) {
+    meaningful = T
+    for (i in (startingCoords + 1):length(probs)) {
+      if (meaningful) {
+        likelik = likelihoodOfSNV(value, depth, probs[i], overdispersionValue)
       } else {
-        pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 4 * pur) / (2 + 5 * pur)), digits=degreeOfRoughness)
-        pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 + 1 * pur) / (2 + 5 * pur)), digits=degreeOfRoughness)
-    }
-    } else if (cn == 8) {
-      if (stateUsed == "CNVcomplex3") {
-        pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 4 * pur) / (2 + 6 * pur)), digits=degreeOfRoughness)
-        pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 + 2 * pur) / (2 + 6 * pur)), digits=degreeOfRoughness)
-      } else {
-        pUsed1=roundUpToDegree(multiplierDueToMapping * max(0.01, (1 + 1 * pur) / (2 + 6 * pur)), digits=degreeOfRoughness)
-        pUsed2=roundUpToDegree(multiplierDueToMapping * min(0.99, (1 + 5 * pur) / (2 + 6 * pur)), digits=degreeOfRoughness)
+        likelik = mimimumLikelik
+      }
+      pList[[as.character(probs[i])]] = likelik
+      if (likelik < thresholdForComparison) {
+        meaningful = F
       }
     }
-    if (!as.character(pUsed1) %in% names(pList)) {
-      pList[[as.character(pUsed1)]] = likelihoodOfSNV(value, depth, pUsed1, overdispersionValue)
-      pListChanged=T
-    }
-    if (!as.character(pUsed2) %in% names(pList)) {
-      pList[[as.character(pUsed2)]] = (likelihoodOfSNV(value, depth, pUsed2, overdispersionValue))
-      pListChanged=T
-    }
-    finalLikelihood = log(0.5 * pList[[as.character(pUsed1)]] + 
-                            0.5 * pList[[as.character(pUsed2)]])
-  } else {
-    print("State used was not described by previous condition")
-    print(pur)
-    print(cn)
-    print(stateUsed)
-    stop()
   }
-  if (pListChanged){
-    return(list(finalLikelihood, pListChanged, pList))} else {
-      return(list(finalLikelihood, pListChanged))
+  if (startingCoords > 1) {
+    meaningful = T
+    for (i in startingCoords:1) {
+      if (meaningful) {
+        likelik = likelihoodOfSNV(value, depth, probs[i], overdispersionValue)
+      } else {
+        likelik = mimimumLikelik
+      }
+      pList[[as.character(probs[i])]] = likelik
+      if (likelik < thresholdForComparison) {
+        meaningful = F
+      }
     }
+  }
+  return(pList)
 }
+
+likelihoodOfSNVBasedOnCN <- function(whichPUsed, pList) {
+  sumOfLikeliks = 0
+  for (pUsed in whichPUsed) {
+    sumOfLikeliks = sumOfLikeliks + pList[[as.character(pUsed)]]
+  }
+  finalLikelihood = log(sumOfLikeliks / length(whichPUsed))
+  return(finalLikelihood)
+}
+
+
 
 
 extractVariancesFromBAF <- function(bafTable, expectedValue) {

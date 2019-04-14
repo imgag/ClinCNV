@@ -237,10 +237,10 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   germline_sample_name = colnames(tmpNormal)[germline_sample_no]
   tumor_sample_no = which(colnames(tumor) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1])
   if (!frameworkOff == "ontarget")
-  if (strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] %in% colnames(tumorOff)) {
-    tumor_sample_no_off = which(colnames(tumorOff) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1])
-    tumor_sample_name = strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1]
-  }
+    if (strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] %in% colnames(tmpTumorOff)) {
+      tumor_sample_no_off = which(colnames(tmpTumorOff) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1])
+      tumor_sample_name = strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1]
+    }
   if (germline_sample_no == "F") next
   
   if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
@@ -302,8 +302,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       local_multipliersDueToLog <- multipliersDueToLog
       local_cnv_states <- statesUsed
       if (frameworkOff == "offtarget")
-      if (sample_name %in% colnames(matrixOfLogFoldOff))
-        local_multipliersDueToLogOff <- multipliersDueToLogOff
+        if (sample_name %in% colnames(matrixOfLogFoldOff))
+          local_multipliersDueToLogOff <- multipliersDueToLogOff
       
       if (finalIteration ) {
         clonalBestPurities <- c(as.numeric(clonalBestPurities), 0)
@@ -314,8 +314,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         local_multipliersDueToLog <- multipliersDueToLog[-indices_to_remove_by_purity]
         local_cnv_states = local_cnv_states[-indices_to_remove_by_purity]
         if (frameworkOff == "offtarget")
-        if (sample_name %in% colnames(matrixOfLogFoldOff))
-          local_multipliersDueToLogOff <- local_multipliersDueToLogOff[-indices_to_remove_by_purity]
+          if (sample_name %in% colnames(matrixOfLogFoldOff))
+            local_multipliersDueToLogOff <- local_multipliersDueToLogOff[-indices_to_remove_by_purity]
       }
       
       # PART FOR MATRIX OF CLONALITY (ONLY 2 CLONES)
@@ -397,7 +397,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               if (!chrom %in% c("chrY", "Y", "chrX", "X")) {
                 startOfArm = as.numeric(splittedValue[[1]][2])
                 endOfArm = as.numeric(splittedValue[[1]][3])
-                lengthOfRolling = min(100, round((endOfArm - startOfArm)/5))
+                lengthOfRolling = min(101, round((endOfArm - startOfArm)/5))
                 allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(globalBed[,1] == chrom &
                                                                                                  as.numeric(globalBed[,2]) >= startOfArm &
                                                                                                  as.numeric(globalBed[,3]) <= endOfArm))
@@ -477,7 +477,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             if (vectorsWithRegionCoordsFilled) {
               closestBedRegion = closestBedRegions[i]
             } else {
-              closestBedRegion <- which(bedFileForCluster[,1] == bAlleleFreqsTumor[i,1] & bedFileForCluster[,2] <= bAlleleFreqsTumor[i,2] & bedFileForCluster[,3] >= bAlleleFreqsTumor[i,3])
+              closestBedRegion <- which(bedFileForCluster[,1] == bAlleleFreqsTumor[i,1] & bedFileForCluster[,2] - 50 <= bAlleleFreqsTumor[i,2] & bedFileForCluster[,3] + 50 >= bAlleleFreqsTumor[i,3])
               if (length(closestBedRegion) >= 1) {
                 closestBedRegion = closestBedRegion[1]
                 closestBedRegions[i] = closestBedRegion
@@ -521,6 +521,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             overdispersionTumorToy = overdispersionTumor
           }
           if (!noBAF) {
+            whichPUsedForAllStates = whichPTouse(local_purities, local_copy_numbers_used, local_cnv_states, multiplierOfSNVsDueToMapping, degreeOfRoughness)
             matrixOfBAFLikeliks = foreach (i = 1:nrow(bAlleleFreqsTumorToy), .combine='rbind') %dopar% {
               altAlleleDepth <- as.numeric(bAlleleFreqsTumorToy[i,5])
               overallDepth <- round(as.numeric(bAlleleFreqsTumorToy[i,6]))
@@ -529,18 +530,11 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               
               if (closestBedRegionsToy[i] != 0) {
                 numberOfAssignedPositions = numberOfAssignedPositions + 1
-                
-                pList = list()
+                pList = fillInPList(altAlleleDepth, overallDepth,  whichPUsedForAllStates, overdispersionValue)
                 vecOfLikeliks <- rep(0, ncol(matrix_of_likeliks))
                 for (j in 1:length(local_cn_states)) {
-                  pur = local_purities[j]
-                  cn = local_copy_numbers_used[j]
-                  stateUsed = local_cnv_states[j]
-                  listOfLikelikAndPList = likelihoodOfSNVBasedOnCN(altAlleleDepth, overallDepth, pur, cn, stateUsed, multiplierOfSNVsDueToMapping, pList, degreeOfRoughness, overdispersionValue)
-                  
-                  likelihood = -2 * listOfLikelikAndPList[[1]]
-                  if (listOfLikelikAndPList[[2]])
-                    pList = listOfLikelikAndPList[[3]]
+                  whichPUsed = whichPUsedForAllStates[[j]]
+                  likelihood = -2 * likelihoodOfSNVBasedOnCN(whichPUsed, pList)
                   vecOfLikeliks[j] = likelihood
                 }
                 vecOfLikeliks
@@ -666,7 +660,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           blocked_states = c()
           if (length(toyLogFoldChange) > opt$lengthS) {
             arrayOfMediansOfToyLogFold = runmed(toyLogFoldChange, round(opt$lengthS))
-            #arrayOfMediansOfToyLogFold <- sapply(1:(length(toyLogFoldChange) - opt$lengthS), function(i) {median(toyLogFoldChange[i:(i + opt$lengthS)])})
             if (!finalIteration) {
               diffsFromCoverage <- sapply(1:length(local_cn_states), function(i) {min(abs(log2(local_cn_states[i] / local_cn_states[initial_state]) - (arrayOfMediansOfToyLogFold)))})
               blocked_states = c(setdiff(c(1,2), initial_state),
@@ -686,7 +679,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               blocked_states <- c()
             }
           }
-
+          
           # BLOCK WITH PENALTIES
           copy_numbers_for_penalties = 3 - local_copy_numbers_used
           copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
@@ -903,6 +896,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     CIsOnTarget = matrix(NA, nrow=nrow(found_CNVs_total), ncol=3)
     CIsOnTargetOff = matrix(NA, nrow=nrow(found_CNVs_total), ncol=3)
     BAFsignature = matrix(NA, nrow=nrow(found_CNVs_total), ncol=3)
+    snvUpperAndBottom = matrix(NA, nrow=nrow(found_CNVs_total), ncol=2)
     overallPvalues = matrix(NA, nrow=nrow(found_CNVs_total), ncol=1)
     if (nrow(found_CNVs_total) > 0){
       for (i in 1:nrow(found_CNVs_total)) {
@@ -913,14 +907,14 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         pvalsSeparateTests = c(NA, NA, NA)
         onTargetCoords <- which(bedFileForCluster[,1] == found_CNVs_total[i,1] & as.numeric(bedFileForCluster[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileForCluster[,3]) <= as.numeric(found_CNVs_total[i,3]))
         if (length(onTargetCoords) > 1) {
-          tumorValue <- median(log2(tumor[onTargetCoords, tumor_sample_no]))
+          tumorValue <- median(log2(tmpTumor[onTargetCoords, tumor_sample_no]))
           if (found_CNVs_total[i,1] %in% c("chrX", "chrY")) {
             samplesToUse = which(genderOfSamples == genderOfSamples[germline_sample_no])
           } else {
             samplesToUse = 1:ncol(tmpNormal)
           }
           if (length(samplesToUse) > 2) {
-            normalValues <- apply(log2(tmpNormal[onTargetCoords,samplesToUse, drop=F]), 2, median)
+            normalValues <- apply((log2(tmpNormal[onTargetCoords,samplesToUse, drop=F])), 2, median)
             sdOfNormals <- sd(normalValues) * sqrt(matrixWithSds[1, sam_no] / median(matrixWithSds[2, ]))
             currentCI = c((tumorValue), (tumorValue + qnorm(0.99) * sdOfNormals), (tumorValue + qnorm(0.01) * sdOfNormals))
             currentCI = 2 ** (currentCI - median(log2(tmpNormal[onTargetCoords, germline_sample_no])))
@@ -933,18 +927,18 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         if (sampleInOfftarget) {
           offTargetCoords <- which(bedFileForClusterOff[,1] == found_CNVs_total[i,1] & as.numeric(bedFileForClusterOff[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileForClusterOff[,3]) <= as.numeric(found_CNVs_total[i,3]))
           if (length(offTargetCoords) > 1) {
-            tumorValueOff <- median(log2(tumorOff[offTargetCoords, tumor_sample_no_off]))
+            tumorValueOff <- median(log2(tmpTumorOff[offTargetCoords, tumor_sample_no_off]))
             if (found_CNVs_total[i,1] %in% c("chrX", "chrY")) {
               samplesToUseOn = which(genderOfSamples == genderOfSamples[germline_sample_no])
-              samplesToUseOff = which(colnames(normalOff) %in% names(samplesToUseOn))
+              samplesToUseOff = which(colnames(tmpNormalOff) %in% names(samplesToUseOn))
             } else {
-              samplesToUseOff = 1:ncol(normalOff)
+              samplesToUseOff = 1:ncol(tmpNormalOff)
             }
             if (length(samplesToUseOff) > 2) {
-              normalValuesOff <- apply(log2(normalOff[offTargetCoords,samplesToUseOff, drop=F]), 2, median)
+              normalValuesOff <- apply(log2(tmpNormalOff[offTargetCoords,samplesToUseOff, drop=F]), 2, median)
               sdOfNormalsOff <- sd(normalValuesOff) * sqrt(matrixWithSdsOff[1, sam_no_off] / median(matrixWithSdsOff[2, ]))
               currentCIOff = c((tumorValueOff), (tumorValueOff + qnorm(0.99) * sdOfNormalsOff), (tumorValueOff + qnorm(0.01) * sdOfNormalsOff))
-              currentCIOff = 2 ** (currentCIOff - median(log2(normalOff[offTargetCoords, which(colnames(normalOff) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])])))
+              currentCIOff = 2 ** (currentCIOff - median(log2(tmpNormalOff[offTargetCoords, which(colnames(normalOff) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])])))
               CIsOnTargetOff[i,] = round(currentCIOff * defaultCN, 2)
             }
             pvalsSeparateTests[2] = 2 * pt( -abs(
@@ -956,9 +950,14 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         if (!is.null(bAlleleFreqsTumor) & !is.null(bAlleleFreqsNormal)) {
           BAFcoords <- which(bAlleleFreqsNormal[,1] == found_CNVs_total[i,1] & as.numeric(bAlleleFreqsNormal[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bAlleleFreqsNormal[,2]) <= as.numeric(found_CNVs_total[i,3]))
           particularAlleleBalance = median(as.numeric(bAlleleFreqsNormal[,5]))
+          
           if (length(BAFcoords) > 0) {
+            frequencies = as.numeric(bAlleleFreqsNormal[BAFcoords,5])
+            frequenciesTumor = as.numeric(bAlleleFreqsTumor[BAFcoords,5])
+            snvUpperAndBottom[i,1] = round(median(frequenciesTumor[which(frequenciesTumor < particularAlleleBalance)]),3)
+            snvUpperAndBottom[i,2] = round(median(frequenciesTumor[which(frequenciesTumor > particularAlleleBalance)]),3)
             depthNormal = sum(as.numeric(bAlleleFreqsNormal[BAFcoords,6]))
-            normalReversedValues = as.numeric(bAlleleFreqsNormal[BAFcoords,5])
+            normalReversedValues = frequencies
             centralLocation = median(normalReversedValues)
             diffs = abs(normalReversedValues - centralLocation)
             normalReversedValues = centralLocation + diffs
@@ -989,9 +988,9 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       BAFsignature[,3] = p.adjust(as.numeric(BAFsignature[,3]), method="fdr")
       BAFsignature[,3] = format(round(as.numeric(BAFsignature[,3]), 4), scientific = F)
       colnamesForFutureMatrix <- colnames(found_CNVs_total)
-      found_CNVs_total = cbind(found_CNVs_total, matrix(CIsOnTarget[,3:2], ncol=2), matrix(CIsOnTargetOff[,3:2], ncol=2), BAFsignature, format(round(overallPvalues,5), scientific = F))
+      found_CNVs_total = cbind(found_CNVs_total, matrix(CIsOnTarget[,3:2], ncol=2), matrix(CIsOnTargetOff[,3:2], ncol=2), snvUpperAndBottom, BAFsignature[,3], format(round(overallPvalues,5), scientific = F))
       #colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD", "Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "BAF_Normal", "BAF_tumor", "BAF_pval"))
-      colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "BAF_Normal", "BAF_tumor", "BAF_qval_fdr", "Overall_qvalue"))
+      colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "Lowmed_tumor_BAF", "Highmed_tumor_BAF",  "BAF_qval_fdr", "Overall_qvalue"))
     }
     if (length(pvalsForQC > 1)) {
       finalPValue <- 0
@@ -1002,7 +1001,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
     fileConn<-file(fileToOut)
     writeLines(c(paste("##"," QC ", 0, ", gender of sample:", genderOfSamples[germline_sample_no], "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
     close(fileConn)
-
+    
     if(opt$debug) {
       print(found_CNVs_total)
     }
@@ -1019,7 +1018,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       write.table(areasFreeOfCNVs, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
     }
   }
-
+  
 }
 
 stopCluster(cl)

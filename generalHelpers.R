@@ -406,7 +406,7 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
         vector_of_regions <- rbind(vector_of_regions, found_CNV)
       }
       if (start_of_CNV - start >= minimum_length_of_CNV) { # if left part is big enough to add! CAUTION!!!
-        matrix_for_calculations <- sweep(matrix_of_likeliks_local[start:max(start, start_of_CNV - 1),,drop=F], 2, matrix_of_likeliks_local[start:max(start, start_of_CNV - 1), current_region_to_look_for_CNVs[4],drop=F], FUN="-")
+        matrix_for_calculations <- sweep(matrix_of_likeliks_local[start:max(start, start_of_CNV - 1),,drop=F], 1, matrix_of_likeliks_local[start:max(start, start_of_CNV - 1), current_region_to_look_for_CNVs[4],drop=F], FUN="-")
         if (!is.null(nrow(matrix_for_calculations))) {
           matrix_for_calculations <- apply(matrix_for_calculations, 2, sum)
         } 
@@ -416,7 +416,7 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
         vector_of_regions <- rbind(vector_of_regions, left_part)
       }
       if (end - end_of_CNV >= minimum_length_of_CNV) { # if right part is big enough to add! CAUTION!!!
-        matrix_for_calculations <- sweep(matrix_of_likeliks_local[min(end, end_of_CNV + 1):end,,drop=F], 2, matrix_of_likeliks_local[min(end, end_of_CNV + 1):end, current_region_to_look_for_CNVs[4],drop=F], FUN="-")
+        matrix_for_calculations <- sweep(matrix_of_likeliks_local[min(end, end_of_CNV + 1):end,,drop=F], 1, matrix_of_likeliks_local[min(end, end_of_CNV + 1):end, current_region_to_look_for_CNVs[4],drop=F], FUN="-")
         if (!is.null(nrow(matrix_for_calculations))) {
           matrix_for_calculations <- apply(matrix_for_calculations, 2, sum)
         } 
