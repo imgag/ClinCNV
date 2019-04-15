@@ -289,14 +289,15 @@ whichPTouseNew = function(purities, majorBAF, minorBAF, multiplierOfSNVsDueToMap
   roundUpToDegree = function(num, digits) {
     round(num * digits) / digits
   }
-  probs = c()
+  
   upperThreshold = 0.99
   lowerThreshold = 0.01
   for (j in 1:length(majorBAF)) {
+    probs = c()
     pUsed1 = max(lowerThreshold, min(roundUpToDegree(multiplierDueToMapping *  (majorBAF[j]) / (majorBAF[j] + minorBAF[j]), digits=degreeOfRoughness), upperThreshold))
     pUsed2 = max(lowerThreshold, min(roundUpToDegree(multiplierDueToMapping *  (minorBAF[j]) / (majorBAF[j] + minorBAF[j]), digits=degreeOfRoughness), upperThreshold))
-    if (minorBAF[j] == 0) {
-      pUsed2 = upperThreshold
+    if (minorBAF[j] == 0 & purities[j] > 0.95) {
+      pUsed1 = upperThreshold
     }
     if (is.na(pUsed1) | is.na(pUsed2)) {
       print(j)
