@@ -15,7 +15,6 @@ library(MASS)
 library("data.table")
 library(foreach)
 library(doParallel)
-library(msm)
 library(mclust)
 
 
