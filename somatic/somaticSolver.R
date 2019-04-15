@@ -424,7 +424,8 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             if (vectorsWithRegionCoordsFilled) {
               closestBedRegion = closestBedRegions[i]
             } else {
-              closestBedRegion <- which(bedFileForCluster[,1] == bAlleleFreqsTumor[i,1] & bedFileForCluster[,2] - 50 <= bAlleleFreqsTumor[i,2] & bedFileForCluster[,3] + 50 >= bAlleleFreqsTumor[i,3])
+              closestBedRegion <- which(bedFileForCluster[,1] == bAlleleFreqsTumor[i,1] & as.numeric(bedFileForCluster[,2]) - 50 <= as.numeric(bAlleleFreqsTumor[i,2])
+                                        & as.numeric(bedFileForCluster[,3]) + 50 >= as.numeric(bAlleleFreqsTumor[i,3]))
               if (length(closestBedRegion) >= 1) {
                 closestBedRegion = closestBedRegion[1]
                 closestBedRegions[i] = closestBedRegion
@@ -489,7 +490,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                 return(rep(0, length(local_cn_states)))
               }
             }
-            for (i in 1:nrow(bAlleleFreqsTumor)) {
+            for (i in 1:nrow(bAlleleFreqsTumorToy)) {
               closestBedRegion = closestBedRegionsToy[i]
               if (!is.na(closestBedRegion))
                 if (closestBedRegion != 0)
