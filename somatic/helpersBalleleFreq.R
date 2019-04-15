@@ -292,12 +292,16 @@ whichPTouseNew = function(purities, majorBAF, minorBAF, multiplierOfSNVsDueToMap
   
   upperThreshold = 0.99
   lowerThreshold = 0.01
+
   for (j in 1:length(majorBAF)) {
     probs = c()
     pUsed1 = max(lowerThreshold, min(roundUpToDegree(multiplierDueToMapping *  (majorBAF[j]) / (majorBAF[j] + minorBAF[j]), digits=degreeOfRoughness), upperThreshold))
     pUsed2 = max(lowerThreshold, min(roundUpToDegree(multiplierDueToMapping *  (minorBAF[j]) / (majorBAF[j] + minorBAF[j]), digits=degreeOfRoughness), upperThreshold))
-    if (minorBAF[j] == 0 & purities[j] > 0.97) {
-      pUsed1 = 0.99
+    pUsed3 = NULL
+    pUsed4 = NULL
+    if (minorBAF[j] == 0 & purities[j] > 0.9) {
+      pUsed3 = upperThreshold
+      pUsed4 = lowerThreshold
     }
     if (is.na(pUsed1) | is.na(pUsed2)) {
       print(j)
@@ -313,6 +317,14 @@ whichPTouseNew = function(purities, majorBAF, minorBAF, multiplierOfSNVsDueToMap
     if (!is.null(pUsed2)) {
       probs <- c(probs, pUsed2)
       whichProbUsed <- c(whichProbUsed, pUsed2)
+    }
+    if (!is.null(pUsed3)) {
+      probs <- c(probs, pUsed3)
+      whichProbUsed <- c(whichProbUsed, pUsed3)
+    }
+    if (!is.null(pUsed4)) {
+      probs <- c(probs, pUsed4)
+      whichProbUsed <- c(whichProbUsed, pUsed4)
     }
     whichPUsed[[j]] = whichProbUsed
   }
