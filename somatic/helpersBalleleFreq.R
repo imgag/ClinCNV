@@ -296,9 +296,6 @@ whichPTouseNew = function(purities, majorBAF, minorBAF, multiplierOfSNVsDueToMap
     probs = c()
     pUsed1 = max(lowerThreshold, min(roundUpToDegree(multiplierDueToMapping *  (majorBAF[j]) / (majorBAF[j] + minorBAF[j]), digits=degreeOfRoughness), upperThreshold))
     pUsed2 = max(lowerThreshold, min(roundUpToDegree(multiplierDueToMapping *  (minorBAF[j]) / (majorBAF[j] + minorBAF[j]), digits=degreeOfRoughness), upperThreshold))
-    if (minorBAF[j] == 0 & purities[j] > 0.95) {
-      pUsed1 = upperThreshold
-    }
     if (is.na(pUsed1) | is.na(pUsed2)) {
       print(j)
     }
