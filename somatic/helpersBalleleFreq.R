@@ -294,7 +294,7 @@ whichPTouseNew = function(purities, majorBAF, minorBAF, multiplierOfSNVsDueToMap
   lowerThreshold = 0.01
   for (j in 1:length(majorBAF)) {
     pUsed1 = max(lowerThreshold, min(roundUpToDegree(multiplierDueToMapping *  (majorBAF[j]) / (majorBAF[j] + minorBAF[j]), digits=degreeOfRoughness), upperThreshold))
-    pUsed2 = max(lowerThreshold, min(roundUpToDegree(multiplierDueToMapping *  (minorBAF[j]) / (majorBAF[j] + minorBAF[j]), digits=degreeOfRoughness), lowerThreshold))
+    pUsed2 = max(lowerThreshold, min(roundUpToDegree(multiplierDueToMapping *  (minorBAF[j]) / (majorBAF[j] + minorBAF[j]), digits=degreeOfRoughness), upperThreshold))
     if (minorBAF[j] == 0) {
       pUsed2 = upperThreshold
     }
