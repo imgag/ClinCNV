@@ -17,7 +17,7 @@ matrix:
 before_script:
   - Rscript --version
   - R --version
-  - sudo apt-get install r-cran-optparse r-cran-robustbase r-cran-foreach r-cran-mclust r-cran-doparallel r-cran-mass r-cran-data.table
+  - sudo apt-get install r-cran-optparse r-cran-robustbase r-cran-foreach r-cran-mclust r-cran-doparallel r-cran-mass r-cran-data.table r-cran-party
 
 script:
   - mkdir result
