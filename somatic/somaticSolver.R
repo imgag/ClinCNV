@@ -104,9 +104,10 @@ cn_states <- c()
 copy_numbers = 0:15
 purity <- seq(from=opt$minimumPurity, to=100.1, by=opt$purityStep) / 100
 purities <- c()
-copy_numbers_used <- c()
-statesUsed <- c()
-
+copy_numbers_used_major = c()
+copy_numbers_used_minor = c()
+BAF_number_of_reads_minor = c()
+BAF_number_of_reads_major = c()
 ### DESCRIPTION OF STATES
 # CNV - copy number change, 1 allele changed
 # CNVboth - duplication when both alleles changed
@@ -116,54 +117,22 @@ statesUsed <- c()
 
 for (pur in purity) {
   for (cn in copy_numbers) {
-    # VALUES NOT CN NEUTRAL
-    if (cn != 2 & (!(cn == 0 & pur <= 0.5))) {
-      cn_state <- (1 - pur) * 2 + pur * cn
-      cn_states <- c(cn_states, cn_state)
-      purities <- c(purities, pur)
-      copy_numbers_used <- c(copy_numbers_used, cn)
-      statesUsed <- c(statesUsed, "CNV")
-    }
-    # CN neutral changes
-    if (cn == 2) {
-      if (pur >= 0.1) {
-        cn_states <- c(cn_states, 2)
-        copy_numbers_used <- c(copy_numbers_used, 2)
+    for (cn1 in copy_numbers) {
+      if (cn1 <= 4 & cn1 <= cn & !(cn1 == 1 & cn == 1) & 
+          (cn1 + cn) <= max(copy_numbers) & ((1-pur) + pur * cn) > 0 ) {
+        #if (cn1 == 0 & cn > 8) next
+        #if (cn1 == cn & cn1 + cn > 8) next
+        cn_state = (1 - pur) * 2 + pur * cn + pur * cn1
+        cn_states <- c(cn_states, cn_state)
         purities <- c(purities, pur)
-        statesUsed <- c(statesUsed, "LOH")
+        copy_numbers_used_major <- c(copy_numbers_used_major, cn)
+        copy_numbers_used_minor <- c(copy_numbers_used_minor, cn1)
+        BAF_number_of_reads_minor <- c(BAF_number_of_reads_minor, (1-pur) + pur * cn1)
+        BAF_number_of_reads_major <- c(BAF_number_of_reads_major, (1-pur) + pur * cn)
       }
-    }
-    if (cn == 4 | cn == 6 | cn == 8) {
-      cn_state <- (1 - pur) * 2 + pur * cn
-      cn_states <- c(cn_states, cn_state)
-      copy_numbers_used <- c(copy_numbers_used, cn)
-      purities <- c(purities, pur)
-      statesUsed <- c(statesUsed, "CNVboth")
-    }
-    if (cn >= 5 & cn <= 8) {
-      cn_state <- (1 - pur) * 2 + pur * cn
-      cn_states <- c(cn_states, cn_state)
-      copy_numbers_used <- c(copy_numbers_used, cn)
-      purities <- c(purities, pur)
-      statesUsed <- c(statesUsed, "CNVcomplex2")
-    }
-    if (cn >= 7 & cn <= 8) {
-      cn_state <- (1 - pur) * 2 + pur * cn
-      cn_states <- c(cn_states, cn_state)
-      copy_numbers_used <- c(copy_numbers_used, cn)
-      purities <- c(purities, pur)
-      statesUsed <- c(statesUsed, "CNVcomplex3")
-    }
-    if (cn == 3 | cn == 4) {
-      cn_state <- (1 - pur) * 2 + pur * cn
-      cn_states <- c(cn_states, cn_state)
-      copy_numbers_used <- c(copy_numbers_used, cn)
-      purities <- c(purities, pur)
-      statesUsed <- c(statesUsed, "LOHDup")
     }
   }
 }
-
 
 
 
@@ -175,16 +144,13 @@ if (frameworkOff == "offtarget") {
   matrixOfLogFoldOff[which(matrixOfLogFoldOff > log2(max(cn_states) / 2))] = log2(max(cn_states) / 2)
 }
 
+datasetOfPuritiesCopies <- cbind(cn_states, copy_numbers_used_major, copy_numbers_used_minor, BAF_number_of_reads_major, BAF_number_of_reads_minor, purities)
+colnames(datasetOfPuritiesCopies) <- c("cn_states", "major_cn", "minor_cn", "major_BAF", "minor_BAF", "puritiy")
+
 final_order <- order(cn_states)
-cn_states <- cn_states[final_order]
-copy_numbers_used = copy_numbers_used[final_order]
-purities = purities[final_order]
-statesUsed = statesUsed[final_order]
-### ADDING NORMAL STATE
-purities <- c(0, 0, purities)
-copy_numbers_used <- c(2, 1, copy_numbers_used)
-cn_states <- c(2, 1, cn_states)
-statesUsed <- c("normal", "normal", statesUsed)
+datasetOfPuritiesCopies = datasetOfPuritiesCopies[final_order,]
+datasetOfPuritiesCopies = rbind(c(2,1,1,1,1,0), c(1,1,0,1,0,0), datasetOfPuritiesCopies)
+
 
 
 
@@ -232,6 +198,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   sample_name <- colnames(matrixOfLogFold)[sam_no]
   overdispersionNormal = NULL
   sampleInOfftarget = F
+  local_datasetOfPuritiesCopies = datasetOfPuritiesCopies
   
   germline_sample_no = which(colnames(tmpNormal) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])
   germline_sample_name = colnames(tmpNormal)[germline_sample_no]
@@ -257,24 +224,12 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
   print(paste("We are working on sample name:", sample_name))
   print(Sys.time())
   
-  ### Multiplier due to different CN - calculation with covariance
-  multipliersDueToLog = c()
-  for (cn in cn_states) {
-    multipliersDueToLog = c(multipliersDueToLog, returnMultiplierDueToLog(2,cn,matrixWithSds[1,sam_no], matrixWithSds[2,sam_no], matrixWithSds[3,sam_no]))
-  }
-  multipliersDueToLog = sqrt(multipliersDueToLog) 
-  multipliersDueToLog = multipliersDueToLog / multipliersDueToLog[1]
+
   
   if (frameworkOff == "offtarget") {
     if (sample_name %in% colnames(matrixOfLogFoldOff)) {
       sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
       sampleInOfftarget = T
-      multipliersDueToLogOff = c()
-      for (cn in cn_states) {
-        multipliersDueToLogOff = c(multipliersDueToLogOff, returnMultiplierDueToLog(2,cn,matrixWithSdsOff[1,sam_no_off], matrixWithSdsOff[2,sam_no_off], matrixWithSdsOff[3,sam_no_off]))
-      }
-      multipliersDueToLogOff = sqrt(multipliersDueToLogOff) 
-      multipliersDueToLogOff = multipliersDueToLogOff / multipliersDueToLogOff[1]
     }
   }
   
@@ -296,31 +251,24 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       if (!finalIteration)
         do.call(file.remove, list(list.files(paste0(folder_name, sample_name), full.names = TRUE)))
       
-      local_purities <- purities
-      local_copy_numbers_used <- copy_numbers_used
-      local_cn_states <- cn_states
-      local_multipliersDueToLog <- multipliersDueToLog
-      local_cnv_states <- statesUsed
-      if (frameworkOff == "offtarget")
-        if (sample_name %in% colnames(matrixOfLogFoldOff))
-          local_multipliersDueToLogOff <- multipliersDueToLogOff
-      
       if (finalIteration ) {
-        clonalBestPurities <- c(as.numeric(clonalBestPurities), 0)
-        indices_to_remove_by_purity <- which(!(purities %in% clonalBestPurities))
-        local_purities <- purities[-indices_to_remove_by_purity]
-        local_copy_numbers_used <- copy_numbers_used[-indices_to_remove_by_purity]
-        local_cn_states <- cn_states[-indices_to_remove_by_purity]
-        local_multipliersDueToLog <- multipliersDueToLog[-indices_to_remove_by_purity]
-        local_cnv_states = local_cnv_states[-indices_to_remove_by_purity]
-        if (frameworkOff == "offtarget")
-          if (sample_name %in% colnames(matrixOfLogFoldOff))
-            local_multipliersDueToLogOff <- local_multipliersDueToLogOff[-indices_to_remove_by_purity]
+        indices_to_remove_by_purity <- which(!(local_datasetOfPuritiesCopies[,6] %in% c(0, clonalBestPurities)))
+        if (length(indices_to_remove_by_purity) > 0)
+        local_datasetOfPuritiesCopies = local_datasetOfPuritiesCopies[-indices_to_remove_by_purity,]
       }
+      
+      local_purities <- local_datasetOfPuritiesCopies[,6]
+      local_copy_numbers_used_major <- local_datasetOfPuritiesCopies[,2]
+      local_copy_numbers_used_minor <- local_datasetOfPuritiesCopies[,3]
+      local_cn_states <- local_datasetOfPuritiesCopies[,1]
+      local_majorBAF <- local_datasetOfPuritiesCopies[,4]
+      local_minorBAF <- local_datasetOfPuritiesCopies[,5]
+      
       
       # PART FOR MATRIX OF CLONALITY (ONLY 2 CLONES)
       uniqueLocalPurities = unique(local_purities)
       zeroPurity <- which(uniqueLocalPurities == 0)
+      if (length(zeroPurity) > 0)
       uniqueLocalPurities = sort(uniqueLocalPurities[-zeroPurity])
       likeliksFoundCNVsVsPuritiesGlobal = matrix(nrow=0, ncol=length(uniqueLocalPurities))
       
@@ -429,13 +377,13 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       matrixOfLogFoldCorrectedSmall[which(matrixOfLogFoldCorrectedSmall < log2(min(local_cn_states) / 2))] = log2(min(local_cn_states) / 2)
       matrixOfLogFoldCorrectedSmall[which(matrixOfLogFoldCorrectedSmall > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
       
-      matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2), local_multipliersDueToLog)
+      matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2))
       
       if (genderOfSamples[germline_sample_no] == "M") {
         if (length(which(bedFileForCluster[,1] %in% c("chrX","chrY"))) > 0)
           matrix_of_likeliks[which(bedFileForCluster[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
             1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[which(bedFileForCluster[,1] %in% c("chrX","chrY")),sam_no], 
-            localSds[which(bedFileForCluster[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
+            localSds[which(bedFileForCluster[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used_major))
       }
       
       
@@ -470,7 +418,6 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           print("Multiplier of allele balance of a particular sample")
           print(multiplierOfSNVsDueToMapping)
           
-          numOfSNVs = nrow(bAlleleFreqsTumor)
           if (length(closestBedRegions) == 0) closestBedRegions = rep(0, nrow(bAlleleFreqsTumor))
           for (i in 1:nrow(bAlleleFreqsTumor)) {
             # To avoid computationally expensive steps on the start of estimation
@@ -521,7 +468,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             overdispersionTumorToy = overdispersionTumor
           }
           if (!noBAF) {
-            whichPUsedForAllStates = whichPTouse(local_purities, local_copy_numbers_used, local_cnv_states, multiplierOfSNVsDueToMapping, degreeOfRoughness)
+            whichPUsedForAllStates = whichPTouseNew(local_purities, local_majorBAF, local_minorBAF, multiplierOfSNVsDueToMapping, degreeOfRoughness)
             matrixOfBAFLikeliks = foreach (i = 1:nrow(bAlleleFreqsTumorToy), .combine='rbind') %dopar% {
               altAlleleDepth <- as.numeric(bAlleleFreqsTumorToy[i,5])
               overallDepth <- round(as.numeric(bAlleleFreqsTumorToy[i,6]))
@@ -562,11 +509,11 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         matrixOfLogFoldOffCorrectedExtraSmallValues <- matrixOfLogFoldOff
         matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues < log2(min(local_cn_states) / 2))] = log2(min(local_cn_states) / 2)
         matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
-        matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[,sam_no_off], localSdsOff, log2(local_cn_states/2), local_multipliersDueToLogOff)
+        matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[,sam_no_off], localSdsOff, log2(local_cn_states/2))
         if (genderOfSamples[germline_sample_no] == "M") {
           matrix_of_likeliks_off[which(bedFileForClusterOff[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
             1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileForClusterOff[,1] %in% c("chrX","chrY")),sam_no_off], 
-            localSdsOff[which(bedFileForClusterOff[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used), local_multipliersDueToLog)
+            localSdsOff[which(bedFileForClusterOff[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used_major))
         }
         
         
@@ -597,7 +544,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       
       
       found_CNVs_total <- matrix(0, nrow=0, ncol=10)
-      colnames(found_CNVs_total) <- c("#chr", "start", "end", "tumor_CN_change", "tumor_clonality", "CN_change", "loglikelihood", "number_of_regions", "state", "genes")
+      colnames(found_CNVs_total) <- c("#chr", "start", "end", "major_CN_allele", "minor_CN_allele", "tumor_clonality", "CN_change", "loglikelihood", "number_of_regions", "genes")
       allDetectedPurities = c()
       for (l in 1:length(left_borders)) {
         
@@ -663,13 +610,13 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             if (!finalIteration) {
               diffsFromCoverage <- sapply(1:length(local_cn_states), function(i) {min(abs(log2(local_cn_states[i] / local_cn_states[initial_state]) - (arrayOfMediansOfToyLogFold)))})
               blocked_states = c(setdiff(c(1,2), initial_state),
-                                 which(diffsFromCoverage > 0.1))
+                                 which(diffsFromCoverage > 0.04))
             } else {
               blocked_states = c(setdiff(c(1,2), initial_state),
                                  which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
             }
             if (genderOfSamples[germline_sample_no] == "M" & chrom %in% c("chrX","chrY")) {
-              blocked_states = c(blocked_states, which(local_cnv_states %in% c("LOH", "LOHDup", "CNVcomplex2", "CNVcomplex3", "CNVboth")))
+              #blocked_states = c(blocked_states, which(local_cnv_states %in% c("LOH", "LOHDup", "CNVcomplex2", "CNVcomplex3", "CNVboth")))
             }
             blocked_states = unique(blocked_states)
             if (initial_state %in% blocked_states) {
@@ -681,13 +628,13 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           }
           
           # BLOCK WITH PENALTIES
-          copy_numbers_for_penalties = 3 - local_copy_numbers_used
+          copy_numbers_for_penalties = 3 - (local_copy_numbers_used_major + local_copy_numbers_used_minor)
           copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
-          set_of_unrealistic_states = c("LOHDup", "CNVcomplex2", "CNVcomplex3")
-          whichAreUnrealistic <- which(local_cnv_states %in% set_of_unrealistic_states)
+          #set_of_unrealistic_states = c("LOHDup", "CNVcomplex2", "CNVcomplex3")
+          #whichAreUnrealistic <- which(local_cnv_states %in% set_of_unrealistic_states)
           penalties = penaltyForHigherCN * abs(copy_numbers_for_penalties)
           toyMatrixOfLikeliks = sweep(toyMatrixOfLikeliks, 2, abs(copy_numbers_for_penalties) * penaltyForHigherCNoneTile, FUN="+")
-          penalties[whichAreUnrealistic] = penalties[whichAreUnrealistic] + 20
+          #penalties[whichAreUnrealistic] = penalties[whichAreUnrealistic] + 20
           if (length(local_cn_states) - length(blocked_states) > 1) {
             found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states, penalties))
           } else {
@@ -764,7 +711,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           
           
           if (nrow(found_CNVs) > 0) {
-            cnvsToWriteOut <- plotFoundCNVs(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, local_cn_states, local_copy_numbers_used, local_purities, local_cnv_states, 
+            cnvsToWriteOut <- plotFoundCNVsNew(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, local_cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, local_purities, 
                                             toySizesOfPointsFromLocalSds, plottingOfPNGs)
             if (found_CNVs[1,1] != -1000) {
               found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)

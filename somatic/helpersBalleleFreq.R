@@ -270,3 +270,48 @@ extractVariancesFromBAF <- function(bafTable, expectedValue) {
     return(cbind(overdispersion, forEstimationDepths))
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+whichPTouseNew = function(purities, majorBAF, minorBAF, multiplierOfSNVsDueToMapping, degreeOfRoughness) {
+  multiplierDueToMapping = multiplierOfSNVsDueToMapping / 0.5
+  whichPUsed = list()
+  roundUpToDegree = function(num, digits) {
+    round(num * digits) / digits
+  }
+  probs = c()
+  upperThreshold = 0.99
+  lowerThreshold = 0.01
+  for (j in 1:length(majorBAF)) {
+    pUsed1=roundUpToDegree(multiplierDueToMapping * max(lowerThreshold, (majorBAF[j]) / (majorBAF[j] + minorBAF[j])), digits=degreeOfRoughness)
+    pUsed2=roundUpToDegree(multiplierDueToMapping * min(upperThreshold, (minorBAF[j]) / (majorBAF[j] + minorBAF[j])), digits=degreeOfRoughness)
+    if (minorBAF[j] == 0) {
+      pUsed2 = upperThreshold
+    }
+    if (is.nan(pUsed1)) {
+      print(j)
+    }
+    whichProbUsed = c()
+    if (!is.null(pUsed1)) {
+      probs <- c(probs, pUsed1)
+      whichProbUsed <- c(whichProbUsed, pUsed1)
+    }
+    if (!is.null(pUsed2)) {
+      probs <- c(probs, pUsed2)
+      whichProbUsed <- c(whichProbUsed, pUsed2)
+    }
+    whichPUsed[[j]] = whichProbUsed
+  }
+
+  return(whichPUsed)
+}

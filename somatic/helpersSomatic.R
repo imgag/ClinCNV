@@ -203,7 +203,7 @@ determineSDsOfSomaticProbe <- function(x, i) {
 }
 
 
-form_matrix_of_likeliks_one_sample <- function(i, j, vector_of_values, sds, cn_states, multipliersDueToLog) {
+form_matrix_of_likeliks_one_sample <- function(i, j, vector_of_values, sds, cn_states) {
   
   vector_of_states <- cn_states
   matrix_of_BFs <- matrix(0, nrow=(j - i + 1), ncol=length(vector_of_states))
@@ -217,7 +217,7 @@ form_matrix_of_likeliks_one_sample <- function(i, j, vector_of_values, sds, cn_s
     if (vector_of_states[l] < 0.5) {
       sds[which(sds < homozygousDelSD)] = homozygousDelSD
     }
-    value = return_likelik((vector_of_values - vector_of_states[l]) / (sds * multipliersDueToLog[l]) ) / (sds * multipliersDueToLog[l]) + 10^-100
+    value = return_likelik((vector_of_values - vector_of_states[l]) / (sds ) ) / (sds ) + 10^-100
     return(-2 * log(value))
   })
   return(matrix_of_BFs)
@@ -514,29 +514,28 @@ makeBarplot <- function(allPotentialPurities, found_CNVs_total) {
   datasetForBarplot = matrix(0, nrow=4, ncol=length(unique(allPotentialPurities)))
   colnames(datasetForBarplot) = sort(unique(allPotentialPurities))
   rownames(datasetForBarplot) = c("CNeutral", "DUP", "HIGHDUP", "DEL")
-  datasetForBarplotLikelik = matrix(0, nrow=4, ncol=length(unique(allPotentialPurities)))
-  colnames(datasetForBarplotLikelik) = sort(unique(allPotentialPurities))
-  rownames(datasetForBarplotLikelik) = c("CNeutral", "DUP", "HIGHDUP", "DEL")
   datasetForBarplotNumber = matrix(0, nrow=4, ncol=length(unique(allPotentialPurities)))
+  actualCopyNumbers = as.numeric(found_CNVs_total[,4]) + as.numeric(found_CNVs_total[,5])
+  colnames(datasetForBarplotNumber) = sort(unique(allPotentialPurities))
+  rownames(datasetForBarplotNumber) = c("CNeutral", "DUP", "HIGHDUP", "DEL")
   for (z in 1:nrow(found_CNVs_total)) {
     dupOrDel = 1
-    if (as.numeric(found_CNVs_total[z,4]) > 2 & as.numeric(found_CNVs_total[z,4]) < 5) {
+    if (actualCopyNumbers[z] > 2 & actualCopyNumbers[z] < 5) {
       dupOrDel = 2
-    } else if (as.numeric(found_CNVs_total[z,4]) > 4) {
+    } else if (actualCopyNumbers[z] > 4) {
       dupOrDel = 3
-    } else if (as.numeric(found_CNVs_total[z,4]) < 2) {
+    } else if (actualCopyNumbers[z] < 2) {
       dupOrDel = 4
     }
-    datasetForBarplot[dupOrDel, which(colnames(datasetForBarplot) == found_CNVs_total[z,5])] = datasetForBarplot[dupOrDel, which(colnames(datasetForBarplot) == found_CNVs_total[z,5])] + 
+    datasetForBarplot[dupOrDel, which(colnames(datasetForBarplot) == found_CNVs_total[z,6])] = datasetForBarplot[dupOrDel, which(colnames(datasetForBarplot) == found_CNVs_total[z,6])] + 
       as.numeric(found_CNVs_total[z,3]) - as.numeric(found_CNVs_total[z,2])
-    datasetForBarplotLikelik[dupOrDel, which(colnames(datasetForBarplotLikelik) == found_CNVs_total[z,5])] = datasetForBarplotLikelik[dupOrDel, which(colnames(datasetForBarplotLikelik) == found_CNVs_total[z,5])] + 
-      as.numeric(found_CNVs_total[z,7])
-    datasetForBarplotNumber[dupOrDel, which(colnames(datasetForBarplotLikelik) == found_CNVs_total[z,5])] = datasetForBarplotNumber[dupOrDel, which(colnames(datasetForBarplotLikelik) == found_CNVs_total[z,5])] + 1
+    datasetForBarplotNumber[dupOrDel, which(colnames(datasetForBarplotNumber) == found_CNVs_total[z,6])] = datasetForBarplotNumber[dupOrDel, which(colnames(datasetForBarplotNumber) == found_CNVs_total[z,6])] + 1
+    
   }
   datasetForBarplot = (datasetForBarplot / 10**6)
   maxheight = max(datasetForBarplot)
   png(paste0(sample_name, "_clonalityBarplot.png"), width=2400, height=640)
-  bp <- barplot(datasetForBarplot, col=c("brown","blue","darkblue","red") ,  font.axis=2, beside=T, main=paste("Presence of clones in tumor", sample_name, ", estimated purity: ", max(as.numeric(found_CNVs_total[,5]))), ylim=c(0, 1.05 * maxheight), xlab="Subclones investigated", ylab="Length, MB")
+  bp <- barplot(datasetForBarplot, col=c("brown","blue","darkblue","red") ,  font.axis=2, beside=T, main=paste("Presence of clones in tumor", sample_name, ", estimated purity: ", max(as.numeric(found_CNVs_total[,6]))), ylim=c(0, 1.05 * maxheight), xlab="Subclones investigated", ylab="Length, MB")
   for (z in 1:ncol(datasetForBarplotNumber)) {
     for (v in 1:nrow(datasetForBarplotNumber)) {
       if (datasetForBarplotNumber[v,z] > 0) {
@@ -544,7 +543,7 @@ makeBarplot <- function(allPotentialPurities, found_CNVs_total) {
       }
     }
     currentPurity = colnames(datasetForBarplot)[z]
-    found_CNVs_total_LOH = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) == 2 & found_CNVs_total[,5] == currentPurity),,drop=F]
+    found_CNVs_total_LOH = found_CNVs_total[which(actualCopyNumbers== 2 & found_CNVs_total[,6] == currentPurity),,drop=F]
     if (nrow(found_CNVs_total_LOH) > 1) {
       linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_LOH[, 3]) 
                                   - as.numeric(found_CNVs_total_LOH[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_LOH) - 1)]
@@ -552,7 +551,7 @@ makeBarplot <- function(allPotentialPurities, found_CNVs_total) {
         segments(bp[1,z] - 0.4, height, bp[1,z] + 0.4, height, col="white", lwd=3)
     }
     
-    found_CNVs_total_dup = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) > 2 & as.numeric(found_CNVs_total[,4]) < 5 & found_CNVs_total[,5] == currentPurity),,drop=F]
+    found_CNVs_total_dup = found_CNVs_total[which(actualCopyNumbers > 2 & as.numeric(found_CNVs_total[,4]) < 5 & found_CNVs_total[,6] == currentPurity),,drop=F]
     if (nrow(found_CNVs_total_dup) > 1) {
       linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_dup[, 3]) 
                                   - as.numeric(found_CNVs_total_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_dup) - 1)]
@@ -560,7 +559,7 @@ makeBarplot <- function(allPotentialPurities, found_CNVs_total) {
         segments(bp[2,z] - 0.4, height, bp[2,z] + 0.4, height, col="white", lwd=3)
     }
     
-    found_CNVs_total_high_dup = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) > 4 & found_CNVs_total[,5] == currentPurity),,drop=F]
+    found_CNVs_total_high_dup = found_CNVs_total[which(actualCopyNumbers > 4 & found_CNVs_total[,6] == currentPurity),,drop=F]
     if (nrow(found_CNVs_total_high_dup) > 1) {
       linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_high_dup[, 3]) 
                                   - as.numeric(found_CNVs_total_high_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_high_dup) - 1)]
@@ -568,7 +567,7 @@ makeBarplot <- function(allPotentialPurities, found_CNVs_total) {
         segments(bp[3,z] - 0.4, height, bp[3,z] + 0.4, height, col="white", lwd=3)
     }
     
-    found_CNVs_total_del = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) < 2 & found_CNVs_total[,5] == currentPurity),,drop=F]
+    found_CNVs_total_del = found_CNVs_total[which(actualCopyNumbers < 2 & found_CNVs_total[,6] == currentPurity),,drop=F]
     if (nrow(found_CNVs_total_del) > 1) {
       linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_del[, 3]) 
                                   - as.numeric(found_CNVs_total_del[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_del) - 1)]
@@ -719,8 +718,8 @@ makeTransparent = function(..., alpha=0.5) {
 
 
 plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_borders, ends_of_chroms, gender, sample_name) {
-  found_CNVs_total[,5] = as.numeric(found_CNVs_total[,5]) / max(as.numeric(found_CNVs_total[,5]))
-  majorClone = max(as.numeric(found_CNVs_total[,5]))
+  found_CNVs_total[,6] = as.numeric(found_CNVs_total[,6]) / max(as.numeric(found_CNVs_total[,6]))
+  majorClone = max(as.numeric(found_CNVs_total[,6]))
   linesOnBarplot = list()
   orderOfNames = c(paste0("chr", 1:22), "chrX", "chrY")
   orderInLists = c()
@@ -778,52 +777,48 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
     if (length(whichCNVsToPlot) > 0) {
       for (numOfCNV in 1:length(whichCNVsToPlot)) {
         m = whichCNVsToPlot[numOfCNV]
-        particularPurity = as.numeric(found_CNVs_total[m,5])
+        particularPurity = as.numeric(found_CNVs_total[m,6])
         colorForPlotting = colForMajor
         cnvLty = 1
         cnvLwd = max(0.3, 0.9 * particularPurity) * widthOfLine
-        if (as.numeric(found_CNVs_total[m,5]) < majorClone - 10 ** -5) {
+        if (as.numeric(found_CNVs_total[m,6]) < majorClone - 10 ** -5) {
           colorForPlotting = colForMinor
           cnvLty = 1
         }
         cnvToPlot = found_CNVs_total[m,]
         start = as.numeric(found_CNVs_total[m,2])
         end = as.numeric(found_CNVs_total[m,3])
-        copy_number_particuar_cnv = as.numeric(found_CNVs_total[m,4])
+        copy_number_particuar_cnv_minor = as.numeric(found_CNVs_total[m,5])
+        copy_number_particuar_cnv_major = as.numeric(found_CNVs_total[m,4])
+        copy_number_particuar_cnv = copy_number_particuar_cnv_minor + copy_number_particuar_cnv_major
+        
+        colorType = c(0,0)
+        if (round(copy_number_particuar_cnv_minor) < 1) {
+          colorType[1] = 4
+        }
+        if (round(copy_number_particuar_cnv_minor) == 2) {
+          colorType[1] = 2
+        }
+        if (round(copy_number_particuar_cnv_minor) > 2) {
+          colorType[1] = 3
+        }
+        if (round(copy_number_particuar_cnv_major) < 1) {
+          colorType[2] = 4
+        }
+        if (round(copy_number_particuar_cnv_major) == 2) {
+          colorType[2] = 2
+        }
+        if (round(copy_number_particuar_cnv_major) > 2) {
+          colorType[2] = 3
+        }
         cnv_state = (found_CNVs_total[m,9])
-        colorType = c(2,0)
-        if (copy_number_particuar_cnv == 2) colorType = c(2,4)
-        if (copy_number_particuar_cnv < 2) colorType = c(0,4)
-        if (copy_number_particuar_cnv < 1) colorType = c(4,4)
-        if (copy_number_particuar_cnv > 3) {
-          colorType = c(3,0)
-          if (cnv_state == "CNVcomplex2") {
-            colorType = c(3,2)
-          }
-          if (cnv_state == "CNVcomplex3") {
-            colorType = c(3,3)
-          }
-          if (cnv_state == "CNVboth") {
-            if (copy_number_particuar_cnv >= 8) {
-              colorType = c(3,3)
-            } else {
-              colorType = c(2,2)
-            }
-          }
-        }
-        if (cnv_state == "LOHDup") {
-          colorType = c(3,4)
-        }
         
         segments(start, multiplicator* i,  end,multiplicator * i, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[1]], alpha=max(0.3, particularPurity)))
-        if (colorType[2] != 0 & !(chromStructure[[5]] == "chrY" & gender == "M")) {
+        if (colorType[2] != 0 & !(chromStructure[[5]] %in% c("chrX", "chrY") & gender == "M")) {
           segments( start, multiplicator* i + offsetOfSecondChr,  end, multiplicator * i + offsetOfSecondChr, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[2]], alpha=max(0.3, particularPurity)))
         }
-        if (cnv_state == "CNVcomplex3") {
-          text(y = multiplicator *i + offsetOfSecondChr / 2, x = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv, "(", 3, "/", copy_number_particuar_cnv - 3, ")"), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"), cex=0.7)
-        } else {
-          text(y = multiplicator *i + offsetOfSecondChr / 2, x = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"), cex=0.7)
-        }
+
+        text(y = multiplicator *i + offsetOfSecondChr / 2, x = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"), cex=0.7)
       }
     }
     
@@ -1008,4 +1003,111 @@ returnAreasFreeOfCNVsForAdditionalAnalysis <- function(found_CNVs_total, sample_
   }
   areasFreeOfCNVs = areasFreeOfCNVs[which(as.numeric(areasFreeOfCNVs[,5]) > 1),,drop=F]
   return(areasFreeOfCNVs)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+plotFoundCNVsNew <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, purities, toySizesOfPointsFromLocalSds, plottingOfPNGs) {
+  vector_of_states <- cn_states
+  cnvsToOutput <- matrix(0, nrow=0, ncol=10)
+  if (nrow(found_CNVs) > 0) {
+    for (s in 1:nrow(found_CNVs)) {
+      if(opt$debug) {
+        print("Started with")
+      }
+      CNV_name <- paste(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], "CN:", vector_of_states[found_CNVs[s,4]], "-2ln(loglik):", found_CNVs[s,1])
+      CNV_name_to_write <- paste(colnames(toyLogFoldChange)[sam_no],  chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], "CN",vector_of_states[found_CNVs[s,4]], sep="_")
+      
+      vectorOfGeneNames = c()
+      genesThatHasToBeSeparated = unique(toyBedFile[found_CNVs[s,2]:found_CNVs[s,3],5])
+      for (i in 1:length(genesThatHasToBeSeparated)) {
+        if (is.character(genesThatHasToBeSeparated[i]))
+          vectorOfGeneNames = c(vectorOfGeneNames, unlist(strsplit(genesThatHasToBeSeparated[i], split=",")))
+      }
+      vectorOfGeneNamesTrimmed = c()
+      if (length(vectorOfGeneNames) > 0) {
+        for (elem in vectorOfGeneNames) {
+          vectorOfGeneNamesTrimmed = c(vectorOfGeneNamesTrimmed,trimws(elem) )
+        }
+      }
+      if (length(vectorOfGeneNamesTrimmed) > 0) {
+        annotationGenes <- paste(unique(vectorOfGeneNamesTrimmed), collapse=",")
+      } else {
+        annotationGenes = "na"
+      }
+      CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], 
+                           local_copy_numbers_used_major[found_CNVs[s,4]], local_copy_numbers_used_minor[found_CNVs[s,4]],
+                           purities[found_CNVs[s,4]],
+                           vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), 
+                           found_CNVs[s,3] - found_CNVs[s,2] + 1, annotationGenes), nrow=1)
+      if(opt$debug)
+      {
+        print(CNVtoOut)
+      }
+      cnvsToOutput = as.matrix(rbind(cnvsToOutput, CNVtoOut), ncol=10, drop=F)
+      
+      
+      length_of_repr <- 500
+      
+      
+      st <- found_CNVs[s,2]
+      fn <- found_CNVs[s,3]
+      
+      pr = plottingOfPNGs
+      if (pr) {
+        png(filename=paste0(outputFolder, "/", paste0(CNV_name_to_write, ".png")), type="cairo",width = 1024, height = 640)
+        if(opt$debug) {
+          print(CNV_name_to_write)
+          print(paste0(outputFolder, CNV_name_to_write))
+        }
+        
+        
+        plot(toyLogFoldChange, main=CNV_name, ylab="Copy Number", xlab=(paste("CNV within Chromosome Arm" )),
+             ylim=c(-5, 5), cex=toySizesOfPointsFromLocalSds, yaxt='n')
+        
+        axis(side = 2, at = c(log2(cn_states/2)), labels = cn_states)
+        abline(v=c(found_CNVs[s,2], found_CNVs[s,3]), col="red")
+        
+        
+        
+        abline(h=log2(c(1, 0.5, 3:10/2)),lty=2,col=c("darkgreen", rep("blue", 10)),lwd=3)
+        points(found_CNVs[s,2]:found_CNVs[s,3], toyLogFoldChange[found_CNVs[s,2]:found_CNVs[s,3]],col="black", pch=21,bg=colours[found_CNVs[s,4]], cex=toySizesOfPointsFromLocalSds[found_CNVs[s,2]:found_CNVs[s,3]])
+        
+        ### EACH POINTS WITH DISTANCE > 10 MB WILL BE SEPARATED BY VERTICAL LINE
+        distanceBetweenPoints = 10 ** 6
+        for (i in 2:nrow(toyBedFile)) {
+          if (toyBedFile[i,2] - toyBedFile[i - 1,2] > distanceBetweenPoints) {
+            abline(v = i - 0.5, lty=2, col="grey")
+          }
+        }
+        
+        
+        dev.off()
+      }
+      
+    }
+  }
+  return(cnvsToOutput)
 }

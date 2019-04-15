@@ -70,7 +70,7 @@ option_list = list(
   make_option(c("-lg", "--lengthG"), type="integer", default="2", 
               help="minimum threshold for length of germline variants"),
   
-  make_option(c("-ss", "--scoreS"), type="double", default="150", 
+  make_option(c("-ss", "--scoreS"), type="double", default="100", 
               help="minimum threshold for significance somatic variants"),
   
   make_option(c("-ls", "--lengthS"), type="integer", default="9", 
