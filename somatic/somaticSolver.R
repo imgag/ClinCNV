@@ -121,6 +121,7 @@ for (pur in purity) {
       if (cn1 <= 4 & cn1 <= cn & !(cn1 == 1 & cn == 1) & 
           (cn1 + cn) <= max(copy_numbers) & ((1-pur) + pur * cn) > 0 ) {
         if (cn1 == cn & pur < 0.4) next
+        if (cn1 == 0 & pur < 0.52) next
         #if (cn1 == 0 & cn > 8) next
         #if (cn1 == cn & cn1 + cn > 8) next
         cn_state = (1 - pur) * 2 + pur * cn + pur * cn1
@@ -379,12 +380,22 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       matrixOfLogFoldCorrectedSmall[which(matrixOfLogFoldCorrectedSmall > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
       
       
-      
-      if (sampleInOfftarget) {
-        blocked_states_global = determine_potential_states(matrixOfLogFoldCorrectedSmall[,sam_no], local_cn_states, matrixOfLogFoldOff[,sam_no_off])
+      if (genderOfSamples[germline_sample_no] == "F") {
+        whichAllowedOnTagret = which(bedFileForCluster[,1] != "chrY")
       } else {
-        blocked_states_global = determine_potential_states(matrixOfLogFoldCorrectedSmall[,sam_no], local_cn_states, matrixOfLogFoldOff[,sam_no_off])
+        whichAllowedOnTagret = 1:nrow(bedFileForCluster)
       }
+      if (sampleInOfftarget) {
+        if (genderOfSamples[germline_sample_no] == "F") {
+          whichAllowedOffTagret = which(bedFileForCluster[,1] != "chrY")
+        } else {
+          whichAllowedOffTagret = 1:nrow(bedFileForClusterOff)
+        }
+        blocked_states_global = determine_potential_states(matrixOfLogFoldCorrectedSmall[whichAllowedOnTagret,sam_no], local_cn_states, matrixOfLogFoldOff[whichAllowedOffTagret,sam_no_off])
+      } else {
+        blocked_states_global = determine_potential_states(matrixOfLogFoldCorrectedSmall[whichAllowedOnTagret,sam_no], local_cn_states)
+      }
+      
       if (length(blocked_states_global) > 0) {
         local_purities <- local_purities[-blocked_states_global]
         local_copy_numbers_used_major <- local_copy_numbers_used_major[-blocked_states_global]
@@ -641,7 +652,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             if (!finalIteration) {
               diffsFromCoverage <- sapply(1:length(local_cn_states), function(i) {min(abs(log2(local_cn_states[i] / local_cn_states[initial_state]) - (arrayOfMediansOfToyLogFold)))})
               blocked_states = c(setdiff(c(1,2), initial_state),
-                                 which(diffsFromCoverage > 0.04))
+                                 which(diffsFromCoverage > 0.05))
             } else {
               blocked_states = c(setdiff(c(1,2), initial_state),
                                  which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
@@ -782,11 +793,11 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       if (finalIteration == T) {
         if (nrow(found_CNVs_total) > 0){
           # HOMOZYGOUSITY FILTER - IF THERE ARE TOO MANY HOMOZYGOUS, WE REMOVE THEM
-          #if (length(which(as.numeric(found_CNVs_total[,4]) == 0)) > 5) {
+          if (length(which(as.numeric(found_CNVs_total[,4]) == 0 & as.numeric(found_CNVs_total[,8]) < 10)) > 0) {
             print("Short (<10 regions) homozygous deletions will be filtered out due to high percentage of technical artifacts in such CNVs")
-            print(found_CNVs_total[which(!(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 10)),])
-            found_CNVs_total = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 10),]
-          #}
+            print(found_CNVs_total[which(!(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 10)),,drop=F])
+            found_CNVs_total = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 10),,drop=F]
+          }
           makeBarplot(allPotentialPurities, found_CNVs_total)
           plotChromosomalLevelInstabs(found_CNVs_total, left_borders, right_borders, ends_of_chroms, genderOfSamples[germline_sample_no], sample_name)
         }

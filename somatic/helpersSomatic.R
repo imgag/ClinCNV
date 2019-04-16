@@ -787,22 +787,22 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
         
         colorType = c(0,0)
         if (round(copy_number_particuar_cnv_minor) < 1) {
-          colorType[1] = 4
-        }
-        if (round(copy_number_particuar_cnv_minor) == 2) {
-          colorType[1] = 2
-        }
-        if (round(copy_number_particuar_cnv_minor) > 2) {
-          colorType[1] = 3
-        }
-        if (round(copy_number_particuar_cnv_major) < 1) {
           colorType[2] = 4
         }
-        if (round(copy_number_particuar_cnv_major) == 2) {
+        if (round(copy_number_particuar_cnv_minor) == 2) {
           colorType[2] = 2
         }
-        if (round(copy_number_particuar_cnv_major) > 2) {
+        if (round(copy_number_particuar_cnv_minor) > 2) {
           colorType[2] = 3
+        }
+        if (round(copy_number_particuar_cnv_major) < 1) {
+          colorType[1] = 4
+        }
+        if (round(copy_number_particuar_cnv_major) == 2) {
+          colorType[1] = 2
+        }
+        if (round(copy_number_particuar_cnv_major) > 2) {
+          colorType[1] = 3
         }
         cnv_state = (found_CNVs_total[m,9])
         
@@ -1114,6 +1114,6 @@ determine_potential_states = function(sampleLogFold, local_cn_states, sampleLogF
     arrayOfMedians <- c(arrayOfMedians, runmed(sampleLogFoldOfftarget, opt$lengthS))
   }
   diffsFromCoverage <- sapply(1:length(local_cn_states), function(i) {min(abs(log2(local_cn_states[i] / 2) - (arrayOfMedians)))})
-  blocked_states = setdiff(which(diffsFromCoverage > 0.1), c(1,2))
+  blocked_states = setdiff(which(diffsFromCoverage > 0.05), c(1,2))
   return(blocked_states)
 }
