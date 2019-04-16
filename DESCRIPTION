@@ -13,5 +13,6 @@ Imports:
     data.table,
     foreach,
     doParallel,
-    msm
+    mclust,
+    party
 LazyData: true

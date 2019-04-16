@@ -618,7 +618,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
                                  which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
             }
             if (genderOfSamples[germline_sample_no] == "M" & chrom %in% c("chrX","chrY")) {
-              #blocked_states = c(blocked_states, which(local_cnv_states %in% c("LOH", "LOHDup", "CNVcomplex2", "CNVcomplex3", "CNVboth")))
+              blocked_states = c(blocked_states, which(local_minorBAF != 0))
             }
             blocked_states = unique(blocked_states)
             if (initial_state %in% blocked_states) {
@@ -632,11 +632,10 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           # BLOCK WITH PENALTIES
           copy_numbers_for_penalties = 3 - (local_copy_numbers_used_major + local_copy_numbers_used_minor)
           copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
-          #set_of_unrealistic_states = c("LOHDup", "CNVcomplex2", "CNVcomplex3")
-          #whichAreUnrealistic <- which(local_cnv_states %in% set_of_unrealistic_states)
           penalties = penaltyForHigherCN * abs(copy_numbers_for_penalties)
           toyMatrixOfLikeliks = sweep(toyMatrixOfLikeliks, 2, abs(copy_numbers_for_penalties) * penaltyForHigherCNoneTile, FUN="+")
-          #penalties[whichAreUnrealistic] = penalties[whichAreUnrealistic] + 20
+          whichAreUnrealistic <- which((local_majorBAF == 0 & local_purities < 0.6))
+          penalties[whichAreUnrealistic] = penalties[whichAreUnrealistic] + 20
           if (length(local_cn_states) - length(blocked_states) > 1) {
             found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states, penalties))
           } else {
@@ -754,11 +753,11 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       if (finalIteration == T) {
         if (nrow(found_CNVs_total) > 0){
           # HOMOZYGOUSITY FILTER - IF THERE ARE TOO MANY HOMOZYGOUS, WE REMOVE THEM
-          if (length(which(as.numeric(found_CNVs_total[,4]) == 0)) > 5 & length(which(as.numeric(found_CNVs_total[,4]) == 0)) > 0.5 * nrow(found_CNVs_total)) {
-            print("Short homozygous deletions will be filtered out due to large amount of homozygous deletions")
+          #if (length(which(as.numeric(found_CNVs_total[,4]) == 0)) > 5) {
+            print("Short (<10 regions) homozygous deletions will be filtered out due to high percentage of technical artifacts in such CNVs")
             print(found_CNVs_total[which(!(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 10)),])
             found_CNVs_total = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 10),]
-          }
+          #}
           makeBarplot(allPotentialPurities, found_CNVs_total)
           plotChromosomalLevelInstabs(found_CNVs_total, left_borders, right_borders, ends_of_chroms, genderOfSamples[germline_sample_no], sample_name)
         }

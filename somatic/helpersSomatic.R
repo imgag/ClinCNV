@@ -451,7 +451,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
       }
     }
     varsInside = which(as.numeric(bafNormalChr[,2]) >= startOfCNV & as.numeric(bafNormalChr[,3]) <= endOfCNV)
-    if (as.numeric(puritiesOfStates[found_CNVs[q,4]]) < clonalityForChecking) {
+    if (as.numeric(puritiesOfStates[found_CNVs[q,4]]) <= clonalityForChecking) {
       if (length(varsInside) < 5) {
         print(paste("We remove potential CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "due to absence of BAF there"))
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
@@ -923,8 +923,10 @@ findDeviationInNormalCoverage <- function(germline_sample_name, tumor_sample_nam
       coordsInOff = which(bedFileForClusterOff[,1] == found_CNVs_total[i,1] & 
                             as.numeric(bedFileForClusterOff[,2]) >= as.numeric(found_CNVs_total[i,2]) & 
                             as.numeric(bedFileForClusterOff[,3]) <= as.numeric(found_CNVs_total[i,3]))
+      if (length(coordsInOff) > 0){
       valuesInSampleOff = tmpNormalOff[coordsInOff,which(colnames(tmpNormalOff) == germline_sample_name)]
       valuesCohortOff = (tmpNormalOff[coordsInOff,which(colnames(tmpNormalOff) != germline_sample_name),drop=F])
+      }
     }
     valuesSample = median(c(valuesInSampleOn, valuesInSampleOff))
     valuesInSampleOff = c()
