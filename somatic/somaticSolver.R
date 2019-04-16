@@ -121,7 +121,6 @@ for (pur in purity) {
       if (cn1 <= 4 & cn1 <= cn & !(cn1 == 1 & cn == 1) & 
           (cn1 + cn) <= max(copy_numbers) & ((1-pur) + pur * cn) > 0 ) {
         if (cn1 == cn & pur < 0.4) next
-        if (cn1 == 0 & pur < 0.52) next
         #if (cn1 == 0 & cn > 8) next
         #if (cn1 == cn & cn1 + cn > 8) next
         cn_state = (1 - pur) * 2 + pur * cn + pur * cn1
@@ -490,7 +489,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
             pvaluesSmall = filter(pvalues < 0.01, rep(1 / 20, 20), sides = 2)
             pvaluesMed = runmed(pvalues, 5)
             
-            allowedChromosomesAutosomesOnlySNV = setdiff(allowedChromosomesAutosomesOnlySNV, which(pvaluesSmall > 0.05 & pvaluesMed < 0.05))
+            allowedChromosomesAutosomesOnlySNV = setdiff(allowedChromosomesAutosomesOnlySNV, which(pvaluesSmall > 0.05 | pvaluesMed < 0.05))
 
             coordsIncludedAtFirst = setdiff(1:nrow(bAlleleFreqsTumor), union(allowedChromosomesAutosomesOnlySNV, which(bAlleleFreqsTumor[,1] %in% ifelse(genderOfSamples[germline_sample_no] == "M",
                                                                                                                                                          c("chrY"),
