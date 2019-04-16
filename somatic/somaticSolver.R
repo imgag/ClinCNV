@@ -443,15 +443,17 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
           noBAF = F
           if (!finalIteration) {
             allowedChromosomesAutosomesOnlySNV = c()
-            allowedChromsBafSample <- allowedChromsBaf[[position]]
-            for (allowedArm in allowedChromsBafSample) {
-              splittedValue <- strsplit(allowedArm, "-")
-              allowedChromosomesAutosomesOnlySNV = c(allowedChromosomesAutosomesOnlySNV, which(bAlleleFreqsTumor[,1] == splittedValue[[1]][1] & 
-                                                                                                 as.numeric(bAlleleFreqsTumor[,2]) >= as.numeric(splittedValue[[1]][2]) &
-                                                                                                 as.numeric(bAlleleFreqsTumor[,3]) <= as.numeric(splittedValue[[1]][3])
-              )
-              )
+            pvalues <- rep(0, nrow(bAlleleFreqsTumor))
+            for (l in 1:nrow(bAlleleFreqsTumor)) {
+              refAleleTum <- (round(as.numeric(bAlleleFreqsTumor[l,5]) * as.numeric(bAlleleFreqsTumor[l,6])))
+              altAleleTum <- as.numeric(bAlleleFreqsTumor[l,6]) - refAleleTum
+              refAleleNorm<- (round(as.numeric(bAlleleFreqsNormal[l,5]) * as.numeric(bAlleleFreqsNormal[l,6])))
+              altAleleNorm <- as.numeric(bAlleleFreqsNormal[l,6]) - refAleleNorm
+              pvalues[l] <- passPropTest(refAleleTum, refAleleNorm, altAleleTum, altAleleNorm)
             }
+            pvalues = runmed(pvalues, 5)
+            allowedChromosomesAutosomesOnlySNV = which(pvalues > 0.05)
+
             coordsIncludedAtFirst = setdiff(1:nrow(bAlleleFreqsTumor), union(allowedChromosomesAutosomesOnlySNV, which(bAlleleFreqsTumor[,1] %in% ifelse(genderOfSamples[germline_sample_no] == "M",
                                                                                                                                                          c("chrY"),
                                                                                                                                                          c("chrX", "chrY")))))
