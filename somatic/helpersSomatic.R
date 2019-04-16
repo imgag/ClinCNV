@@ -203,15 +203,12 @@ determineSDsOfSomaticProbe <- function(x, i) {
 }
 
 
-form_matrix_of_likeliks_one_sample <- function(i, j, vector_of_values, sds, cn_states) {
+form_matrix_of_likeliks_one_sample <- function(i, vector_of_values, sds, cn_states) {
   
   vector_of_states <- cn_states
-  matrix_of_BFs <- matrix(0, nrow=(j - i + 1), ncol=length(vector_of_states))
-  start <- 1
-  end <- j - i + 1
   
   sdsTmp = sds
-  matrix_of_BFs = sapply(1:ncol(matrix_of_BFs), function(l) {
+  matrix_of_BFs = sapply(1:length(vector_of_states), function(l) {
     sds = sdsTmp
     value = return_likelik((vector_of_values - vector_of_states[l]) / (sds ) ) / (sds ) + 10^-100
     return(-2 * log(value))
@@ -1108,4 +1105,15 @@ plotFoundCNVsNew <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFol
     }
   }
   return(cnvsToOutput)
+}
+
+
+determine_potential_states = function(sampleLogFold, local_cn_states, sampleLogFoldOfftarget=NULL) {
+  arrayOfMedians <- runmed(sampleLogFold, opt$lengthS)
+  if (!is.null(sampleLogFoldOfftarget)) {
+    arrayOfMedians <- c(arrayOfMedians, runmed(sampleLogFoldOfftarget, opt$lengthS))
+  }
+  diffsFromCoverage <- sapply(1:length(local_cn_states), function(i) {min(abs(log2(local_cn_states[i] / 2) - (arrayOfMedians)))})
+  blocked_states = setdiff(which(diffsFromCoverage > 0.1), c(1,2))
+  return(blocked_states)
 }

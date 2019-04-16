@@ -378,12 +378,28 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       matrixOfLogFoldCorrectedSmall[which(matrixOfLogFoldCorrectedSmall < log2(min(local_cn_states) / 2))] = log2(min(local_cn_states) / 2)
       matrixOfLogFoldCorrectedSmall[which(matrixOfLogFoldCorrectedSmall > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
       
-      matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2))
+      
+      
+      if (sampleInOfftarget) {
+        blocked_states_global = determine_potential_states(matrixOfLogFoldCorrectedSmall[,sam_no], local_cn_states, matrixOfLogFoldOff[,sam_no_off])
+      } else {
+        blocked_states_global = determine_potential_states(matrixOfLogFoldCorrectedSmall[,sam_no], local_cn_states, matrixOfLogFoldOff[,sam_no_off])
+      }
+      if (length(blocked_states_global) > 0) {
+        local_purities <- local_purities[-blocked_states_global]
+        local_copy_numbers_used_major <- local_copy_numbers_used_major[-blocked_states_global]
+        local_copy_numbers_used_minor <- local_copy_numbers_used_minor[-blocked_states_global]
+        local_cn_states <- local_cn_states[-blocked_states_global]
+        local_majorBAF <- local_majorBAF[-blocked_states_global]
+        local_minorBAF <- local_minorBAF[-blocked_states_global]
+      }
+      
+      matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1,  matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2))
       
       if (genderOfSamples[germline_sample_no] == "M") {
         if (length(which(bedFileForCluster[,1] %in% c("chrX","chrY"))) > 0)
           matrix_of_likeliks[which(bedFileForCluster[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
-            1, ncol(matrixOfLogFoldCorrectedSmall), matrixOfLogFoldCorrectedSmall[which(bedFileForCluster[,1] %in% c("chrX","chrY")),sam_no], 
+            1, matrixOfLogFoldCorrectedSmall[which(bedFileForCluster[,1] %in% c("chrX","chrY")),sam_no], 
             localSds[which(bedFileForCluster[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used_major))
       }
       
@@ -524,10 +540,10 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
         matrixOfLogFoldOffCorrectedExtraSmallValues <- matrixOfLogFoldOff
         matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues < log2(min(local_cn_states) / 2))] = log2(min(local_cn_states) / 2)
         matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
-        matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[,sam_no_off], localSdsOff, log2(local_cn_states/2))
+        matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, matrixOfLogFoldOffCorrectedExtraSmallValues[,sam_no_off], localSdsOff, log2(local_cn_states/2))
         if (genderOfSamples[germline_sample_no] == "M") {
           matrix_of_likeliks_off[which(bedFileForClusterOff[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
-            1, ncol(matrixOfLogFoldOffCorrectedExtraSmallValues), matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileForClusterOff[,1] %in% c("chrX","chrY")),sam_no_off], 
+            1, matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileForClusterOff[,1] %in% c("chrX","chrY")),sam_no_off], 
             localSdsOff[which(bedFileForClusterOff[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used_major))
         }
         
