@@ -451,10 +451,10 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
               altAleleNorm <- as.numeric(bAlleleFreqsNormal[l,6]) - refAleleNorm
               pvalues[l] <- passPropTest(refAleleTum, refAleleNorm, altAleleTum, altAleleNorm)
             }
-            pvalues_short = runmed(pvalues, 5)
-            pvalues_med = runmed(pvalues, 31)
-            pvalues_long = runmed(pvalues, 101)
-            allowedChromosomesAutosomesOnlySNV = which(pvalues > 0.05 & pvalues_med > 0.1 & pvalues_long > 0.2)
+            pvalues = pvalues < 0.1
+            pvalues = runmed(pvalues, 5)
+            
+            allowedChromosomesAutosomesOnlySNV = which(pvalues < 0.5)
 
             coordsIncludedAtFirst = setdiff(1:nrow(bAlleleFreqsTumor), union(allowedChromosomesAutosomesOnlySNV, which(bAlleleFreqsTumor[,1] %in% ifelse(genderOfSamples[germline_sample_no] == "M",
                                                                                                                                                          c("chrY"),
