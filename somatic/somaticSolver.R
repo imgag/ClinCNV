@@ -387,7 +387,7 @@ for (sam_no in 1:ncol(matrixOfLogFold)) {
       }
       if (sampleInOfftarget) {
         if (genderOfSamples[germline_sample_no] == "F") {
-          whichAllowedOffTagret = which(bedFileForCluster[,1] != "chrY")
+          whichAllowedOffTagret = which(bedFileForClusterOff[,1] != "chrY")
         } else {
           whichAllowedOffTagret = 1:nrow(bedFileForClusterOff)
         }
