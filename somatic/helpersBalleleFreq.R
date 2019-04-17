@@ -168,9 +168,8 @@ whichPTouse = function(purities, cnstates, statesUsed, multiplierOfSNVsDueToMapp
   return(whichPUsed)
 }
 
-fillInPList = function(value, depth, whichPUsed, overdispersionValue) {
+fillInPList = function(value, depth, probs, overdispersionValue) {
   pList = list()
-  probs = sort(unique(unlist(whichPUsed)))
   distances = abs(probs - value / depth)
   startingCoords = which.min(distances)
   pList[[as.character(probs[startingCoords])]] = likelihoodOfSNV(value, depth, probs[startingCoords], overdispersionValue)

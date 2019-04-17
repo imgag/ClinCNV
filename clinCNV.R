@@ -148,6 +148,11 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
+
+
+
+
+
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
