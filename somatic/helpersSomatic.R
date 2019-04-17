@@ -282,7 +282,7 @@ returnMultiplierDueToLog <- function(cnNorm, cnTum, sdNorm, sdTum, covNT) {
 }
 
 
-returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr, 
+returnListOfCNVsThatDoNotPass = function(found_CNVs, bafNormalChr, bafTumorChr, 
                                          clonalityForChecking, puritiesOfStates, relativeCNumbersOfStates, bedFileForMapping, 
                                          overdispersionNormalChr, overdispersionTumorChr,
                                          pvalueShift,
@@ -403,7 +403,7 @@ returnListOfCNVsThatDoNotPass = function(foundCNVs, bafNormalChr, bafTumorChr,
 }
 
 
-makeBarplot <- function(allPotentialPurities, found_CNVs_total) {
+makeBarplot <- function(allPotentialPurities, found_CNVs_total, sample_name) {
   allPotentialPurities = allPotentialPurities[allPotentialPurities > 0]
   datasetForBarplot = matrix(0, nrow=4, ncol=length(unique(allPotentialPurities)))
   colnames(datasetForBarplot) = sort(unique(allPotentialPurities))
@@ -809,7 +809,7 @@ returnAreasFreeOfCNVsForAdditionalAnalysis <- function(found_CNVs_total, sample_
 
 
 
-plotFoundCNVsNew <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, purities, toySizesOfPointsFromLocalSds, plottingOfPNGs) {
+plotFoundCNVsNew <- function(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, purities, toySizesOfPointsFromLocalSds, plottingOfPNGs) {
   vector_of_states <- cn_states
   cnvsToOutput <- matrix(0, nrow=0, ncol=10)
   if (nrow(found_CNVs) > 0) {

@@ -480,7 +480,7 @@ somaticCalling <- function(matrixOfLogFold) {
                 blocked_states <- c()
               }
             }
-            
+
             # BLOCK WITH PENALTIES
             copy_numbers_for_penalties = 3 - (local_copy_numbers_used_major + local_copy_numbers_used_minor)
             copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
@@ -494,11 +494,10 @@ somaticCalling <- function(matrixOfLogFold) {
               found_CNVs = matrix(0, nrow=0, ncol=10)
             }
             
-            
             # BAFs from this chromosome
             if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0 & germline_sample_name %in% normalNames) {
               bafsFromThisChr = which(bAlleleFreqsNormal[,1] == chrom)
-              listOfCNVsThatDoNotPass = returnListOfCNVsThatDoNotPass(foundCNVs, bAlleleFreqsNormal[bafsFromThisChr,], bAlleleFreqsTumor[bafsFromThisChr,], 
+              listOfCNVsThatDoNotPass = returnListOfCNVsThatDoNotPass(found_CNVs, bAlleleFreqsNormal[bafsFromThisChr,], bAlleleFreqsTumor[bafsFromThisChr,], 
                                                                       clonalityForChecking, local_purities, local_cn_states, toyBedFile,
                                                                       overdispersionNormal[bafsFromThisChr],
                                                                       overdispersionTumor[bafsFromThisChr],
@@ -511,8 +510,7 @@ somaticCalling <- function(matrixOfLogFold) {
                 found_CNVs = found_CNVs[-listOfCNVsThatDoNotPass,,drop=F]
             }
             
-            
-            
+
             if (nrow(found_CNVs) > 0){# & !chrom %in% c("chrX", "chrY", "X", "Y")) {
               likeliksFoundCNVsVsPurities <- matrix(0,nrow=nrow(found_CNVs), ncol=length(uniqueLocalPurities))
               for (m in 1:length(uniqueLocalPurities)) {
@@ -529,7 +527,6 @@ somaticCalling <- function(matrixOfLogFold) {
               }
               likeliksFoundCNVsVsPuritiesGlobal = rbind(likeliksFoundCNVsVsPuritiesGlobal, likeliksFoundCNVsVsPurities)
             }
-            
             if (opt$visulizationIGV) {
               ### IGV PLOTTING
               if(opt$debug) {
@@ -554,8 +551,7 @@ somaticCalling <- function(matrixOfLogFold) {
               next
             }       
             ### END OF IGV PLOTTING
-            
-            
+
             
             if (nrow(found_CNVs) == 0 & length(which_to_allow) > 1) {
               found_CNVs = matrix(c(-1000, 1, length(which_to_allow), 1), nrow=1)
@@ -564,14 +560,13 @@ somaticCalling <- function(matrixOfLogFold) {
             
             
             if (nrow(found_CNVs) > 0) {
-              cnvsToWriteOut <- plotFoundCNVsNew(found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, local_cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, local_purities, 
+              cnvsToWriteOut <- plotFoundCNVsNew(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, local_cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, local_purities, 
                                                  toySizesOfPointsFromLocalSds, plottingOfPNGs)
               if (found_CNVs[1,1] != -1000) {
                 found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
               }
             }
           }
-          
         }
         ### Sometimes false positive CNV calls can be caused by deviation in coverage in normal - we correct it
         if (!finalIteration) {
@@ -610,7 +605,7 @@ somaticCalling <- function(matrixOfLogFold) {
               print(found_CNVs_total[which(!(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 10)),,drop=F])
               found_CNVs_total = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 10),,drop=F]
             }
-            makeBarplot(allPotentialPurities, found_CNVs_total)
+            makeBarplot(allPotentialPurities, found_CNVs_total, sample_name)
             plotChromosomalLevelInstabs(found_CNVs_total, left_borders, right_borders, ends_of_chroms, genderOfSamples[germline_sample_no], sample_name)
           }
           
