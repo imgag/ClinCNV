@@ -574,7 +574,7 @@ somaticCalling <- function(matrixOfLogFold) {
             if (sampleInOfftarget) {
               shiftsForCoverageInsideCNVs <- findDeviationInNormalCoverage(germline_sample_name, tumor_sample_name, found_CNVs_total, bedFileForCluster, tmpNormal,
                                                                            bedFileForClusterOff, tmpNormalOff)
-            } else {
+            } else { 
               shiftsForCoverageInsideCNVs <- findDeviationInNormalCoverage(germline_sample_name, tumor_sample_name, found_CNVs_total, bedFileForCluster, tmpNormal)
             }
             
