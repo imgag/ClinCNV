@@ -899,6 +899,6 @@ determine_potential_states = function(sampleLogFold, local_cn_states, sampleLogF
     arrayOfMedians <- c(arrayOfMedians, runmed(sampleLogFoldOfftarget, opt$lengthS))
   }
   diffsFromCoverage <- sapply(1:length(local_cn_states), function(i) {min(abs(log2(local_cn_states[i] / 2) - (arrayOfMedians)))})
-  blocked_states = setdiff(which(diffsFromCoverage > 0.05), c(1,2))
+  blocked_states = setdiff(which(diffsFromCoverage > log2(1.05)), c(1,2))
   return(blocked_states)
 }

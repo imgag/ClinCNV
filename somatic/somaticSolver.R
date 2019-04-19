@@ -12,7 +12,7 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
   source(paste0(opt$folderWithScript, "/somatic/helpersBalleleFreq.R"),local=T)
   source(paste0(opt$folderWithScript, "/somatic/somaticCallingProcedure.R"),local=T)
   
-
+  
   
   
   print(paste("Work on data preparation for somatic samples started (log-fold change matrices plus parameters estimation)", Sys.time()))
@@ -35,13 +35,22 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
   # QC control
   sampleLevelOfNoise = apply(matrixOfLogFold[which(!bedFileForCluster[,1] %in% c("chrX","chrY")),], 2, Sn)
   samplesNotPassedQC = colnames(matrixOfLogFold)[which(sampleLevelOfNoise > 1.0)]
+  
   if (length(samplesNotPassedQC) > 0) {
     print("Samples don't pass our QC - too noisy!")
     print(samplesNotPassedQC)
-    sdsOfSomaticSamples = sdsOfSomaticSamples[-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
-    matrixWithSds = matrixWithSds[,-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
-    gendersInOntargetMatrix = gendersInOntargetMatrix[-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
-    matrixOfLogFold = matrixOfLogFold[,-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
+    if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
+      if (paste(opt$tumorSample, opt$normalSample, sep="-") %in% samplesNotPassedQC) {
+        print(paste("But you explicitly specifed the sample name as", paste(opt$tumorSample, opt$normalSample, sep="-"), "so we still proceed with its analysis"))
+        samplesNotPassedQC = setdiff(samplesNotPassedQC, paste(opt$tumorSample, opt$normalSample, sep="-"))
+      }
+    }
+    if (length(samplesNotPassedQC) > 0) {
+      sdsOfSomaticSamples = sdsOfSomaticSamples[-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
+      matrixWithSds = matrixWithSds[,-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
+      gendersInOntargetMatrix = gendersInOntargetMatrix[-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
+      matrixOfLogFold = matrixOfLogFold[,-which(colnames(matrixOfLogFold) %in% samplesNotPassedQC)]
+    }
   }
   
   ## QC FOR PROBES

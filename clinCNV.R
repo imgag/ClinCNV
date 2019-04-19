@@ -152,8 +152,6 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
-
-
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -237,7 +235,7 @@ for (i in 1:20) {
   if(sum(tableOfValues[which(tableOfValues > 100)]) / sum(tableOfValues) > 0.95) break 
 }
 bedFile[,4] <- round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i
-whichBedIsNA <- which(is.na(bedFile[,4]) | bedFile[,3] - bedFile[,2] < 80 | (!bedFile[,1] %in% presentedChromsOn[numberOfElemsInEachChromosome]))
+whichBedIsNA <- which(is.na(bedFile[,4]) | bedFile[,3] - bedFile[,2] < 50 | (!bedFile[,1] %in% presentedChromsOn[numberOfElemsInEachChromosome]))
 if (length(whichBedIsNA) > 0)
   bedFile = bedFile[-whichBedIsNA,]
 

@@ -464,7 +464,7 @@ somaticCalling <- function(matrixOfLogFold) {
               if (!finalIteration) {
                 diffsFromCoverage <- sapply(1:length(local_cn_states), function(i) {min(abs(log2(local_cn_states[i] / local_cn_states[initial_state]) - (arrayOfMediansOfToyLogFold)))})
                 blocked_states = c(setdiff(c(1,2), initial_state),
-                                   which(diffsFromCoverage > 0.05))
+                                   which(diffsFromCoverage > log2(1.05)))
               } else {
                 blocked_states = c(setdiff(c(1,2), initial_state),
                                    which(log2(local_cn_states / local_cn_states[initial_state]) < min(arrayOfMediansOfToyLogFold) - 0.1 | log2(local_cn_states / local_cn_states[initial_state]) > max(arrayOfMediansOfToyLogFold) + 0.1))
@@ -600,10 +600,10 @@ somaticCalling <- function(matrixOfLogFold) {
         if (finalIteration == T) {
           if (nrow(found_CNVs_total) > 0){
             # HOMOZYGOUSITY FILTER - IF THERE ARE TOO MANY HOMOZYGOUS, WE REMOVE THEM
-            if (length(which(as.numeric(found_CNVs_total[,4]) == 0 & as.numeric(found_CNVs_total[,8]) < 10)) > 0) {
+            if (length( which(as.numeric(found_CNVs_total[,4]) == 0 & as.numeric(found_CNVs_total[,9]) < 10 & as.numeric(found_CNVs_total[,6]) > 0.5) ) > 5) {
               print("Short (<10 regions) homozygous deletions will be filtered out due to high percentage of technical artifacts in such CNVs")
-              print(found_CNVs_total[which(!(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 10)),,drop=F])
-              found_CNVs_total = found_CNVs_total[which(as.numeric(found_CNVs_total[,4]) != 0 | as.numeric(found_CNVs_total[,8]) > 10),,drop=F]
+              print(found_CNVs_total[which((as.numeric(found_CNVs_total[,4]) == 0 & as.numeric(found_CNVs_total[,9]) < 10 & as.numeric(found_CNVs_total[,6]) > 0.5)),,drop=F])
+              found_CNVs_total = found_CNVs_total[which(!(as.numeric(found_CNVs_total[,4]) == 0 & as.numeric(found_CNVs_total[,9]) < 10 & as.numeric(found_CNVs_total[,6]) > 0.5)),,drop=F]
             }
             makeBarplot(allPotentialPurities, found_CNVs_total, sample_name)
             plotChromosomalLevelInstabs(found_CNVs_total, left_borders, right_borders, ends_of_chroms, genderOfSamples[germline_sample_no], sample_name)
@@ -675,10 +675,12 @@ somaticCalling <- function(matrixOfLogFold) {
               }
             }
           }
+          print("Clonal sturcture inferred.")
           clonalBestPurities = uniqueLocalPurities[resultBestCombination]
           if (length(clonalBestPurities) == 0) {
             clonalBestPurities = c(0, 1)
           }
+          print(clonalBestPurities)
           
         } else {
           print("No high quality CNVs found in this sample for finding clonality.")
