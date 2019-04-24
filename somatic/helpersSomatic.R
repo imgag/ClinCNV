@@ -365,7 +365,7 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafDeviationsForComparison,
           overdispNorm = overdispersionNormalChr[var]
           overdispTumo = overdispersionTumorChr[var]
           deviation[l] = (abs(numTwo - multiplierOfSNVsDueToMapping * as.numeric(bafTumorChr[var,6])) / 
-            sqrt(as.numeric(bafTumorChr[var,6]) * overdispTumo * (1 - multiplierOfSNVsDueToMapping) * multiplierOfSNVsDueToMapping))
+                            sqrt(as.numeric(bafTumorChr[var,6]) * overdispTumo * (1 - multiplierOfSNVsDueToMapping) * multiplierOfSNVsDueToMapping))
           pvalsOfVariants[l] = min(1, passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo))
         }
         wilcox.pval = wilcox.test(deviation, bafDeviationsForComparison)$p.value
@@ -398,8 +398,8 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafDeviationsForComparison,
         wilcox.pval = wilcox.test(deviation, bafDeviationsForComparison)$p.value
         mergedPvals = pchisq((sum(log(pvalsOfVariants))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
         #if (pbinom(length(which(pvalsOfVariants < 0.01)),  length(varsInside), pvalueShift, lower.tail = F) < 10 ** -4 & 
-         #   length(which(pvalsOfVariants < 0.01)) / (length(varsInside)) > 0.05 &
-         #   mergedPvals < 10 ** -4) {
+        #   length(which(pvalsOfVariants < 0.01)) / (length(varsInside)) > 0.05 &
+        #   mergedPvals < 10 ** -4) {
         if (wilcox.pval < 0.001 | mergedPvals < 0.05) {
           if (q %in% cnvsThatShowNoBAFdeviation) {
             print(paste("We remain CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], " - it was filtered out but BAF shows that something is wrong (p-value:", round(wilcox.pval, 4), ")"))
@@ -528,36 +528,38 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
   
   multiplicator = 80
   offsetOfSecondChr = (multiplicator / 2.5)
-  widthOfLine = ((2.3 / 20) * multiplicator)
+  widthOfLine = c(((2.3 / 20) * multiplicator), ((2.1 / 20) * multiplicator))
   pdf(file=paste0(sample_name, "_chromPlot.pdf"), width=16, height=14)
   #par(mfrow=c(2,1), mar=c(1.5, 0, 2, 1.5))
-  colOfChr = "whitesmoke"
+  colOfChr = c("black", "whitesmoke")
   par( mar=c(1.5, 2, 2, 1.5))
   
   chromsToAnalyse = 1:24
-  
-  
   
   plot(0,0, ylim=c(multiplicator - offsetOfSecondChr, multiplicator *24), xlim=c(0, max(unlist(ends_of_chroms))), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=ifelse(l==1, sample_name, ""))
   
   legend("right", legend=c( "Major clone Dup 3CN", "Major clone Dup >= 4","Major clone Del",
                             "Minor clone Dup 3CN","Minor clone Dup >= 4","Minor clone Del"),
-         col=c(colForMajor[2:4],colForMinor[2:4]), cex=1.8, lwd=widthOfLine, box.lty=0)
+         col=c(colForMajor[2:4],colForMinor[2:4]), cex=1.8, lwd=widthOfLine, box.lty=0, 
+         title=paste("Clonal fraction:", paste(sort(unique(as.numeric(found_CNVs_total[,6]))),collapse="; "))
+         )
   
   
   text(y = multiplicator *1:24 + offsetOfSecondChr / 2, x = rep(0 ** 7, 24), labels=orderOfNames[sort(chromsToAnalyse, decreasing = T)], pos=2, offset = 0.5)
   for (z in sort(chromsToAnalyse, decreasing = T)) {
     i = 25 - which(chromsToAnalyse == z)
     chromStructure = linesOnBarplot[[(z)]]
-    if (!chromStructure[[5]] %in% c("chrX", "chrY") | (chromStructure[[5]] == "chrX" & gender == "F")) {
-      segments( 0, multiplicator* i, as.numeric(chromStructure[2]), multiplicator * i,  lwd=widthOfLine, col=colOfChr)
-      segments(as.numeric(chromStructure[3]),  multiplicator* i, as.numeric(chromStructure[4]), multiplicator * i,lwd=widthOfLine, col=colOfChr)
-      segments(0,  multiplicator* i + offsetOfSecondChr,  as.numeric(chromStructure[2]) , multiplicator * i + offsetOfSecondChr, lwd=widthOfLine, col=colOfChr)
-      segments(as.numeric(chromStructure[3]),  multiplicator* i + offsetOfSecondChr,  as.numeric(chromStructure[4]), multiplicator * i + offsetOfSecondChr,lwd=widthOfLine, col=colOfChr)
-    } else {
-      if ((chromStructure[[5]] == "chrX" | chromStructure[[5]] == "chrY") & gender == "M") {
-        segments( 0, multiplicator* i, as.numeric(chromStructure[2]), multiplicator * i,  lwd=widthOfLine, col=colOfChr)
-        segments(as.numeric(chromStructure[3]),  multiplicator* i, as.numeric(chromStructure[4]), multiplicator * i,lwd=widthOfLine, col=colOfChr)
+    for (plotNumber in 1:2) {
+      if (!chromStructure[[5]] %in% c("chrX", "chrY") | (chromStructure[[5]] == "chrX" & gender == "F")) {
+        segments( 0, multiplicator* i, as.numeric(chromStructure[2]), multiplicator * i,  lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
+        segments(as.numeric(chromStructure[3]),  multiplicator* i, as.numeric(chromStructure[4]), multiplicator * i,lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
+        segments(0,  multiplicator* i + offsetOfSecondChr,  as.numeric(chromStructure[2]) , multiplicator * i + offsetOfSecondChr, lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
+        segments(as.numeric(chromStructure[3]),  multiplicator* i + offsetOfSecondChr,  as.numeric(chromStructure[4]), multiplicator * i + offsetOfSecondChr,lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
+      } else {
+        if ((chromStructure[[5]] == "chrX" | chromStructure[[5]] == "chrY") & gender == "M") {
+          segments( 0, multiplicator* i, as.numeric(chromStructure[2]), multiplicator * i,  lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
+          segments(as.numeric(chromStructure[3]),  multiplicator* i, as.numeric(chromStructure[4]), multiplicator * i,lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
+        }
       }
     }
     # DEPICTION OF CNVs
@@ -569,7 +571,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
         particularPurity = as.numeric(found_CNVs_total[m,6])
         colorForPlotting = colForMajor
         cnvLty = 1
-        cnvLwd = max(0.3, 0.9 * particularPurity) * widthOfLine
+        cnvLwd = max(0.3, 0.9 * particularPurity) * widthOfLine[1]
         if (as.numeric(found_CNVs_total[m,6]) < majorClone - 10 ** -5) {
           colorForPlotting = colForMinor
           cnvLty = 1
@@ -606,7 +608,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
         if (colorType[2] != 0 & !(chromStructure[[5]] %in% c("chrX", "chrY") & gender == "M")) {
           segments( start, multiplicator* i + offsetOfSecondChr,  end, multiplicator * i + offsetOfSecondChr, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[2]], alpha=max(0.3, particularPurity)))
         }
-
+        
         text(y = multiplicator *i + offsetOfSecondChr / 2, x = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"), cex=0.7)
       }
     }
@@ -650,11 +652,11 @@ returnCoordsThatNeedToBeNull = function(bedFile, fileNameWithGermlineVars) {
   coordsToMakeNull = c()
   if(file.exists(fileNameWithGermlineVars)) {
     tryCatch({
-    germlineVars <- read.table(fileNameWithGermlineVars, stringsAsFactors = F)
-    if (nrow(germlineVars) > 0)
-      for (j in 1:nrow(germlineVars)) {
-        coordsToMakeNull = c(coordsToMakeNull, which(bedFile[,1] == germlineVars[j,1] & as.numeric(bedFile[,2]) >= as.numeric(germlineVars[j,2]) & as.numeric(bedFile[,3]) <= as.numeric(germlineVars[j,3])))
-      }
+      germlineVars <- read.table(fileNameWithGermlineVars, stringsAsFactors = F)
+      if (nrow(germlineVars) > 0)
+        for (j in 1:nrow(germlineVars)) {
+          coordsToMakeNull = c(coordsToMakeNull, which(bedFile[,1] == germlineVars[j,1] & as.numeric(bedFile[,2]) >= as.numeric(germlineVars[j,2]) & as.numeric(bedFile[,3]) <= as.numeric(germlineVars[j,3])))
+        }
     }
     , error = function(err) {
       print(err)
@@ -717,8 +719,8 @@ findDeviationInNormalCoverage <- function(germline_sample_name, tumor_sample_nam
                             as.numeric(bedFileForClusterOff[,2]) >= as.numeric(found_CNVs_total[i,2]) & 
                             as.numeric(bedFileForClusterOff[,3]) <= as.numeric(found_CNVs_total[i,3]))
       if (length(coordsInOff) > 0){
-      valuesInSampleOff = tmpNormalOff[coordsInOff,which(colnames(tmpNormalOff) == germline_sample_name)]
-      valuesCohortOff = (tmpNormalOff[coordsInOff,which(colnames(tmpNormalOff) != germline_sample_name),drop=F])
+        valuesInSampleOff = tmpNormalOff[coordsInOff,which(colnames(tmpNormalOff) == germline_sample_name)]
+        valuesCohortOff = (tmpNormalOff[coordsInOff,which(colnames(tmpNormalOff) != germline_sample_name),drop=F])
       }
     }
     valuesSample = median(c(valuesInSampleOn, valuesInSampleOff))
@@ -965,8 +967,8 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
         #                                                                  as.numeric(globalBed[,2]) >= startOfArm &
         #                                                                  as.numeric(globalBed[,3]) <= endOfArm)], k = lengthOfRolling, endrule="constant"))
         smoothedLogFold = c(smoothedLogFold, runmedian(lengthOfRolling, globalLogFold[which(globalBed[,1] == chrom &
-                                                                          as.numeric(globalBed[,2]) >= startOfArm &
-                                                                          as.numeric(globalBed[,3]) <= endOfArm)]))
+                                                                                              as.numeric(globalBed[,2]) >= startOfArm &
+                                                                                              as.numeric(globalBed[,3]) <= endOfArm)]))
       }
     }
     #globalLogFoldAllowedChroms = globalLogFold[allowedChromosomesAutosomesOnly]
@@ -978,11 +980,11 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
     } else {
       shiftOfCoverage = clusteredResult$parameters$mean
       if (length(bigClusters) > 0)
-      for (bC in bigClusters) {
-        currentLocation = shiftOfCoverage[bC]
-        diffs = abs(clusteredResult$parameters$mean - currentLocation)
-        shiftOfCoverage[bC] = clusteredResult$parameters$mean[which(diffs < 0.035)] * clusteredResult$parameters$pro[which(diffs < 0.035)]
-      }
+        for (bC in bigClusters) {
+          currentLocation = shiftOfCoverage[bC]
+          diffs = abs(clusteredResult$parameters$mean - currentLocation)
+          shiftOfCoverage[bC] = clusteredResult$parameters$mean[which(diffs < 0.035)] * clusteredResult$parameters$pro[which(diffs < 0.035)]
+        }
       shiftOfCoverage = shiftOfCoverage[bigClusters]
     }
     print(paste0("Mass of clusters for finding diploid state: ", paste(clusteredResult$parameters$pro[bigClusters], sep=";")))
