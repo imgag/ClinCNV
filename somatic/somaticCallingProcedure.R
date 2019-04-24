@@ -509,7 +509,7 @@ somaticCalling <- function(matrixOfLogFold) {
                   endOfCNV <- found_CNVs[q,3]
                   if (endOfCNV - startOfCNV > 3) { 
                     
-                    likeliksFoundCNVsVsPurities[q, m] = min(apply(toyMatrixOfLikeliks[(startOfCNV + 1):(endOfCNV - 1),which(local_purities == localPurityCurrent)], 2, sum)
+                    likeliksFoundCNVsVsPurities[q, m] = min(apply(toyMatrixOfLikeliks[(startOfCNV + 1):(endOfCNV - 1),which(local_purities == localPurityCurrent),drop=F], 2, sum)
                                                             + penaltyForHigherCN * abs(copy_numbers_for_penalties[which(local_purities == localPurityCurrent)]))
                   }
                 }
