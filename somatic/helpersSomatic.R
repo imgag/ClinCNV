@@ -528,7 +528,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
   
   multiplicator = 80
   offsetOfSecondChr = (multiplicator / 2.5)
-  widthOfLine = c(((2.3 / 20) * multiplicator), ((2.1 / 20) * multiplicator))
+  widthOfLine = c(((2.3 / 20) * multiplicator), ((2.0 / 20) * multiplicator))
   pdf(file=paste0(sample_name, "_chromPlot.pdf"), width=16, height=14)
   #par(mfrow=c(2,1), mar=c(1.5, 0, 2, 1.5))
   colOfChr = c("black", "whitesmoke")
@@ -541,7 +541,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
   legend("right", legend=c( "Major clone Dup 3CN", "Major clone Dup >= 4","Major clone Del",
                             "Minor clone Dup 3CN","Minor clone Dup >= 4","Minor clone Del"),
          col=c(colForMajor[2:4],colForMinor[2:4]), cex=1.8, lwd=widthOfLine, box.lty=0, 
-         title=paste("Clonal fraction:", paste(sort(unique(as.numeric(found_CNVs_total[,6]))),collapse="; "))
+         title=paste("Clonal fraction:", paste(round(sort(unique(as.numeric(found_CNVs_total[,6]))), digits=2),collapse="; "))
          )
   
   
