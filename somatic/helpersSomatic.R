@@ -528,7 +528,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
   
   multiplicator = 80
   offsetOfSecondChr = (multiplicator / 2.5)
-  widthOfLine = c(((2.3 / 20) * multiplicator), ((2.0 / 20) * multiplicator))
+  widthOfLine = c(((2.3 / 20) * multiplicator), ((1.9 / 20) * multiplicator))
   pdf(file=paste0(sample_name, "_chromPlot.pdf"), width=16, height=14)
   #par(mfrow=c(2,1), mar=c(1.5, 0, 2, 1.5))
   colOfChr = c("black", "whitesmoke")
