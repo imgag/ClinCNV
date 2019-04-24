@@ -364,19 +364,18 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafDeviationsForComparison,
           refTwo = as.numeric(bafTumorChr[var,6]) - numTwo
           overdispNorm = overdispersionNormalChr[var]
           overdispTumo = overdispersionTumorChr[var]
-          deviation[l] = (abs(numTwo - multiplierOfSNVsDueToMapping * as.numeric(bafNormalChr[var,6])) / 
-            sqrt(as.numeric(bafNormalChr[var,6]) * overdispTumo * (1 - multiplierOfSNVsDueToMapping) * multiplierOfSNVsDueToMapping))
+          deviation[l] = (abs(numTwo - multiplierOfSNVsDueToMapping * as.numeric(bafTumorChr[var,6])) / 
+            sqrt(as.numeric(bafTumorChr[var,6]) * overdispTumo * (1 - multiplierOfSNVsDueToMapping) * multiplierOfSNVsDueToMapping))
           pvalsOfVariants[l] = min(1, passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo))
         }
         wilcox.pval = wilcox.test(deviation, bafDeviationsForComparison)$p.value
         mergedPvals = pchisq((sum(log(pvalsOfVariants))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
-        boxplot(deviation, bafDeviationsForComparison, main=paste(startOfCNV, endOfCNV, round(wilcox.pval, digits=5), round(mergedPvals, 5)))
-        print(mergedPvals)
+        boxplot(deviation, bafDeviationsForComparison, main=paste(startOfCNV, endOfCNV, round(wilcox.pval, digits=4), round(mergedPvals, 4)))
         #if ((pbinom(length(which(pvalsOfVariants < 0.01)),  length(varsInside), pvalueShift, lower.tail = F) > 10 ** -4 | length(which(pvalsOfVariants < 0.01)) / length(varsInside) < 0.05) | 
         #    mergedPvals > 10 ** -4) {
-        if (wilcox.pval > 0.001) { # | mergedPvals > 0.001) {
+        if (wilcox.pval > 0.001 | mergedPvals > 0.05) {
           cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
-          print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], "due to 1) low clonality AND 2) absence of clear signal from BAF (p-value:", wilcox.pval, ")"))
+          print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], "due to 1) low clonality AND 2) absence of clear signal from BAF (p-value:", round(wilcox.pval, 4), ")"))
         }
       }
     }
@@ -392,8 +391,8 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafDeviationsForComparison,
           refTwo = as.numeric(bafTumorChr[var,6]) - numTwo
           overdispNorm = overdispersionNormalChr[var]
           overdispTumo = overdispersionTumorChr[var]
-          deviation[l] = (abs(numTwo - multiplierOfSNVsDueToMapping * as.numeric(bafNormalChr[var,6])) / 
-                            sqrt(as.numeric(bafNormalChr[var,6]) * overdispTumo * (1 - multiplierOfSNVsDueToMapping) * multiplierOfSNVsDueToMapping))
+          deviation[l] = (abs(numTwo - multiplierOfSNVsDueToMapping * as.numeric(bafTumorChr[var,6])) / 
+                            sqrt(as.numeric(bafTumorChr[var,6]) * overdispTumo * (1 - multiplierOfSNVsDueToMapping) * multiplierOfSNVsDueToMapping))
           pvalsOfVariants[l] = min(1, passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo))
         }
         wilcox.pval = wilcox.test(deviation, bafDeviationsForComparison)$p.value
@@ -401,9 +400,9 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafDeviationsForComparison,
         #if (pbinom(length(which(pvalsOfVariants < 0.01)),  length(varsInside), pvalueShift, lower.tail = F) < 10 ** -4 & 
          #   length(which(pvalsOfVariants < 0.01)) / (length(varsInside)) > 0.05 &
          #   mergedPvals < 10 ** -4) {
-        if (wilcox.pval < 0.001){ # | mergedPvals < 0.001) {
+        if (wilcox.pval < 0.001 | mergedPvals < 0.05) {
           if (q %in% cnvsThatShowNoBAFdeviation) {
-            print(paste("We remain CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], " - it was filtered out but BAF shows that something is wrong (p-value:", wilcox.pval, ")"))
+            print(paste("We remain CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], " - it was filtered out but BAF shows that something is wrong (p-value:", round(wilcox.pval, 4), ")"))
             cnvsThatShowNoBAFdeviation = setdiff(cnvsThatShowNoBAFdeviation, q)
           }
         }
@@ -524,15 +523,15 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
     nameOfChrom = names(left_borders)[l]
     linesOnBarplot[[as.character(l)]] = c(startOfChr, endOfLeftArm, startOfRightArm, endOfRightArm, nameOfChrom)
   }
-  colForMajor=c("brown","blue","darkblue","red")
-  colForMinor = c("brown1", "darkslategray3", "darkslategray4", "lightpink")
+  colForMajor=c("brown","blue","purple3","red")
+  colForMinor = c("brown1", "lightsteelblue2", "mediumpurple1", "lightpink")
   
   multiplicator = 80
   offsetOfSecondChr = (multiplicator / 2.5)
   widthOfLine = ((2.3 / 20) * multiplicator)
   pdf(file=paste0(sample_name, "_chromPlot.pdf"), width=16, height=14)
   #par(mfrow=c(2,1), mar=c(1.5, 0, 2, 1.5))
-  colOfChr = "gray93"
+  colOfChr = "wheat2"
   par( mar=c(1.5, 2, 2, 1.5))
   
   chromsToAnalyse = 1:24
