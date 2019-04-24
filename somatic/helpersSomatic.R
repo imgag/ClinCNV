@@ -355,7 +355,7 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafDeviationsForComparison,
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
       } else {
         pvalsOfVariants <- rep(1, length(varsInside))
-        deviation = rep(9, length(varsInside))
+        deviation = rep(0, length(varsInside))
         for (l in 1:length(varsInside)) {
           var = varsInside[l]
           numOne = round(as.numeric(bafNormalChr[var,5]) * as.numeric(bafNormalChr[var,6]))
@@ -382,6 +382,7 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafDeviationsForComparison,
     if (as.numeric(puritiesOfStates[found_CNVs[q,4]]) > clonalityForChecking) {
       if (length(varsInside) >= 5) {
         pvalsOfVariants <- rep(1, length(varsInside))
+        deviation = rep(0, length(varsInside))
         for (l in 1:length(varsInside)) {
           var = varsInside[l]
           numOne = round(as.numeric(bafNormalChr[var,5]) * as.numeric(bafNormalChr[var,6]))
