@@ -774,8 +774,10 @@ somaticCalling <- function(matrixOfLogFold) {
         BAFsignature[,3] = p.adjust(as.numeric(BAFsignature[,3]), method="fdr")
         BAFsignature[,3] = format(round(as.numeric(BAFsignature[,3]), 4), scientific = F)
         colnamesForFutureMatrix <- colnames(found_CNVs_total)
-        colnamesForFutureMatrix = c(colnamesForFutureMatrix[1:3], "tumor_cn_change", colnamesForFutureMatrix[4:length(colnamesForFutureMatrix)])
-        found_CNVs_total = cbind(found_CNVs_total[,1:3], as.numeric(found_CNVs_total[,4]) + as.numeric(found_CNVs_total[,5]), found_CNVs_total[,4:ncol(found_CNVs_total)],
+        tumor_cn_change = as.numeric(found_CNVs_total[,4]) + as.numeric(found_CNVs_total[,5])
+        states_for_report = sapply(1:nrow(found_CNVs_total), function(i) {if (tumor_cn_change[i] == 2) return("LOH"); if (tumor_cn_change[i] > 2) return("AMP"); if (tumor_cn_change[i] < 2) return("DEL")})
+        colnamesForFutureMatrix = c(colnamesForFutureMatrix[1:3], "tumor_CN_change", "cn_states", colnamesForFutureMatrix[4:length(colnamesForFutureMatrix)])
+        found_CNVs_total = cbind(found_CNVs_total[,1:3], tumor_cn_change, states_for_report, found_CNVs_total[,4:ncol(found_CNVs_total)],
                                  matrix(CIsOnTarget[,3:2], ncol=2), matrix(CIsOnTargetOff[,3:2], ncol=2), snvUpperAndBottom, BAFsignature[,3], format(round(overallPvalues,5), scientific = F))
         #colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD", "Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "BAF_Normal", "BAF_tumor", "BAF_pval"))
         colnames(found_CNVs_total) = c(colnamesForFutureMatrix, c("Ontarget_RD_CI_lower", "Ontarget_RD_CI_upper", "Offtarget_RD_CI_lower", "Offtarget_RD_CI_upper", "Lowmed_tumor_BAF", "Highmed_tumor_BAF",  "BAF_qval_fdr", "Overall_qvalue"))

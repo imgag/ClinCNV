@@ -524,14 +524,14 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
     linesOnBarplot[[as.character(l)]] = c(startOfChr, endOfLeftArm, startOfRightArm, endOfRightArm, nameOfChrom)
   }
   colForMajor=c("brown","blue","purple3","red")
-  colForMinor = c("brown1", "lightsteelblue2", "mediumpurple1", "lightpink")
+  colForMinor = c("brown1", "lightsteelblue3", "mediumpurple1", "lightpink2")
   
   multiplicator = 80
   offsetOfSecondChr = (multiplicator / 2.5)
   widthOfLine = ((2.3 / 20) * multiplicator)
   pdf(file=paste0(sample_name, "_chromPlot.pdf"), width=16, height=14)
   #par(mfrow=c(2,1), mar=c(1.5, 0, 2, 1.5))
-  colOfChr = "wheat2"
+  colOfChr = "whitesmoke"
   par( mar=c(1.5, 2, 2, 1.5))
   
   chromsToAnalyse = 1:24
