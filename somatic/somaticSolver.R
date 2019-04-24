@@ -153,7 +153,7 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
   }
   
   datasetOfPuritiesCopies <- cbind(cn_states, copy_numbers_used_major, copy_numbers_used_minor, BAF_number_of_reads_major, BAF_number_of_reads_minor, purities)
-  colnames(datasetOfPuritiesCopies) <- c("cn_states", "major_cn", "minor_cn", "major_BAF", "minor_BAF", "puritiy")
+  colnames(datasetOfPuritiesCopies) <- c("state", "major_cn", "minor_cn", "major_BAF", "minor_BAF", "puritiy")
   
   final_order <- order(cn_states)
   datasetOfPuritiesCopies = datasetOfPuritiesCopies[final_order,]
