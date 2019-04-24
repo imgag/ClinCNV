@@ -77,8 +77,8 @@ somaticCalling <- function(matrixOfLogFold) {
               if (sampleInOfftarget)
                 matrixOfLogFoldOff[,sam_no_off] = matrixOfLogFoldOff[,sam_no_off] - shiftOfCoverage
             }
+            print(paste("Potential shift lines of diploid states", paste(shiftOfCoverage, sep=";"), " - if there are more than 1 different shift, you may specify which one you want to choose by putting --shiftToTry flag"))
           }
-          print(paste("Potential shift lines of diploid states", paste(shiftOfCoverage, sep=";"), " - if there are more than 1 different shift, you may specify which one you want to choose by putting --shiftToTry flag"))
         }
         # CLEAN FOLDER IN THE BEGINNING OF EACH ITERATION
         if (!finalIteration)
