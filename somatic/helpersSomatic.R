@@ -128,13 +128,13 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
     whichChrom = which(currentBedFile[,1] == uniqueChroms[i])
     matrixOfLogFoldToCheck = matrixOfLogFold[whichChrom,,drop=F]
     if (uniqueChroms[i] == "chrX") {
-      if (length(which(genderOfSamplesInCluster == "F")) > 10)
-        matrixOfLogFoldToCheck = matrixOfLogFoldToCheck[,which(genderOfSamplesInCluster == "F"),drop=F]
+      if (length(which(gendersInFormedMatrix == "F")) > 10)
+        matrixOfLogFoldToCheck = matrixOfLogFoldToCheck[,which(gendersInFormedMatrix == "F"),drop=F]
       else next
     }
     if (uniqueChroms[i] == "chrY") {
-      if (length(which(genderOfSamplesInCluster == "M")) > 10)
-        matrixOfLogFoldToCheck = matrixOfLogFoldToCheck[,which(genderOfSamplesInCluster == "M"),drop=F]
+      if (length(which(gendersInFormedMatrix == "M")) > 10)
+        matrixOfLogFoldToCheck = matrixOfLogFoldToCheck[,which(gendersInFormedMatrix == "M"),drop=F]
       else next
     }
     shiftsChrom <- apply(matrixOfLogFoldToCheck, 1, EstimateModeForNormalization)
@@ -282,7 +282,7 @@ returnMultiplierDueToLog <- function(cnNorm, cnTum, sdNorm, sdTum, covNT) {
 }
 
 
-returnListOfCNVsThatDoNotPass = function(found_CNVs, bafNormalChr, bafTumorChr, 
+returnListOfCNVsThatDoNotPass = function(found_CNVs, bafDeviationsForComparison, multiplierOfSNVsDueToMapping, bafNormalChr, bafTumorChr, 
                                          clonalityForChecking, puritiesOfStates, relativeCNumbersOfStates, bedFileForMapping, 
                                          overdispersionNormalChr, overdispersionTumorChr,
                                          pvalueShift,
@@ -350,11 +350,12 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafNormalChr, bafTumorChr,
     }
     varsInside = which(as.numeric(bafNormalChr[,2]) >= startOfCNV & as.numeric(bafNormalChr[,3]) <= endOfCNV)
     if (as.numeric(puritiesOfStates[found_CNVs[q,4]]) <= clonalityForChecking) {
-      if (length(varsInside) < 5) {
+      if (length(varsInside) < 2) {
         print(paste("We remove potential CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "due to absence of BAF there"))
         cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
       } else {
         pvalsOfVariants <- rep(1, length(varsInside))
+        deviation = rep(9, length(varsInside))
         for (l in 1:length(varsInside)) {
           var = varsInside[l]
           numOne = round(as.numeric(bafNormalChr[var,5]) * as.numeric(bafNormalChr[var,6]))
@@ -363,13 +364,18 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafNormalChr, bafTumorChr,
           refTwo = as.numeric(bafTumorChr[var,6]) - numTwo
           overdispNorm = overdispersionNormalChr[var]
           overdispTumo = overdispersionTumorChr[var]
+          deviation[l] = (abs(numTwo - multiplierOfSNVsDueToMapping * as.numeric(bafNormalChr[var,6])) / 
+            sqrt(as.numeric(bafNormalChr[var,6]) * overdispTumo * (1 - multiplierOfSNVsDueToMapping) * multiplierOfSNVsDueToMapping))
           pvalsOfVariants[l] = min(1, passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo))
         }
+        wilcox.pval = wilcox.test(deviation, bafDeviationsForComparison)$p.value
+        boxplot(deviation, bafDeviationsForComparison, main=paste(startOfCNV, endOfCNV, wilcox.pval))
         mergedPvals = pchisq((sum(log(pvalsOfVariants))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
-        if ((pbinom(length(which(pvalsOfVariants < 0.01)),  length(varsInside), pvalueShift, lower.tail = F) > 10 ** -4 | length(which(pvalsOfVariants < 0.01)) / length(varsInside) < 0.05) | 
-            mergedPvals > 10 ** -4) {
+        #if ((pbinom(length(which(pvalsOfVariants < 0.01)),  length(varsInside), pvalueShift, lower.tail = F) > 10 ** -4 | length(which(pvalsOfVariants < 0.01)) / length(varsInside) < 0.05) | 
+        #    mergedPvals > 10 ** -4) {
+        if (wilcox.pval > 0.001 | mergedPvals > 0.001) {
           cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
-          print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], "due to 1) low clonality AND 2) absence of clear signal from BAF"))
+          print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], "due to 1) low clonality AND 2) absence of clear signal from BAF (p-value:", wilcox.pval, ")"))
         }
       }
     }
@@ -384,14 +390,18 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafNormalChr, bafTumorChr,
           refTwo = as.numeric(bafTumorChr[var,6]) - numTwo
           overdispNorm = overdispersionNormalChr[var]
           overdispTumo = overdispersionTumorChr[var]
+          deviation[l] = (abs(numTwo - multiplierOfSNVsDueToMapping * as.numeric(bafNormalChr[var,6])) / 
+                            sqrt(as.numeric(bafNormalChr[var,6]) * overdispTumo * (1 - multiplierOfSNVsDueToMapping) * multiplierOfSNVsDueToMapping))
           pvalsOfVariants[l] = min(1, passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo))
         }
+        wilcox.pval = wilcox.test(deviation, bafDeviationsForComparison)$p.value
         mergedPvals = pchisq((sum(log(pvalsOfVariants))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
-        if (pbinom(length(which(pvalsOfVariants < 0.01)),  length(varsInside), pvalueShift, lower.tail = F) < 10 ** -4 & 
-            length(which(pvalsOfVariants < 0.01)) / (length(varsInside)) > 0.05 &
-            mergedPvals < 10 ** -4) {
+        #if (pbinom(length(which(pvalsOfVariants < 0.01)),  length(varsInside), pvalueShift, lower.tail = F) < 10 ** -4 & 
+         #   length(which(pvalsOfVariants < 0.01)) / (length(varsInside)) > 0.05 &
+         #   mergedPvals < 10 ** -4) {
+        if (wilcox.pval < 0.001 | mergedPvals < 0.001) {
           if (q %in% cnvsThatShowNoBAFdeviation) {
-            print(paste("We remain CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], " - it was filtered out but BAF shows that something is wrong"))
+            print(paste("We remain CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], " - it was filtered out but BAF shows that something is wrong (p-value:", wilcox.pval, ")"))
             cnvsThatShowNoBAFdeviation = setdiff(cnvsThatShowNoBAFdeviation, q)
           }
         }
@@ -520,7 +530,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
   widthOfLine = ((2.3 / 20) * multiplicator)
   pdf(file=paste0(sample_name, "_chromPlot.pdf"), width=16, height=14)
   #par(mfrow=c(2,1), mar=c(1.5, 0, 2, 1.5))
-  colOfChr = "lightgrey"
+  colOfChr = "gray93"
   par( mar=c(1.5, 2, 2, 1.5))
   
   chromsToAnalyse = 1:24
@@ -901,4 +911,80 @@ determine_potential_states = function(sampleLogFold, local_cn_states, sampleLogF
   diffsFromCoverage <- sapply(1:length(local_cn_states), function(i) {min(abs(log2(local_cn_states[i] / 2) - (arrayOfMedians)))})
   blocked_states = setdiff(which(diffsFromCoverage > log2(1.05)), c(1,2))
   return(blocked_states)
+}
+
+
+
+find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, bedFileForCluster, matrixOfLogFoldOffSample=NULL, bedFileForClusterOff=NULL) {
+  if (is.null(matrixOfLogFoldOffSample)) {
+    allowedChromosomesAutosomesOnly = c()
+    for (allowedArm in allowedChromsBafSample) {
+      splittedValue <- strsplit(allowedArm, "-")
+      chrom = splittedValue[[1]][1]
+      if (!chrom %in% c("chrY", "Y", "chrX", "X")) {
+        startOfArm = as.numeric(splittedValue[[1]][2])
+        endOfArm = as.numeric(splittedValue[[1]][3])
+        allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(bedFileForCluster[,1] == chrom &
+                                                                                         bedFileForCluster[,2] >= startOfArm &
+                                                                                         bedFileForCluster[,3] <= endOfArm))
+      }
+    }
+    lengthOfRolling = 51
+    matrixOfLogFoldAllowedChrom = matrixOfLogFoldSample[allowedChromosomesAutosomesOnly ]
+    
+    smoothedLogFold = runmed(matrixOfLogFoldAllowedChrom, k = lengthOfRolling)
+    clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))])
+    print("Mclust finished")
+    bigClusters <- which(clusteredResult$parameters$pro > 0.25)
+    if (length(bigClusters) == 0) {
+      shiftOfCoverage <- median(matrixOfLogFold[allowedChromosomesAutosomesOnly])
+    } else {
+      shiftOfCoverage = min(clusteredResult$parameters$mean[bigClusters])
+    }
+  } else {
+    globalBed <- rbind(bedFileForCluster, bedFileForClusterOff)
+    globalLogFold <- c( matrixOfLogFoldSample, matrixOfLogFoldOffSample)
+    globalLogFold = globalLogFold[order(globalBed[,1], as.numeric(globalBed[,2]))]
+    globalBed = globalBed[order(globalBed[,1], as.numeric(globalBed[,2])),]
+    allowedChromosomesAutosomesOnly = c()
+    smoothedLogFold= c()
+    for (allowedArm in allowedChromsBafSample) {
+      splittedValue <- strsplit(allowedArm, "-")
+      chrom = splittedValue[[1]][1]
+      if (!chrom %in% c("chrY", "Y", "chrX", "X")) {
+        startOfArm = as.numeric(splittedValue[[1]][2])
+        endOfArm = as.numeric(splittedValue[[1]][3])
+        
+        allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(globalBed[,1] == chrom &
+                                                                                         as.numeric(globalBed[,2]) >= startOfArm &
+                                                                                         as.numeric(globalBed[,3]) <= endOfArm))
+        lengthOfRolling = min(21, round((length(allowedChromosomesAutosomesOnly))/5))
+        runmedian <- function(k, vec) {sapply(1:length(vec), function(i) {median(vec[max(1,i-k):min(length(vec),i+k)])})}
+        #smoothedLogFold = c(smoothedLogFold, runmed(globalLogFold[which(globalBed[,1] == chrom &
+        #                                                                  as.numeric(globalBed[,2]) >= startOfArm &
+        #                                                                  as.numeric(globalBed[,3]) <= endOfArm)], k = lengthOfRolling, endrule="constant"))
+        smoothedLogFold = c(smoothedLogFold, runmedian(lengthOfRolling, globalLogFold[which(globalBed[,1] == chrom &
+                                                                          as.numeric(globalBed[,2]) >= startOfArm &
+                                                                          as.numeric(globalBed[,3]) <= endOfArm)]))
+      }
+    }
+    #globalLogFoldAllowedChroms = globalLogFold[allowedChromosomesAutosomesOnly]
+    #smoothedLogFold = runmed(globalLogFoldAllowedChroms, k = lengthOfRolling)
+    clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(3/8))], model="E")
+    bigClusters <- which(clusteredResult$parameters$pro > 0.25)
+    if (length(bigClusters) == 0) {
+      shiftOfCoverage <- median(globalLogFold[allowedChromosomesAutosomesOnly])
+    } else {
+      shiftOfCoverage = clusteredResult$parameters$mean
+      if (length(bigClusters) > 0)
+      for (bC in bigClusters) {
+        currentLocation = shiftOfCoverage[bC]
+        diffs = abs(clusteredResult$parameters$mean - currentLocation)
+        shiftOfCoverage[bC] = clusteredResult$parameters$mean[which(diffs < 0.035)] * clusteredResult$parameters$pro[which(diffs < 0.035)]
+      }
+      shiftOfCoverage = shiftOfCoverage[bigClusters]
+    }
+    print(paste0("Mass of clusters for finding diploid state: ", paste(clusteredResult$parameters$pro[bigClusters], sep=";")))
+  }
+  return(shiftOfCoverage)
 }

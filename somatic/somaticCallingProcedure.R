@@ -42,6 +42,8 @@ somaticCalling <- function(matrixOfLogFold) {
     
     matrixOfClonality = matrix(0, nrow=1, ncol=1)
     
+    
+    
     if (!dir.exists(paste0(folder_name, sample_name)) | (!is.null(opt$reanalyseCohort))) {
       
       dir.create(paste0(folder_name, sample_name))
@@ -49,8 +51,35 @@ somaticCalling <- function(matrixOfLogFold) {
       
       
       finalIteration = F
+      shiftToTry = opt$shiftToTry
       while(T) {
-        
+        #### CORRECTION - IF THE SAMPLE HAS TOO MANY CNAS, WE EXPECT SOME SHIFT THERE
+        if (!finalIteration) {
+          if (frameworkDataTypes == "covdepthBAF" & germline_sample_name %in% normalNames) {
+            sampleName2 <- strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1]
+            tumorNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][1]})
+            position <- which(tumorNames == sampleName2)
+            if (length(position) == 1) {
+              allowedChromsBafSample <- allowedChromsBaf[[position]]
+              if (!sampleInOfftarget) {
+                shiftOfCoverage = find_baseline_level(allowedChromsBafSample, matrixOfLogFold[,sam_no], bedFileForCluster)   
+                if (length(shiftOfCoverage) <= shiftToTry) {
+                  shiftOfCoverage = shiftOfCoverage[shiftToTry]
+                }
+              } else {
+                sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
+                shiftOfCoverage = find_baseline_level(allowedChromsBafSample, matrixOfLogFold[,sam_no], bedFileForCluster, matrixOfLogFoldOff[,sam_no_off], bedFileForClusterOff)   
+                if (length(shiftOfCoverage) <= shiftToTry) {
+                  shiftOfCoverage = shiftOfCoverage[shiftToTry]
+                }
+              }
+              matrixOfLogFold[,sam_no] = matrixOfLogFold[,sam_no] - shiftOfCoverage
+              if (sampleInOfftarget)
+                matrixOfLogFoldOff[,sam_no_off] = matrixOfLogFoldOff[,sam_no_off] - shiftOfCoverage
+            }
+          }
+          print(paste("Potential shift lines of diploid states", paste(shiftOfCoverage, sep=";"), " - if there are more than 1 different shift, you may specify which one you want to choose by putting --shiftToTry flag"))
+        }
         # CLEAN FOLDER IN THE BEGINNING OF EACH ITERATION
         if (!finalIteration)
           do.call(file.remove, list(list.files(paste0(folder_name, sample_name), full.names = TRUE)))
@@ -80,11 +109,11 @@ somaticCalling <- function(matrixOfLogFold) {
         pvalsForQC <- c()
         threshold = opt$scoreS
         minimum_length_of_CNV = opt$lengthS
+        
         if (!finalIteration) {
-          threshold = opt$scoreS
-        } else {
-          threshold = opt$scoreS
+          threshold = opt$scoreS + 100
         }
+        
         price_per_tile = 0.025
         initial_state <- 1
         
@@ -104,77 +133,7 @@ somaticCalling <- function(matrixOfLogFold) {
         
         
         
-        #### CORRECTION - IF THE SAMPLE HAS TOO MANY CNAS, WE EXPECT SOME SHIFT THERE
-        if (frameworkDataTypes == "covdepthBAF" & germline_sample_name %in% normalNames) {
-          sampleName2 <- strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1]
-          tumorNames = sapply(1:length(allowedChromsBaf), function(i) {strsplit(names(allowedChromsBaf)[i], split="-")[[1]][1]})
-          position <- which(tumorNames == sampleName2)
-          if (length(position) == 1) {
-            allowedChromsBafSample <- allowedChromsBaf[[position]]
-            
-            if (!sampleInOfftarget) {
-              allowedChromosomesAutosomesOnly = c()
-              for (allowedArm in allowedChromsBafSample) {
-                splittedValue <- strsplit(allowedArm, "-")
-                chrom = splittedValue[[1]][1]
-                if (!chrom %in% c("chrY", "Y", "chrX", "X")) {
-                  startOfArm = as.numeric(splittedValue[[1]][2])
-                  endOfArm = as.numeric(splittedValue[[1]][3])
-                  allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(bedFileForCluster[,1] == chrom &
-                                                                                                   bedFileForCluster[,2] >= startOfArm &
-                                                                                                   bedFileForCluster[,3] <= endOfArm))
-                }
-              }
-              lengthOfRolling = 30
-              matrixOfLogFoldAllowedChrom = matrixOfLogFold[allowedChromosomesAutosomesOnly, sam_no]
-              
-              smoothedLogFold = runmed(matrixOfLogFoldAllowedChrom, k = lengthOfRolling)
-              clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))])
-              print("Mclust finished")
-              bigClusters <- which(clusteredResult$parameters$pro > 0.3)
-              if (length(bigClusters) == 0) {
-                shiftOfCoverage <- median(matrixOfLogFold[allowedChromosomesAutosomesOnly])
-              } else {
-                shiftOfCoverage = min(clusteredResult$parameters$mean[bigClusters])
-              }
-            } else {
-              sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
-              globalBed <- rbind(bedFileForCluster, bedFileForClusterOff)
-              globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])
-              allowedChromosomesAutosomesOnly = c()
-              smoothedLogFold= c()
-              for (allowedArm in allowedChromsBafSample) {
-                splittedValue <- strsplit(allowedArm, "-")
-                chrom = splittedValue[[1]][1]
-                if (!chrom %in% c("chrY", "Y", "chrX", "X")) {
-                  startOfArm = as.numeric(splittedValue[[1]][2])
-                  endOfArm = as.numeric(splittedValue[[1]][3])
-                  lengthOfRolling = min(101, round((endOfArm - startOfArm)/5))
-                  allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(globalBed[,1] == chrom &
-                                                                                                   as.numeric(globalBed[,2]) >= startOfArm &
-                                                                                                   as.numeric(globalBed[,3]) <= endOfArm))
-                  smoothedLogFold = c(smoothedLogFold, runmed(globalLogFold[which(globalBed[,1] == chrom &
-                                                                                    as.numeric(globalBed[,2]) >= startOfArm &
-                                                                                    as.numeric(globalBed[,3]) <= endOfArm)], k = lengthOfRolling))
-                }
-              }
-              #globalLogFoldAllowedChroms = globalLogFold[allowedChromosomesAutosomesOnly]
-              #smoothedLogFold = runmed(globalLogFoldAllowedChroms, k = lengthOfRolling)
-              clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(3/8))], model="E")
-              print("Mclust finished")
-              bigClusters <- which(clusteredResult$parameters$pro > 0.25)
-              if (length(bigClusters) == 0) {
-                shiftOfCoverage <- median(globalLogFold[allowedChromosomesAutosomesOnly])
-              } else {
-                shiftOfCoverage = min(clusteredResult$parameters$mean[bigClusters])
-              }
-            }
-            matrixOfLogFold[,sam_no] = matrixOfLogFold[,sam_no] - shiftOfCoverage
-            if (sampleInOfftarget)
-              matrixOfLogFoldOff[,sam_no_off] = matrixOfLogFoldOff[,sam_no_off] - shiftOfCoverage
-          }
-          
-        }
+        
         
         
         matrixOfLogFoldCorrectedSmall = matrixOfLogFold
@@ -209,6 +168,8 @@ somaticCalling <- function(matrixOfLogFold) {
         
         matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1,  matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2))
         
+        
+        
         if (genderOfSamples[germline_sample_no] == "M") {
           if (length(which(bedFileForCluster[,1] %in% c("chrX","chrY"))) > 0)
             matrix_of_likeliks[which(bedFileForCluster[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
@@ -220,6 +181,7 @@ somaticCalling <- function(matrixOfLogFold) {
         ### ADD LIKELIHOODS
         bAlleleFreqsTumor = NULL
         bAlleleFreqsNormal = NULL
+        bafDeviationsForComparison = NULL
         if (frameworkDataTypes == "covdepthBAF" & germline_sample_name %in% normalNames) {
           print("Started BAF calculation")
           print(Sys.time())
@@ -243,10 +205,30 @@ somaticCalling <- function(matrixOfLogFold) {
             overdispersionTumor = overdispersionsTumor[[position]]
             pvalueShift = pvaluesShifts[[position]]
             # calculate median correction factor
+            allowedChromosomesAutosomesOnlySNV = c()
+            allowedChromsBafSample <- allowedChromsBaf[[position]]
+            for (allowedArm in allowedChromsBafSample) {
+              splittedValue <- strsplit(allowedArm, "-")
+              allowedChromosomesAutosomesOnlySNV = c(allowedChromosomesAutosomesOnlySNV, which(bAlleleFreqsTumor[,1] == splittedValue[[1]][1] & 
+                                                                                                 as.numeric(bAlleleFreqsTumor[,2]) >= as.numeric(splittedValue[[1]][2]) &
+                                                                                                 as.numeric(bAlleleFreqsTumor[,3]) <= as.numeric(splittedValue[[1]][3])
+              )
+              )
+            }
             allowedChromosomesAutosomesOnly = which(!bAlleleFreqsTumor[,1] %in% c("X","Y","chrX","chrY"))
-            multiplierOfSNVsDueToMapping <- median(as.numeric(bAlleleFreqsNormal[allowedChromosomesAutosomesOnly,5]))
+            multiplierOfSNVsDueToMapping <- median(as.numeric(bAlleleFreqsNormal[,5]))
             print("Multiplier of allele balance of a particular sample")
             print(multiplierOfSNVsDueToMapping)
+            
+            bafDeviationsForComparison = rep(0, length(allowedChromosomesAutosomesOnlySNV))
+            counter = 1
+            for (bafFromAllowedChr in allowedChromosomesAutosomesOnlySNV) {
+              diff = (as.numeric(bAlleleFreqsTumor[bafFromAllowedChr,5]) - multiplierOfSNVsDueToMapping) * as.numeric(bAlleleFreqsTumor[bafFromAllowedChr,6]) 
+              sds = sqrt(overdispersionTumor[bafFromAllowedChr] * as.numeric(bAlleleFreqsTumor[bafFromAllowedChr,6]) * multiplierOfSNVsDueToMapping * ( 1 - multiplierOfSNVsDueToMapping))
+              bafDeviationsForComparison[counter] = abs(diff / sds)
+              counter = counter + 1
+            }
+            
             
             if (length(closestBedRegions) == 0) closestBedRegions = rep(0, nrow(bAlleleFreqsTumor))
             for (i in 1:nrow(bAlleleFreqsTumor)) {
@@ -271,16 +253,7 @@ somaticCalling <- function(matrixOfLogFold) {
             #closestBedRegions = closestBedRegions[which(closestBedRegions != 0)]
             noBAF = F
             if (!finalIteration) {
-              allowedChromosomesAutosomesOnlySNV = c()
-              allowedChromsBafSample <- allowedChromsBaf[[position]]
-              for (allowedArm in allowedChromsBafSample) {
-                splittedValue <- strsplit(allowedArm, "-")
-                allowedChromosomesAutosomesOnlySNV = c(allowedChromosomesAutosomesOnlySNV, which(bAlleleFreqsTumor[,1] == splittedValue[[1]][1] & 
-                                                                                                   as.numeric(bAlleleFreqsTumor[,2]) >= as.numeric(splittedValue[[1]][2]) &
-                                                                                                   as.numeric(bAlleleFreqsTumor[,3]) <= as.numeric(splittedValue[[1]][3])
-                )
-                )
-              }
+              
               pvalues <- rep(0, nrow(bAlleleFreqsTumor))
               for (l in 1:nrow(bAlleleFreqsTumor)) {
                 refAleleTum <- (round(as.numeric(bAlleleFreqsTumor[l,5]) * as.numeric(bAlleleFreqsTumor[l,6])))
@@ -292,11 +265,25 @@ somaticCalling <- function(matrixOfLogFold) {
               pvaluesSmall = filter(pvalues < 0.01, rep(1 / 20, 20), sides = 2)
               pvaluesMed = runmed(pvalues, 5)
               
+              # PRESEGMENTATION
+              unique_local_cn_states = unique(local_cn_states)
+              matrix_of_likeliks_for_presegmentation <- form_matrix_of_likeliks_one_sample(1,  matrixOfLogFoldCorrectedSmall[which(!bedFileForCluster[,1] %in% c("chrX","chrY")),sam_no], localSds, log2(unique_local_cn_states/2))
+              presegmentation <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, matrix_of_likeliks_for_presegmentation, 1))
+              notAllowedChromosomesAutosomesCNVs = c()
+              if (nrow(presegmentation) > 0)
+                for (presegRow in 1:nrow(presegmentation)) {
+                  for (startToEnd in presegmentation[presegRow,2]:presegmentation[presegRow,2]) {
+                    bedRow = bedFileForCluster[startToEnd,]
+                    whichAreInside = which(bAlleleFreqsTumor[,1] == bedRow[,1] & as.numeric(bAlleleFreqsTumor[,2]) >= as.numeric(bedRow[,2]) & as.numeric(bAlleleFreqsTumor[,3]) <= as.numeric(bedRow[,3]))
+                    notAllowedChromosomesAutosomesCNVs = c(notAllowedChromosomesAutosomesCNVs, whichAreInside)
+                  }
+                }
+              
               allowedChromosomesAutosomesOnlySNV = setdiff(allowedChromosomesAutosomesOnlySNV, which(pvaluesSmall > 0.05 | pvaluesMed < 0.05))
               
-              coordsIncludedAtFirst = setdiff(1:nrow(bAlleleFreqsTumor), union(allowedChromosomesAutosomesOnlySNV, which(bAlleleFreqsTumor[,1] %in% ifelse(genderOfSamples[germline_sample_no] == "M",
-                                                                                                                                                           c("chrY"),
-                                                                                                                                                           c("chrX", "chrY")))))
+              coordsIncludedAtFirst = unique(union(allowedChromosomesAutosomesOnlySNV, setdiff(1:nrow(bAlleleFreqsTumor), union(allowedChromosomesAutosomesOnlySNV, which(bAlleleFreqsTumor[,1] %in% ifelse(genderOfSamples[germline_sample_no] == "M",
+                                                                                                                                                                                                            c("chrY"),
+                                                                                                                                                                                                            c("chrX", "chrY")))))))
               if (length(coordsIncludedAtFirst) > 0) {
                 bAlleleFreqsTumorToy = bAlleleFreqsTumor[coordsIncludedAtFirst,,drop=F]
                 closestBedRegionsToy = closestBedRegions[coordsIncludedAtFirst]
@@ -480,7 +467,7 @@ somaticCalling <- function(matrixOfLogFold) {
                 blocked_states <- c()
               }
             }
-
+            
             # BLOCK WITH PENALTIES
             copy_numbers_for_penalties = 3 - (local_copy_numbers_used_major + local_copy_numbers_used_minor)
             copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
@@ -495,22 +482,24 @@ somaticCalling <- function(matrixOfLogFold) {
             }
             
             # BAFs from this chromosome
-            if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0 & germline_sample_name %in% normalNames) {
-              bafsFromThisChr = which(bAlleleFreqsNormal[,1] == chrom)
-              listOfCNVsThatDoNotPass = returnListOfCNVsThatDoNotPass(found_CNVs, bAlleleFreqsNormal[bafsFromThisChr,], bAlleleFreqsTumor[bafsFromThisChr,], 
-                                                                      clonalityForChecking, local_purities, local_cn_states, toyBedFile,
-                                                                      overdispersionNormal[bafsFromThisChr],
-                                                                      overdispersionTumor[bafsFromThisChr],
-                                                                      pvalueShift,
-                                                                      toyLogFoldChange,
-                                                                      median(sdsOfProbes) * (sdsOfSomaticSamples[sam_no]),
-                                                                      ifelse(sampleInOfftarget, median(sdsOfProbesOff) * (sdsOfSomaticSamplesOff[sam_no_off]), -1)
-              ) 
-              if (length(listOfCNVsThatDoNotPass) > 0)
-                found_CNVs = found_CNVs[-listOfCNVsThatDoNotPass,,drop=F]
+            if ((opt$filterStep == 1 & !finalIteration) | opt$filterStep >= 2) {
+              if (frameworkDataTypes == "covdepthBAF" & !is.null(overdispersionNormal) & nrow(found_CNVs) > 0 & germline_sample_name %in% normalNames) {
+                bafsFromThisChr = which(bAlleleFreqsNormal[,1] == chrom)
+                listOfCNVsThatDoNotPass = returnListOfCNVsThatDoNotPass(found_CNVs, bafDeviationsForComparison, multiplierOfSNVsDueToMapping, bAlleleFreqsNormal[bafsFromThisChr,], bAlleleFreqsTumor[bafsFromThisChr,], 
+                                                                        clonalityForChecking, local_purities, local_cn_states, toyBedFile,
+                                                                        overdispersionNormal[bafsFromThisChr],
+                                                                        overdispersionTumor[bafsFromThisChr],
+                                                                        pvalueShift,
+                                                                        toyLogFoldChange,
+                                                                        median(sdsOfProbes) * (sdsOfSomaticSamples[sam_no]),
+                                                                        ifelse(sampleInOfftarget, median(sdsOfProbesOff) * (sdsOfSomaticSamplesOff[sam_no_off]), -1)
+                ) 
+                if (length(listOfCNVsThatDoNotPass) > 0)
+                  found_CNVs = found_CNVs[-listOfCNVsThatDoNotPass,,drop=F]
+              }
             }
             
-
+            
             if (nrow(found_CNVs) > 0){# & !chrom %in% c("chrX", "chrY", "X", "Y")) {
               likeliksFoundCNVsVsPurities <- matrix(0,nrow=nrow(found_CNVs), ncol=length(uniqueLocalPurities))
               for (m in 1:length(uniqueLocalPurities)) {
@@ -551,7 +540,7 @@ somaticCalling <- function(matrixOfLogFold) {
               next
             }       
             ### END OF IGV PLOTTING
-
+            
             
             if (nrow(found_CNVs) == 0 & length(which_to_allow) > 1) {
               found_CNVs = matrix(c(-1000, 1, length(which_to_allow), 1), nrow=1)

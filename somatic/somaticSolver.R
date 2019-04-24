@@ -127,7 +127,7 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
       for (cn1 in copy_numbers) {
         if (cn1 <= 4 & cn1 <= cn & !(cn1 == 1 & cn == 1) & 
             (cn1 + cn) <= max(copy_numbers) & ((1-pur) + pur * cn) > 0 ) {
-          if (cn1 == cn & pur < 0.4) next
+          if (cn1 == cn & pur < opt$clonalityForChecking) next
           #if (cn1 == 0 & cn > 8) next
           #if (cn1 == cn & cn1 + cn > 8) next
           cn_state = (1 - pur) * 2 + pur * cn + pur * cn1
@@ -179,9 +179,9 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
   }
   
   allPotentialPurities <- unique(purities)
-  penaltyForHigherCN = 10
-  penaltyForHigherCNoneTile = 0.2
-  clonalityForChecking = 0.4
+  penaltyForHigherCN = 5
+  penaltyForHigherCNoneTile = 0.05
+  clonalityForChecking = opt$clonalityForChecking
   print(paste("Work on actual calling started.", Sys.time()))
   
   if (frameworkDataTypes == "covdepthBAF") {

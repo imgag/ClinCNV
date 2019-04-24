@@ -326,6 +326,8 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, 
     end = resultCNV[3]
     factor = resultCNV[1] / (threshold - 1)
     matrix_of_likeliks_local[(j + resultCNV[2] - 1):(j + resultCNV[3] - 1),] = as.matrix(matrix_of_likeliks_local[(j + resultCNV[2] - 1):(j + resultCNV[3] - 1),] / factor)
+    if (end == start & min_CNV_len > 3)
+      matrix_of_likeliks_local[start,] = 0
     subset_matrix <- -1 * matrix_of_likeliks_local[j:k,,drop=F]
     matrix_of_BFs <- sweep(subset_matrix, 1, subset_matrix[,main_state], FUN="-")
     statesToRecalculate = c()

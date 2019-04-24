@@ -129,6 +129,15 @@ option_list = list(
   make_option(c("-recall", "--superRecall"), type="double", default=10000, 
               help="Super recall mode - after calling normal CNVs it tries to find CNVs with any length that are better than pre-specified threshold"),  
   
+  make_option(c("-clonalityForChecking", "--clonalityForChecking"), type="double", default=0.4, 
+              help="Starting from which clonality BAF-based QC-control has to be applied (no allelic balanced variants with smaller purity will be detected!)"),  
+  
+  make_option(c("-shiftToTry", "--shiftToTry"), type="integer", default=1, 
+              help="change only if you have a sample with lots of allelic imbalance (if you think that the diploid baseline should be different, number of options for choosing will be provided during calling)"),  
+  
+  make_option(c("-filterS", "--filterStep"), type="integer", default=1, 
+              help="This value indicates if ClinCNV should perform QC internally (starting from threshold specified by --clonalityForChecking). Value 0 means no, value 1 - only for finding clonality, value 2 - for clonality and final calls too"),  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
