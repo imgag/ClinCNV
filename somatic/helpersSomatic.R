@@ -1155,17 +1155,20 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
       colorCode = c(delColorScale[whichPurityItIs],delColorScale[whichPurityItIs])
       if (exactCNMajor > 1) colorCode[1] = dupColorScale[whichPurityItIs]
       if (exactCNMajor < 1) colorCode[1] = delColorScale[whichPurityItIs]
-      if (exactCNMinor > 1) colorCode[2] = homDupColorScale[whichPurityItIs]
+      if (exactCNMinor > 1) colorCode[2] = dupColorScale[whichPurityItIs]
       if (exactCNMinor < 1) colorCode[2] = delColorScale[whichPurityItIs]
       
       startOfChr = verticalBorders[which(orderOfNames == chrom)]
       horizontalCoord1 = startOfChr + as.numeric(entry[2])
       horizontalCoord2 = startOfChr + as.numeric(entry[3])
       if (exactCNMajor == 0) {
-        segments(horizontalCoord1,0,horizontalCoord2,-0.1, col=homdelColorScale[whichPurityItIs], border=NA)
+        segments(horizontalCoord1,0,horizontalCoord2,-0.1, col=homdelColorScale[whichPurityItIs])
       } else {
+        
         rect(horizontalCoord1,0,horizontalCoord2,exactCNMinor,col=colorCode[2], border=NA)
         rect(horizontalCoord1,exactCNMinor,horizontalCoord2,exactCNMinor+exactCNMajor,col=colorCode[1],border=NA)
+        segments(horizontalCoord1,exactCNMinor,horizontalCoord2,exactCNMinor, lwd=3)
+        segments(horizontalCoord1,exactCNMinor+exactCNMajor,horizontalCoord2,exactCNMinor+exactCNMajor, lwd=3)
       }
     }
   abline(h=1:max(actual_copy_numbers), col="purple", lty=3)
