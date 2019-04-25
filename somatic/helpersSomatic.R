@@ -1142,6 +1142,7 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
   delColorScale = colorRampPalette(c("white", "red"))(length(all_purities))
   dupColorScale = colorRampPalette(c("white", "blue"))(length(all_purities))
   homdelColorScale = colorRampPalette(c("white", "darkred"))(length(all_purities))
+  homDupColorScale = colorRampPalette(c("white", "darkblue"))(length(all_purities))
   if (nrow(found_CNVs_total) > 0)
     for (l in 1:nrow(found_CNVs_total)) {
       entry = found_CNVs_total[l,]
@@ -1154,7 +1155,7 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
       colorCode = c(delColorScale[whichPurityItIs],delColorScale[whichPurityItIs])
       if (exactCNMajor > 1) colorCode[1] = dupColorScale[whichPurityItIs]
       if (exactCNMajor < 1) colorCode[1] = delColorScale[whichPurityItIs]
-      if (exactCNMinor > 1) colorCode[2] = dupColorScale[whichPurityItIs]
+      if (exactCNMinor > 1) colorCode[2] = homDupColorScale[whichPurityItIs]
       if (exactCNMinor < 1) colorCode[2] = delColorScale[whichPurityItIs]
       
       startOfChr = verticalBorders[which(orderOfNames == chrom)]
