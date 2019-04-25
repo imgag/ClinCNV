@@ -370,7 +370,7 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafDeviationsForComparison,
         }
         wilcox.pval = wilcox.test(deviation, bafDeviationsForComparison)$p.value
         mergedPvals = pchisq((sum(log(pvalsOfVariants))*-2), df=length(pvalsOfVariants)*2, lower.tail=F)
-        boxplot(deviation, bafDeviationsForComparison, main=paste(startOfCNV, endOfCNV, round(wilcox.pval, digits=4), round(mergedPvals, 4)))
+        #boxplot(deviation, bafDeviationsForComparison, main=paste(startOfCNV, endOfCNV, round(wilcox.pval, digits=4), round(mergedPvals, 4)))
         #if ((pbinom(length(which(pvalsOfVariants < 0.01)),  length(varsInside), pvalueShift, lower.tail = F) > 10 ** -4 | length(which(pvalsOfVariants < 0.01)) / length(varsInside) < 0.05) | 
         #    mergedPvals > 10 ** -4) {
         if (wilcox.pval > 0.001 | mergedPvals > 0.05) {
