@@ -1051,8 +1051,8 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
       chrom = as.character(entry[1])
       startOfChr = verticalBorders[which(orderOfNames == chrom)]
       horizontalCoord = startOfChr + as.numeric(entry[2])
-      if (length(unique(likeliks)) == 0) next
       likeliks = matrixOfLikeliksForPlottingBAF[l,] 
+      if (length(unique(likeliks)) == 0) next
       minLikelik = which.min(likeliks)
       if (as.numeric(entry[5]) > 0.5) {
         points(horizontalCoord, correspondingRatios[minLikelik], col=rgb(0,0,0,0.25), pch=19, cex=0.7)
@@ -1151,7 +1151,6 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
       exactCNMinor = as.numeric(entry[5])
       purity = as.numeric(entry[6])
       whichPurityItIs = which(all_purities == purity)
-      print(whichPurityItIs)
       colorCode = c(delColorScale[whichPurityItIs],delColorScale[whichPurityItIs])
       if (exactCNMajor > 1) colorCode[1] = dupColorScale[whichPurityItIs]
       if (exactCNMajor < 1) colorCode[1] = delColorScale[whichPurityItIs]
