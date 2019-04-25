@@ -215,7 +215,7 @@ somaticCalling <- function(matrixOfLogFold) {
               )
               )
             }
-            allowedChromosomesAutosomesOnly = which(!bAlleleFreqsTumor[,1] %in% c("X","Y","chrX","chrY"))
+
             multiplierOfSNVsDueToMapping <- median(as.numeric(bAlleleFreqsNormal[,5]))
             print("Multiplier of allele balance of a particular sample")
             print(multiplierOfSNVsDueToMapping)
@@ -387,6 +387,9 @@ somaticCalling <- function(matrixOfLogFold) {
         found_CNVs_total <- matrix(0, nrow=0, ncol=10)
         colnames(found_CNVs_total) <- c("#chr", "start", "end", "major_CN_allele", "minor_CN_allele", "tumor_clonality", "CN_change", "loglikelihood", "number_of_regions", "genes")
         allDetectedPurities = c()
+        
+        
+
         for (l in 1:length(left_borders)) {
           
           
@@ -676,6 +679,14 @@ somaticCalling <- function(matrixOfLogFold) {
           clonalBestPurities = c(0, 1)
         }
         finalIteration = T
+      }
+      addressOfPlot = paste0(sample_name, "_CNAs_plot.png")
+      if (finalIteration & frameworkDataTypes == "covdepthBAF") {
+        if (sampleInOfftarget) {
+          plotLikelihoodLandscape(datasetOfPuritiesCopies, addressOfPlot, found_CNVs_total, matrix_of_likeliks, globalBed, matrixOfBAFLikeliks, bAlleleFreqsTumor, coordsIncludedAtFirst, globalLogFold, local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms)
+        } else {
+          plotLikelihoodLandscape(datasetOfPuritiesCopies, addressOfPlot, found_CNVs_total, matrix_of_likeliks, bedFileForCluster, matrixOfBAFLikeliks, bAlleleFreqsTumor, coordsIncludedAtFirst,matrixOfLogFold[,sam_no],local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms)
+        }
       }
       
       ### STAT TESTS

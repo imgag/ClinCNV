@@ -1,4 +1,4 @@
-
+library(RColorBrewer)
 
 
 prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamples, bedFileForClusterOff=NULL, tmpNormalOff=NULL, tumorOff=NULL) {
