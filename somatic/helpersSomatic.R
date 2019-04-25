@@ -1160,15 +1160,13 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
       startOfChr = verticalBorders[which(orderOfNames == chrom)]
       horizontalCoord1 = startOfChr + as.numeric(entry[2])
       horizontalCoord2 = startOfChr + as.numeric(entry[3])
-      if (exactCNMajor == 0) {
-        segments(horizontalCoord1,0,horizontalCoord2,-0.1, col=homdelColorScale[whichPurityItIs])
-      } else {
-        
-        rect(horizontalCoord1,0,horizontalCoord2,exactCNMinor,col=colorCode[2], border=NA)
-        rect(horizontalCoord1,exactCNMinor,horizontalCoord2,exactCNMinor+exactCNMajor,col=colorCode[1],border=NA)
-        segments(horizontalCoord1,exactCNMinor,horizontalCoord2,exactCNMinor, lwd=3)
-        segments(horizontalCoord1,exactCNMinor+exactCNMajor,horizontalCoord2,exactCNMinor+exactCNMajor, lwd=3)
-      }
+      
+      
+      rect(horizontalCoord1,0,horizontalCoord2,exactCNMinor,col=colorCode[2], border=NA)
+      rect(horizontalCoord1,exactCNMinor,horizontalCoord2,exactCNMinor+exactCNMajor,col=colorCode[1],border=NA)
+      segments(horizontalCoord1,exactCNMinor,horizontalCoord2,exactCNMinor, lwd=5)
+      segments(horizontalCoord1,exactCNMinor+exactCNMajor,horizontalCoord2,exactCNMinor+exactCNMajor, lwd=5)
+      
     }
   abline(h=1:max(actual_copy_numbers), col="purple", lty=3)
   abline(h=2, col="purple")
