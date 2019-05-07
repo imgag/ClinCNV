@@ -536,7 +536,7 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
   
   chromsToAnalyse = 1:24
   
-  plot(0,0, ylim=c(multiplicator - offsetOfSecondChr, multiplicator *24), xlim=c(0, max(unlist(ends_of_chroms))), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=ifelse(l==1, sample_name, ""))
+  plot(0,0, ylim=c(multiplicator - offsetOfSecondChr, multiplicator *24), xlim=c(0, max(unlist(ends_of_chroms))), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=sample_name)
   
   legend("right", legend=c( "Major clone Dup 3CN", "Major clone Dup >= 4","Major clone Del",
                             "Minor clone Dup 3CN","Minor clone Dup >= 4","Minor clone Del"),
@@ -636,9 +636,9 @@ probeLevelQC <- function(matrixOfLogFoldForCalc, sdsOfProbes, sdsOfSomaticSample
   ratios <- (QNs / (sdsOfProbes * median(sdsOfSomaticSamples)))
   qnRatios = Qn(ratios[which(is.finite(ratios))])
   medianRatio = median(ratios[which(is.finite(ratios))])
-  plot(ratios, col=rgb(0,0,0,0.1), pch=19)
-  points(ratios[which(( ratios < medianRatio - 3 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX"))] ~
-           which(( ratios < medianRatio - 3 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), col=rgb(1,0,0,0.5), pch=19)
+  #plot(ratios, col=rgb(0,0,0,0.1), pch=19)
+  #points(ratios[which(( ratios < medianRatio - 3 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX"))] ~
+  #         which(( ratios < medianRatio - 3 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX")), col=rgb(1,0,0,0.5), pch=19)
   sdsOfProbesCorrected = sdsOfProbes
   #sdsOfProbesCorrected[which(ratios > medianRatio + 3 * qnRatios)] = sdsOfProbesCorrected[which(ratios > medianRatio + 3 * qnRatios)] * ratios[which(ratios > medianRatio + 3 * qnRatios)]
   toRemove = which((ratios < medianRatio - 3 * qnRatios) & !bedFile[,1] %in% c("chrY", "chrX"))
@@ -1037,7 +1037,7 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
   par(bg="white", mfrow = c(3, 1),     # 2x2 layout
       oma = c(1, 1, 1, 1), # two rows of text at the outer left and bottom margin
       mar = c(1, 1, 1, 1))  
-  plot(0,0, ylim=c(0,1), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=ifelse(l==1, sample_name, ""))
+  plot(0,0, ylim=c(0,1), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="")
   abline(v=verticalBorders, col="black")
   abline(v=armOfChromMarker, col="black", lty=2, lwd=0.5)
   for (i in 2:length(verticalBorders)) {
@@ -1081,18 +1081,23 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
       horizontalCoord2 = startOfChr + as.numeric(entry[3])
       BAF_number_of_reads_minor <- (1-as.numeric(entry[6])) + (as.numeric(entry[6])) * as.numeric(entry[5])
       BAF_number_of_reads_major <- (1-as.numeric(entry[6])) + (as.numeric(entry[6])) * as.numeric(entry[4])
+      if ((BAF_number_of_reads_minor + BAF_number_of_reads_major) > 0) {
       firstHeight = BAF_number_of_reads_minor / (BAF_number_of_reads_minor + BAF_number_of_reads_major)
       secondHeight = BAF_number_of_reads_major / (BAF_number_of_reads_minor + BAF_number_of_reads_major)
       segments(horizontalCoord1,firstHeight,horizontalCoord2,firstHeight,col=colToUse, lwd=8)
       segments(horizontalCoord1,secondHeight,horizontalCoord2,secondHeight,col=colToUse, lwd=8)
+      }
     }
   
   
-  
   toDepict = 2 * (2 ** matrixOfLogFoldSample)
-  upperBorder = quantile(toDepict[which(!bedFileForMatrix[,1] %in% c("chrX", "chrY"))], 1 - 1/10000)
+  if (nrow(found_CNVs_total) > 0) {
+    upperBorder = max(8, max(as.numeric(found_CNVs_total[,7])) + 1)
+  } else {
+    upperBorder = 8
+  }
   toDepict[which(toDepict > upperBorder)] = upperBorder
-  plot(0,0, ylim=c(0,max(toDepict)), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=ifelse(l==1, sample_name, ""))
+  plot(0,0, ylim=c(0,max(toDepict)), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="")
   abline(v=verticalBorders, col="black")
   abline(v=armOfChromMarker, col="black", lty=2, lwd=0.5)
   abline(h=c(0,max(toDepict)), col="black")
@@ -1132,9 +1137,12 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
   
   
   
-  
+  if (nrow(found_CNVs_total) > 0) {
   actual_copy_numbers = as.numeric(found_CNVs_total[,4]) + as.numeric(found_CNVs_total[,5])
-  plot(0,0, ylim=c(0,max(actual_copy_numbers) + 1), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=ifelse(l==1, sample_name, ""))
+  } else {
+    actual_copy_numbers = 2
+  }
+  plot(0,0, ylim=c(0,max(actual_copy_numbers) + 1), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="")
   abline(v=verticalBorders, col="black")
   abline(v=armOfChromMarker, col="black", lty=2, lwd=0.5)
   abline(h=c(0,max(actual_copy_numbers) + 1), col="black")
