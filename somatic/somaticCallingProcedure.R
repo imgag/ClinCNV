@@ -1,6 +1,9 @@
 
 somaticCalling <- function(matrixOfLogFold) {
   for (sam_no in ncol(matrixOfLogFold):1) {
+    cl<-makeCluster(no_cores)#, type="FORK")
+    registerDoParallel(cl)
+    clusterExport(cl,c('maxSubArraySum', 'fillInPList', 'likelihoodOfSNV','return_likelik', 'vect_of_norm_likeliks'))
     sample_name <- colnames(matrixOfLogFold)[sam_no]
     overdispersionNormal = NULL
     sampleInOfftarget = F
@@ -110,9 +113,9 @@ somaticCalling <- function(matrixOfLogFold) {
         threshold = opt$scoreS
         minimum_length_of_CNV = opt$lengthS
         
-        if (!finalIteration) {
-          threshold = opt$scoreS + 100
-        }
+        #if (!finalIteration) {
+        #  threshold = opt$scoreS + 100
+        #}
         
         price_per_tile = 0.025
         initial_state <- 1
@@ -819,6 +822,6 @@ somaticCalling <- function(matrixOfLogFold) {
         write.table(areasFreeOfCNVs, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
       }
     }
-    
+    stopCluster(cl)
   }
 }

@@ -214,7 +214,7 @@ if (opt$mosaicism) {
 
 
 no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-cl<-makeCluster(no_cores, type="FORK")
+cl<-makeCluster(no_cores)#, type="FORK")
 registerDoParallel(cl)
 
 
@@ -581,7 +581,7 @@ if (framework == "germline") {
     
     # We create cluster for parallel computation each time we run germline analysis
     no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-    cl<-makeCluster(no_cores, type="FORK")
+    cl<-makeCluster(no_cores)#, type="FORK")
     registerDoParallel(cl)
     
     

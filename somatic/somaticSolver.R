@@ -3,7 +3,7 @@ library(RColorBrewer)
 
 prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamples, bedFileForClusterOff=NULL, tmpNormalOff=NULL, tumorOff=NULL) {
   no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-  cl<-makeCluster(no_cores, type="FORK")
+  cl<-makeCluster(no_cores)#, type="FORK")
   registerDoParallel(cl)
   
   ### PROCESSING OF SOMATIC VARIANTS
@@ -190,9 +190,9 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
     normalNames = c()
   }
   
-  
-  somaticCalling(matrixOfLogFold)
   stopCluster(cl)
+  somaticCalling(matrixOfLogFold)
+  
 }
 
 

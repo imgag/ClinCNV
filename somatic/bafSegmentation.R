@@ -1,7 +1,6 @@
 
 source(paste0(opt$folderWithScript, "/somatic/helpersBalleleFreq.R"))
 setwd(opt$bafFolder)
-clusterExport(cl, c('determineHeterozygousPositions', 'determineHeterozygousPositionsOverdispersed'))
 
 makeTrackAnnotation <- function(fileName, ID, viewLimits, trackType="points", addText="", color="0,0,255") {
   file.create(fileName)

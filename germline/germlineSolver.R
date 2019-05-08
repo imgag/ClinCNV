@@ -1,7 +1,7 @@
 library(party)
 
 no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-cl<-makeCluster(no_cores, type="FORK")
+cl<-makeCluster(no_cores)#, type="FORK")
 registerDoParallel(cl)
 
 cn_states <- 0:8
