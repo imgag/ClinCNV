@@ -72,7 +72,7 @@ somaticCalling <- function(matrixOfLogFold) {
               } else {
                 sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
                 shiftOfCoverage = find_baseline_level(allowedChromsBafSample, matrixOfLogFold[,sam_no], bedFileForCluster, matrixOfLogFoldOff[,sam_no_off], bedFileForClusterOff)   
-                if (length(shiftOfCoverage) <= shiftToTry) {
+                if (length(shiftOfCoverage) >= shiftToTry) {
                   shiftOfCoverage = shiftOfCoverage[shiftToTry]
                 }
               }

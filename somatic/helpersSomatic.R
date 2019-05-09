@@ -988,6 +988,8 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
   } else {
     shiftOfCoverage = meansOfClusters[bigClusters]
   }
+  weightsOfClusters = weightsOfClusters[order(shiftOfCoverage)]
+  shiftOfCoverage = shiftOfCoverage[order(shiftOfCoverage)]
   print(paste0("Mass of clusters for finding diploid state: ", paste(round(weightsOfClusters[bigClusters], digits=3), collapse=";")))
 
   return(shiftOfCoverage)
