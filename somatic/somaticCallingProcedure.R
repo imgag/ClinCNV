@@ -65,22 +65,28 @@ somaticCalling <- function(matrixOfLogFold) {
             if (length(position) == 1) {
               allowedChromsBafSample <- allowedChromsBaf[[position]]
               if (!sampleInOfftarget) {
-                shiftOfCoverage = find_baseline_level(allowedChromsBafSample, matrixOfLogFold[,sam_no], bedFileForCluster)   
-                if (length(shiftOfCoverage) <= shiftToTry) {
+                shiftOfCoverage = find_baseline_level(allowedChromsBafSample, matrixOfLogFold[,sam_no], bedFileForCluster)  
+                print(paste("Potential shift lines of diploid states", paste(round(shiftOfCoverage, digits=4), collapse="; "), " - if there are more than 1 different shift, you may specify which one you want to choose by putting --shiftToTry flag"))
+                if (length(shiftOfCoverage) >= shiftToTry) {
                   shiftOfCoverage = shiftOfCoverage[shiftToTry]
                 }
               } else {
                 sam_no_off = which(colnames(matrixOfLogFoldOff) == sample_name)
                 shiftOfCoverage = find_baseline_level(allowedChromsBafSample, matrixOfLogFold[,sam_no], bedFileForCluster, matrixOfLogFoldOff[,sam_no_off], bedFileForClusterOff)   
+                print(paste("Potential shift lines of diploid states", paste(round(shiftOfCoverage, digits=4), collapse="; "), " - if there are more than 1 different shift, you may specify which one you want to choose by putting --shiftToTry flag"))
+                
                 if (length(shiftOfCoverage) >= shiftToTry) {
                   shiftOfCoverage = shiftOfCoverage[shiftToTry]
                 }
               }
-              matrixOfLogFold[,sam_no] = matrixOfLogFold[,sam_no] - shiftOfCoverage
-              if (sampleInOfftarget)
-                matrixOfLogFoldOff[,sam_no_off] = matrixOfLogFoldOff[,sam_no_off] - shiftOfCoverage
+              if (length(shiftOfCoverage) == 1) {
+                matrixOfLogFold[,sam_no] = matrixOfLogFold[,sam_no] - shiftOfCoverage
+                if (sampleInOfftarget)
+                  matrixOfLogFoldOff[,sam_no_off] = matrixOfLogFoldOff[,sam_no_off] - shiftOfCoverage
+              } else {
+                print("Several shifts of coverage specified! We do not apply any shift of coverage.")
+              }
             }
-            print(paste("Potential shift lines of diploid states", paste(round(shiftOfCoverage, digits=4), collapse="; "), " - if there are more than 1 different shift, you may specify which one you want to choose by putting --shiftToTry flag"))
           }
         }
         # CLEAN FOLDER IN THE BEGINNING OF EACH ITERATION
@@ -218,7 +224,7 @@ somaticCalling <- function(matrixOfLogFold) {
               )
               )
             }
-
+            
             multiplierOfSNVsDueToMapping <- median(as.numeric(bAlleleFreqsNormal[,5]))
             print("Multiplier of allele balance of a particular sample")
             print(multiplierOfSNVsDueToMapping)
@@ -392,7 +398,7 @@ somaticCalling <- function(matrixOfLogFold) {
         allDetectedPurities = c()
         
         
-
+        
         for (l in 1:length(left_borders)) {
           
           
