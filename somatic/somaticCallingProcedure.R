@@ -3,7 +3,7 @@ somaticCalling <- function(matrixOfLogFold) {
   for (sam_no in ncol(matrixOfLogFold):1) {
     cl<-makeCluster(no_cores)#, type="FORK")
     registerDoParallel(cl)
-    clusterExport(cl,c('maxSubArraySum', 'fillInPList', 'likelihoodOfSNV','return_likelik', 'vect_of_norm_likeliks'))
+    clusterExport(cl,c('maxSubArraySum', 'fillInPList', 'likelihoodOfSNV','return_likelik', 'vect_of_norm_likeliks', 'vect_of_t_likeliks'))
     sample_name <- colnames(matrixOfLogFold)[sam_no]
     overdispersionNormal = NULL
     sampleInOfftarget = F
@@ -80,7 +80,7 @@ somaticCalling <- function(matrixOfLogFold) {
               if (sampleInOfftarget)
                 matrixOfLogFoldOff[,sam_no_off] = matrixOfLogFoldOff[,sam_no_off] - shiftOfCoverage
             }
-            print(paste("Potential shift lines of diploid states", paste(shiftOfCoverage, sep=";"), " - if there are more than 1 different shift, you may specify which one you want to choose by putting --shiftToTry flag"))
+            print(paste("Potential shift lines of diploid states", paste(round(shiftOfCoverage, digits=4), collapse="; "), " - if there are more than 1 different shift, you may specify which one you want to choose by putting --shiftToTry flag"))
           }
         }
         # CLEAN FOLDER IN THE BEGINNING OF EACH ITERATION

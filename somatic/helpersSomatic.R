@@ -932,18 +932,11 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
                                                                                          bedFileForCluster[,3] <= endOfArm))
       }
     }
-    lengthOfRolling = 51
+    lengthOfRolling = 21
     matrixOfLogFoldAllowedChrom = matrixOfLogFoldSample[allowedChromosomesAutosomesOnly ]
     
     smoothedLogFold = runmed(matrixOfLogFoldAllowedChrom, k = lengthOfRolling)
-    clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(2/8))])
-    print("Mclust finished")
-    bigClusters <- which(clusteredResult$parameters$pro > 0.25)
-    if (length(bigClusters) == 0) {
-      shiftOfCoverage <- median(matrixOfLogFold[allowedChromosomesAutosomesOnly])
-    } else {
-      shiftOfCoverage = min(clusteredResult$parameters$mean[bigClusters])
-    }
+
   } else {
     globalBed <- rbind(bedFileForCluster, bedFileForClusterOff)
     globalLogFold <- c( matrixOfLogFoldSample, matrixOfLogFoldOffSample)
@@ -973,22 +966,30 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
     }
     #globalLogFoldAllowedChroms = globalLogFold[allowedChromosomesAutosomesOnly]
     #smoothedLogFold = runmed(globalLogFoldAllowedChroms, k = lengthOfRolling)
-    clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(3/8))], model="E")
-    bigClusters <- which(clusteredResult$parameters$pro > 0.25)
-    if (length(bigClusters) == 0) {
-      shiftOfCoverage <- median(globalLogFold[allowedChromosomesAutosomesOnly])
-    } else {
-      shiftOfCoverage = clusteredResult$parameters$mean
-      if (length(bigClusters) > 0)
-        for (bC in bigClusters) {
-          currentLocation = shiftOfCoverage[bC]
-          diffs = abs(clusteredResult$parameters$mean - currentLocation)
-          shiftOfCoverage[bC] = clusteredResult$parameters$mean[which(diffs < 0.035)] * clusteredResult$parameters$pro[which(diffs < 0.035)]
-        }
-      shiftOfCoverage = shiftOfCoverage[bigClusters]
-    }
-    print(paste0("Mass of clusters for finding diploid state: ", paste(clusteredResult$parameters$pro[bigClusters], sep=";")))
+
   }
+
+  clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(3/8))], model="E")
+  
+  weightsOfClusters = clusteredResult$parameters$pro
+  meansOfClusters = clusteredResult$parameters$mean
+
+  if (length(weightsOfClusters) > 0)
+    for (i in 1:length(weightsOfClusters)) {
+      currentLocation = meansOfClusters[i]
+      diffs = abs(meansOfClusters - currentLocation)
+      meansOfClusters[i] = (clusteredResult$parameters$mean[which(diffs < 0.035)] * clusteredResult$parameters$pro[which(diffs < 0.035)]) / sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
+      weightsOfClusters[i] = sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
+    }
+  
+  bigClusters <- which(weightsOfClusters > 0.1)
+  if (length(bigClusters) == 0) {
+    shiftOfCoverage <- median(globalLogFold[allowedChromosomesAutosomesOnly])
+  } else {
+    shiftOfCoverage = meansOfClusters[bigClusters]
+  }
+  print(paste0("Mass of clusters for finding diploid state: ", paste(round(weightsOfClusters[bigClusters], digits=3), collapse=";")))
+
   return(shiftOfCoverage)
 }
 
@@ -1044,6 +1045,7 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
     mtext(at=armOfChromMarker[i], text=orderOfNames[i-1],col="black",side=1, cex=0.8)
   }
   abline(h=c(1.01,-0.01), col="black")
+  if (!is.null(bafMatrix))
   for (l in 1:nrow(bafMatrix)) {
     if (l %in% coordsIncludedAtFirst) {
       i = which(coordsIncludedAtFirst == l)
@@ -1149,6 +1151,7 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
   all_purities = sort(as.numeric(unique(datasetOfPuritiesCopies[,6])), decreasing = F)
   delColorScale = colorRampPalette(c("white", "red"))(length(all_purities))
   dupColorScale = colorRampPalette(c("white", "blue"))(length(all_purities))
+  normalColorScale = colorRampPalette(c("white", "darkgreen"))(length(all_purities))
   homdelColorScale = colorRampPalette(c("white", "darkred"))(length(all_purities))
   homDupColorScale = colorRampPalette(c("white", "darkblue"))(length(all_purities))
   if (nrow(found_CNVs_total) > 0)
@@ -1164,6 +1167,7 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
       if (exactCNMajor < 1) colorCode[1] = delColorScale[whichPurityItIs]
       if (exactCNMinor > 1) colorCode[2] = dupColorScale[whichPurityItIs]
       if (exactCNMinor < 1) colorCode[2] = delColorScale[whichPurityItIs]
+      if (exactCNMinor == 1) colorCode[2] = normalColorScale[whichPurityItIs]
       
       startOfChr = verticalBorders[which(orderOfNames == chrom)]
       horizontalCoord1 = startOfChr + as.numeric(entry[2])
