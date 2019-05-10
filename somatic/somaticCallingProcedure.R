@@ -1,6 +1,6 @@
 
 somaticCalling <- function(matrixOfLogFold) {
-  for (sam_no in ncol(matrixOfLogFold):1) {
+  for (sam_no in 1:ncol(matrixOfLogFold)) {
     cl<-makeCluster(no_cores)#, type="FORK")
     registerDoParallel(cl)
     clusterExport(cl,c('maxSubArraySum', 'fillInPList', 'likelihoodOfSNV','return_likelik', 'vect_of_norm_likeliks', 'vect_of_t_likeliks'))
@@ -225,9 +225,14 @@ somaticCalling <- function(matrixOfLogFold) {
               )
             }
             
-            multiplierOfSNVsDueToMapping <- median(as.numeric(bAlleleFreqsNormal[,5]))
+            multiplierOfSNVsDueToMapping <- median(as.numeric(bAlleleFreqsTumor[allowedChromosomesAutosomesOnlySNV,5]))
+            if (abs(multiplierOfSNVsDueToMapping - median(as.numeric(bAlleleFreqsNormal[,5]))) > 0.025) {
+              multiplierOfSNVsDueToMapping = median(as.numeric(bAlleleFreqsNormal[,5]))
+            }
             print("Multiplier of allele balance of a particular sample")
             print(multiplierOfSNVsDueToMapping)
+            print("Multiplier of allele balance of its normal pair")
+            print(median(as.numeric(bAlleleFreqsNormal[,5])))
             
             bafDeviationsForComparison = rep(0, length(allowedChromosomesAutosomesOnlySNV))
             counter = 1
