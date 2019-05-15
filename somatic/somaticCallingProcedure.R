@@ -1,7 +1,7 @@
 
 somaticCalling <- function(matrixOfLogFold) {
   for (sam_no in 1:ncol(matrixOfLogFold)) {
-    cl<-makeCluster(no_cores)#, type="FORK")
+    cl<-makeCluster(no_cores, type="FORK")
     registerDoParallel(cl)
     clusterExport(cl,c('maxSubArraySum', 'fillInPList', 'likelihoodOfSNV','return_likelik', 'vect_of_norm_likeliks', 'vect_of_t_likeliks'))
     sample_name <- colnames(matrixOfLogFold)[sam_no]

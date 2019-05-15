@@ -7,6 +7,12 @@ startsWith <- function(x, prefix) {
   }
 }
 
+createCluster <- function(ncores) {
+  cl<-makeCluster(no_cores, type="FORK")
+  registerDoParallel(cl)
+  return(T)
+}
+
 ReadFileFast <- function(fileName, header=T) {
   if (header) {
     colnames <- strsplit(readLines(fileName, n=1), "\t")[[1]]

@@ -978,11 +978,11 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
     for (i in 1:length(weightsOfClusters)) {
       currentLocation = meansOfClusters[i]
       diffs = abs(meansOfClusters - currentLocation)
-      meansOfClusters[i] = (clusteredResult$parameters$mean[which(diffs < 0.035)] * clusteredResult$parameters$pro[which(diffs < 0.035)]) / sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
-      weightsOfClusters[i] = sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
+      meansOfClusters[i] = (clusteredResult$parameters$mean[which(diffs < 0.018)] * clusteredResult$parameters$pro[which(diffs < 0.018)]) / sum(clusteredResult$parameters$pro[which(diffs < 0.018)])
+      weightsOfClusters[i] = sum(clusteredResult$parameters$pro[which(diffs < 0.018)])
     }
   
-  bigClusters <- which(weightsOfClusters > 0.1)
+  bigClusters <- which(weightsOfClusters > 0.25)
   if (length(bigClusters) == 0) {
     shiftOfCoverage <- median(globalLogFold[allowedChromosomesAutosomesOnly])
     weightsOfClusters = 1

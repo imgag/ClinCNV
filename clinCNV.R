@@ -16,6 +16,7 @@ library("data.table")
 library(foreach)
 library(doParallel)
 library(mclust)
+library(R.utils)
 
 
 
@@ -163,7 +164,6 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
-
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -214,10 +214,22 @@ if (opt$mosaicism) {
 
 
 no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-cl<-makeCluster(no_cores)#, type="FORK")
-registerDoParallel(cl)
+#cl<-makeCluster(no_cores, type="FORK")
 
+#registerDoParallel(cl)
+resultOfClusterAllocation = NULL
+numberOfAttempts = 0
+while(is.null(resultOfClusterAllocation)) {
+  if (numberOfAttempts > 10) break
+  numberOfAttempts = numberOfAttempts + 1
+  print(paste("Attempting to allocate parallel clustering....", numberOfAttempts))
+  resultOfClusterAllocation = withTimeout(createCluster(no_cores), timeout = 1, onTimeout = "warning")
+}
 
+if (is.null(resultOfClusterAllocation)) {
+  print("Cluster allocation was not succesfull. Quit.")
+  quit(status=-1)
+}
 
 ### READING DATA
 print(paste("We are started with reading the coverage files and bed files",Sys.time()))
@@ -581,7 +593,7 @@ if (framework == "germline") {
     
     # We create cluster for parallel computation each time we run germline analysis
     no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-    cl<-makeCluster(no_cores)#, type="FORK")
+    cl<-makeCluster(no_cores, type="FORK")
     registerDoParallel(cl)
     
     
