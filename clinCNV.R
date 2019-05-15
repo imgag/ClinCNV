@@ -151,7 +151,19 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
-
+## TESTING PART SH
+opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/annotated_genes_ssSC_v4_2018_03_23.bed"
+opt$tumor = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/mergedCoverage/panel_v4SH_tumor.cov"
+opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/mergedCoverage/panel_v4SH_normal.cov"
+opt$colNum = 4
+opt$pair = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/pairsMarch2019.txt"
+opt$out = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/results/"
+opt$reanalyseCohort = F
+opt$bedOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/offtaget_annotated_ssSC_v4_2018_03_23.bed"
+opt$tumorOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/mergedCoverage/panel_v4SH_tumor_off.cov"
+opt$normalOfftarget = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/mergedCoverage/panel_v4SH_normal_off.cov"
+opt$bafFolder = "/Users/gdemidov/Tuebingen/somatic_CNVs/panel_v4SH/baf/"
+opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/"
 
 
 
@@ -213,22 +225,26 @@ if (opt$mosaicism) {
 
 
 
+# createCluster <- function(ncores) {
+#   return(makeCluster(no_cores, type="FORK"))
+# }
 no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-#cl<-makeCluster(no_cores, type="FORK")
+cl<-makeCluster(no_cores, type="FORK")
+registerDoParallel(cl)
 
-#registerDoParallel(cl)
-resultOfClusterAllocation = NULL
-numberOfAttempts = 0
-while(is.null(resultOfClusterAllocation)) {
-  if (numberOfAttempts > 10) break
-  numberOfAttempts = numberOfAttempts + 1
-  print(paste("Attempting to allocate parallel clustering....", numberOfAttempts))
-  resultOfClusterAllocation = withTimeout(createCluster(no_cores), timeout = 1, onTimeout = "warning")
-}
+# cl = NULL
+# numberOfAttempts = 0
+# while(is.null(cl)) {
+#  if (numberOfAttempts > 10) break
+#  numberOfAttempts = numberOfAttempts + 1
+#  print(paste("Attempting to allocate parallel clustering....", numberOfAttempts))
+#  cl = withTimeout(createCluster(no_cores), timeout = 1, onTimeout = "warning")
+#  registerDoParallel(cl)
+# }
 
-if (is.null(resultOfClusterAllocation)) {
-  print("Cluster allocation was not succesfull. Quit.")
-  quit(status=-1)
+if (is.null(cl)) {
+ print("Cluster allocation was not succesfull. Quit.")
+ quit(status=-1)
 }
 
 ### READING DATA
