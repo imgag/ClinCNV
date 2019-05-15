@@ -211,29 +211,26 @@ if (opt$mosaicism) {
   print("You suspect your samples to be mosaic - hmmm, we will check this out...(but the mosaic CN change should not be > 1 copy different from default")
 }
 
-createCluster <- function(ncores) {
-  cl<-makeCluster(no_cores, type="FORK")
-  registerDoParallel(cl)
-  return(T)
-}
 
-no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-cl<-makeCluster(no_cores, type="FORK")
-registerDoParallel(cl)
-# 
-# resultOfClusterAllocation = NULL
-# numberOfAttempts = 0
-# while(is.null(resultOfClusterAllocation)) {
-#  if (numberOfAttempts > 10) break
-#  numberOfAttempts = numberOfAttempts + 1
-#  print(paste("Attempting to allocate parallel clustering....", numberOfAttempts))
-#  resultOfClusterAllocation = withTimeout(createCluster(no_cores), timeout = 1, onTimeout = "warning")
-# }
-# 
-# if (is.null(resultOfClusterAllocation)) {
-#  print("Cluster allocation was not succesfull. Quit.")
-#  quit(status=-1)
-# }
+
+#no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
+#cl<-makeCluster(no_cores, type="FORK")
+#registerDoParallel(cl)
+ 
+ cl = NULL
+ no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
+ numberOfAttempts = 0
+ while(is.null(cl)) {
+  if (numberOfAttempts > 10) break
+  numberOfAttempts = numberOfAttempts + 1
+  print(paste("Attempting to allocate parallel clustering....", numberOfAttempts))
+  cl = withTimeout(makeCluster(no_cores, type="FORK"), timeout = 1, onTimeout = "warning")
+ }
+ 
+ if (is.null(cl)) {
+  print("Cluster allocation was not succesfull. Quit.")
+  quit(status=-1)
+ }
 
 ### READING DATA
 print(paste("We are started with reading the coverage files and bed files",Sys.time()))
