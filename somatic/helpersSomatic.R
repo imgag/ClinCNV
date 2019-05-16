@@ -1033,10 +1033,10 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
   
   
   
-  correspondingRatios = unique(round( (local_majorBAF / (local_majorBAF + local_minorBAF)), digits=3))
+  correspondingRatios = unique(round( (local_majorBAF / (local_majorBAF + local_minorBAF)), digits=5))
   matrixOfLikeliksForPlottingBAF = matrix(0, ncol=length(correspondingRatios), nrow=length(coordsIncludedAtFirst))
   for (j in 1:length(correspondingRatios)) {
-    whichToUse = which(round( local_majorBAF / (local_majorBAF + local_minorBAF), digits=3) == correspondingRatios[j])
+    whichToUse = which(round( local_majorBAF / (local_majorBAF + local_minorBAF), digits=5) == correspondingRatios[j])
     matrixOfLikeliksForPlottingBAF[,j] = apply(matrixOfBAFLikeliks[,whichToUse,drop=F], 1, median)
   }
   par(bg="white", mfrow = c(3, 1),     # 2x2 layout
@@ -1061,9 +1061,9 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
       if (length(unique(likeliks)) == 0) next
       minLikelik = which.min(likeliks)
       if (as.numeric(entry[5]) > 0.5) {
-        points(horizontalCoord, correspondingRatios[minLikelik], col=rgb(0,0,0,0.25), pch=19, cex=0.7)
+        points(horizontalCoord, (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.005)), col=rgb(0,0,0,0.25), pch=19, cex=0.7)
       } else {
-        points(horizontalCoord, 1- correspondingRatios[minLikelik], col=rgb(0,0,0,0.25), pch=19, cex=0.7)
+        points(horizontalCoord, 1- (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.005)), col=rgb(0,0,0,0.25), pch=19, cex=0.7)
       }
       
     }

@@ -202,9 +202,9 @@ somaticCalling <- function(matrixOfLogFold) {
           if (length(position) == 1) {
             bAlleleFreqsTumor <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] ]]
             bAlleleFreqsNormal <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2] ]]
-            degreeOfRoughness = round(median(bAlleleFreqsTumor[,6]))
+            degreeOfRoughness = round(quantile(bAlleleFreqsTumor[,6], 0.9))
             if (finalIteration) {
-              degreeOfRoughness = round(quantile(bAlleleFreqsTumor[,6], 0.9))
+              degreeOfRoughness = round(max(bAlleleFreqsTumor[,6]))
             }
             if (genderOfSamples[germline_sample_no] == "M") {
               bAlleleFreqsTumor = bAlleleFreqsTumor[which(!bAlleleFreqsTumor[,1] %in% c("chrX", "chrY")),]
@@ -698,7 +698,7 @@ somaticCalling <- function(matrixOfLogFold) {
       if (finalIteration & frameworkDataTypes == "covdepthBAF") {
         if (sampleInOfftarget) {
           plotLikelihoodLandscape(datasetOfPuritiesCopies, addressOfPlot, found_CNVs_total, matrix_of_likeliks, globalBed, matrixOfBAFLikeliks, bAlleleFreqsTumor, coordsIncludedAtFirst, globalLogFold, local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms)
-        } else {
+         } else {
           plotLikelihoodLandscape(datasetOfPuritiesCopies, addressOfPlot, found_CNVs_total, matrix_of_likeliks, bedFileForCluster, matrixOfBAFLikeliks, bAlleleFreqsTumor, coordsIncludedAtFirst,matrixOfLogFold[,sam_no],local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms)
         }
       }
