@@ -267,7 +267,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           toyCoverageGermlineCohort = coverage.normalised[which_to_allow_ontarget,]
           
           ### CHECKING FOR MOSAICISM!
-          if (length(which_to_allow_ontarget) > 10) {
+          if (length(which_to_allow_ontarget) > max(10, opt$lengthG * 2)) {
             positionsToRemove = c()
             if (nrow(found_CNVs) > 0) {
               for (z in 1:nrow(found_CNVs)) {
@@ -281,11 +281,11 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             if (length(positionsToRemove) > 0) {
               toyCoverageGermlineWithoutNonMosaicCNVs = toyCoverageGermlineWithoutNonMosaicCNVs[-positionsToRemove]
             }
-            if (length(toyCoverageGermlineWithoutNonMosaicCNVs) < 10) {armFinalized = T} else {
+            if (length(toyCoverageGermlineWithoutNonMosaicCNVs) <= max(10, opt$lengthG * 2)) {print("Less than required number of regions for mosaic CNVs detection");armFinalized = T} else {
               rollingThrowCoverage = runmed(toyCoverageGermlineWithoutNonMosaicCNVs, max(10, opt$lengthG * 2))
               standDevOfRolling = Qn(rollingThrowCoverage)
               locationOfRolling = median(rollingThrowCoverage)
-              if (max(abs(rollingThrowCoverage - locationOfRolling)) > max(3 * standDevOfRolling, 0.1) & !chrom %in% c("chrX", "chrY")) {
+              if (max(abs(rollingThrowCoverage - 1)) > max(3 * standDevOfRolling, 0.05) & !chrom %in% c("chrX", "chrY")) {
                 print(paste("Potential mosaicism at chromosome", chrom, ", arm: ", k, "(this is normal if you have not filtered polymorphic regions before calling)"))
                 if (opt$mosaicism) {
                   presenceOfMosaicVariants = T
