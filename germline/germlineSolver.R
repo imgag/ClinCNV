@@ -123,7 +123,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     }
   }
   if (opt$mosaicism) {
-    fineForMosaicism = 0.5
+    fineForMosaicism = 0.05
     matrix_of_likeliks_for_FDR_mosaic[,which(cn_states_mosaicism %% 1 != 0)] = matrix_of_likeliks_for_FDR_mosaic[,which(cn_states_mosaicism %% 1 != 0)] + fineForMosaicism
   }
   matrix_of_likeliks <- matrix_of_likeliks_for_FDR
@@ -281,19 +281,20 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             if (length(positionsToRemove) > 0) {
               toyCoverageGermlineWithoutNonMosaicCNVs = toyCoverageGermlineWithoutNonMosaicCNVs[-positionsToRemove]
             }
-            if (length(toyCoverageGermlineWithoutNonMosaicCNVs) < 10) {armFinalized = T;next} 
-            rollingThrowCoverage = runmed(toyCoverageGermlineWithoutNonMosaicCNVs, max(10, opt$lengthG * 2))
-            standDevOfRolling = Qn(rollingThrowCoverage)
-            locationOfRolling = median(rollingThrowCoverage)
-            if (max(abs(rollingThrowCoverage - locationOfRolling)) > max(3 * standDevOfRolling, 0.2) & !chrom %in% c("chrX", "chrY")) {
-              print(paste("Potential mosaicism at chromosome", chrom, ", arm: ", k, "(this is normal if you have not filtered polymorphic regions before calling)"))
-              if (opt$mosaicism) {
-                presenceOfMosaicVariants = T
-                if (!armFinalized)
-                  next
+            if (length(toyCoverageGermlineWithoutNonMosaicCNVs) < 10) {armFinalized = T} else {
+              rollingThrowCoverage = runmed(toyCoverageGermlineWithoutNonMosaicCNVs, max(10, opt$lengthG * 2))
+              standDevOfRolling = Qn(rollingThrowCoverage)
+              locationOfRolling = median(rollingThrowCoverage)
+              if (max(abs(rollingThrowCoverage - locationOfRolling)) > max(3 * standDevOfRolling, 0.1) & !chrom %in% c("chrX", "chrY")) {
+                print(paste("Potential mosaicism at chromosome", chrom, ", arm: ", k, "(this is normal if you have not filtered polymorphic regions before calling)"))
+                if (opt$mosaicism) {
+                  presenceOfMosaicVariants = T
+                  if (!armFinalized)
+                    next
+                }
+              } else {
+                armFinalized = T
               }
-            } else {
-              armFinalized = T
             }
           } else {
             armFinalized = T

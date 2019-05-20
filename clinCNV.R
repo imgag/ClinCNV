@@ -270,20 +270,23 @@ normal <- ReadFileFast(opt$normal, header=T)
 colnames(normal) = cutX(colnames(normal))
 if (!startsWith(normal[,1], "chr"))
   normal[,1] <- paste0("chr", normal[,1])
-
 normal <- normal[order(normal[,1], as.numeric(normal[,2])),]
-normal <- as.matrix(normal[,opt$colNum:ncol(normal)])
-normal = checkForDuplicatesAndRemove(normal, opt$normalSample)
+
 if (length(whichBedIsNA) > 0)
   normal = normal[-whichBedIsNA,]
+
+if (!checkBedAndCoverageValidity(bedFile, normal)) {
+  quit()
+}
+
+normal <- as.matrix(normal[,opt$colNum:ncol(normal)])
+normal = checkForDuplicatesAndRemove(normal, opt$normalSample)
+
 avgDepthNormalOn = determineAverageDepth(normal, bedFile)
 numberOfRowsBeforeAllTheFiltrationNormal = nrow(normal)
 
 
-if (nrow(normal) != nrow(bedFile)) {
-  print("ERROR: your file with normal coverages have different amount of rows with bed file. It is most probably a technical mistake. Check the input.")
-  quit()
-}
+
 
 if (framework == "somatic") {
   tumor <- ReadFileFast(opt$tumor, header=T)
@@ -291,15 +294,16 @@ if (framework == "somatic") {
   if (!startsWith(tumor[,1], "chr"))
     tumor[,1] <- paste0("chr", tumor[,1])
   tumor <- tumor[order(tumor[,1], as.numeric(tumor[,2])),]
-  tumor <- as.matrix(tumor[,opt$colNum:ncol(tumor)])
-  tumor = checkForDuplicatesAndRemove(tumor, opt$tumorSample)
   if (length(whichBedIsNA) > 0)
     tumor = tumor[-whichBedIsNA,]
+  if (!checkBedAndCoverageValidity(bedFile, tumor)) {
+    quit()
+  }
+  tumor <- as.matrix(tumor[,opt$colNum:ncol(tumor)])
+  tumor = checkForDuplicatesAndRemove(tumor, opt$tumorSample)
   avgDepthTumorOn = determineAverageDepth(normal, bedFile)
   
-  if (nrow(normal) != nrow(bedFile)) {
-    print("WARNING: your file with tumor coverages have different amount of rows with bed file. It is most probably a technical mistake. Check the input.")
-  }
+
 }
 
 
@@ -340,11 +344,16 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
     normalOff[,1] <- paste0("chr", normalOff[,1])
   
   normalOff <- normalOff[order(normalOff[,1], as.numeric(normalOff[,2])),]
+  normalOff <- normalOff[-whichBedOffIsNA,]
+  if (!checkBedAndCoverageValidity(bedFileOfftarget, normalOff)) {
+    quit()
+  }
   normalOff <- as.matrix(normalOff[,opt$colNum:ncol(normalOff)])
   # remain only samples that are in Normal cohort 
-  normalOff <- normalOff[,which(colnames(normalOff) %in% colnames(normal))]
   normalOff <- checkForDuplicatesAndRemove(normalOff, opt$normalSample)
-  normalOff <- normalOff[-whichBedOffIsNA,]
+  
+
+  normalOff <- normalOff[,which(colnames(normalOff) %in% colnames(normal))]
   avgDepthNormalOff = determineAverageDepth(normalOff, bedFileOfftarget)
   if (nrow(normalOff) != nrow(bedFileOfftarget)) {
     print("WARNING: your file with offtarget normal coverages have different amount of rows with offtarget bed file. It is most probably a technical mistake. Check the input.")
@@ -356,15 +365,15 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
     if (!startsWith(tumorOff[,1], "chr"))
       tumorOff[,1] <- paste0("chr", tumorOff[,1])
     tumorOff <- tumorOff[order(tumorOff[,1], as.numeric(tumorOff[,2])),]
-    tumorOff <- as.matrix(tumorOff[,opt$colNum:ncol(tumorOff)])
     # remain only samples that are in Tumor cohort 
-    tumorOff <- tumorOff[,which(colnames(tumorOff) %in% colnames(tumor))]
-    tumorOff <- checkForDuplicatesAndRemove(tumorOff, opt$tumorSample)
     tumorOff <- tumorOff[-whichBedOffIsNA,]
-    avgDepthTumorOff = determineAverageDepth(tumorOff, bedFileOfftarget)
-    if (nrow(tumorOff) != nrow(bedFileOfftarget)) {
-      print("WARNING: your file with offtarget normal coverages have different amount of rows with offtarget bed file. It is most probably a technical mistake. Check the input.")
+    if (!checkBedAndCoverageValidity(bedFileOfftarget, tumorOff)) {
+      quit()
     }
+    tumorOff <- as.matrix(tumorOff[,opt$colNum:ncol(tumorOff)])
+    tumorOff <- tumorOff[,which(colnames(tumorOff) %in% colnames(tumor))]
+    avgDepthTumorOff = determineAverageDepth(tumorOff, bedFileOfftarget)
+    
   }
 }
 

@@ -1,4 +1,16 @@
 
+
+checkBedAndCoverageValidity <- function(bedFile, coverageTable) {
+  if (nrow(bedFile) != nrow(coverageTable) | length(which(! (bedFile[,1] %in% coverageTable[,1] & round(bedFile[,2]) %in% round(coverageTable[,2])) )) > 0) {
+    print("ERROR: your file with normal coverages have different amount of rows with bed file or coordinates are not matching. It is most probably a technical mistake. Check the input. List of regions not presented:")
+    for (j in which(! (bedFile[,1] %in% coverageTable[,1] & round(bedFile[,2]) %in% round(coverageTable[,2])) )) {
+      print(bedFile[j,])
+    }
+    return(F)
+  }
+  return(T)
+}
+
 startsWith <- function(x, prefix) {
   if (substring(x, 1, nchar(prefix)) == prefix) {
     return(T)
