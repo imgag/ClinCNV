@@ -191,7 +191,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         local_cn_states = cn_states
         presenceOfMosaicVariants = F
         while(!armFinalized) {
-
+          
           if (opt$mosaicism == F | chrom %in% c("chrX", "chrY")) armFinalized = T
           output_of_plots <-  paste0(folder_name, sample_name)
           which_to_allow <- "NA"
@@ -239,7 +239,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           if (!is.null(found_CNVs_recall)) {
             found_CNVs = rbind(found_CNVs, found_CNVs_recall)
           }
-
+          
           
           # Due to inroduction of covariances intermediate probes we need to remap our variants back to the original bedFileFiltered
           if (covar & nrow(found_CNVs) > 0) {
@@ -268,32 +268,33 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           
           ### CHECKING FOR MOSAICISM!
           if (length(which_to_allow_ontarget) > 10) {
-          positionsToRemove = c()
-          if (nrow(found_CNVs) > 0) {
-            for (z in 1:nrow(found_CNVs)) {
-              positionsToRemove = c(positionsToRemove, found_CNVs[z,2]:found_CNVs[z,3])
+            positionsToRemove = c()
+            if (nrow(found_CNVs) > 0) {
+              for (z in 1:nrow(found_CNVs)) {
+                positionsToRemove = c(positionsToRemove, found_CNVs[z,2]:found_CNVs[z,3])
+              }
             }
-          }
-          if (length(polymorphicFromThisArm) > 0) {
-            positionsToRemove = c(positionsToRemove, polymorphicFromThisArm)
-          }
-          toyCoverageGermlineWithoutNonMosaicCNVs = toyCoverageGermline
-          if (length(positionsToRemove) > 0) {
-            toyCoverageGermlineWithoutNonMosaicCNVs = toyCoverageGermlineWithoutNonMosaicCNVs[-positionsToRemove]
-          }
-          rollingThrowCoverage = runmed(toyCoverageGermlineWithoutNonMosaicCNVs, max(10, opt$lengthG * 2))
-          standDevOfRolling = Qn(rollingThrowCoverage)
-          locationOfRolling = median(rollingThrowCoverage)
-          if (max(abs(rollingThrowCoverage - locationOfRolling)) > max(3 * standDevOfRolling, 0.2) & !chrom %in% c("chrX", "chrY")) {
-            print(paste("Potential mosaicism at chromosome", chrom, ", arm: ", k, "(this is normal if you have not filtered polymorphic regions before calling)"))
-            if (opt$mosaicism) {
-              presenceOfMosaicVariants = T
-              if (!armFinalized)
-              next
+            if (length(polymorphicFromThisArm) > 0) {
+              positionsToRemove = c(positionsToRemove, polymorphicFromThisArm)
             }
-          } else {
-            armFinalized = T
-          }
+            toyCoverageGermlineWithoutNonMosaicCNVs = toyCoverageGermline
+            if (length(positionsToRemove) > 0) {
+              toyCoverageGermlineWithoutNonMosaicCNVs = toyCoverageGermlineWithoutNonMosaicCNVs[-positionsToRemove]
+            }
+            if (length(toyCoverageGermlineWithoutNonMosaicCNVs) < 10) {armFinalized = T;next} 
+            rollingThrowCoverage = runmed(toyCoverageGermlineWithoutNonMosaicCNVs, max(10, opt$lengthG * 2))
+            standDevOfRolling = Qn(rollingThrowCoverage)
+            locationOfRolling = median(rollingThrowCoverage)
+            if (max(abs(rollingThrowCoverage - locationOfRolling)) > max(3 * standDevOfRolling, 0.2) & !chrom %in% c("chrX", "chrY")) {
+              print(paste("Potential mosaicism at chromosome", chrom, ", arm: ", k, "(this is normal if you have not filtered polymorphic regions before calling)"))
+              if (opt$mosaicism) {
+                presenceOfMosaicVariants = T
+                if (!armFinalized)
+                  next
+              }
+            } else {
+              armFinalized = T
+            }
           } else {
             armFinalized = T
           }
@@ -396,23 +397,38 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   
   pvaluesForCNVs <- rep(NA, nrow(found_CNVs_total))
   if (nrow(found_CNVs_total) > 0) {
-  for (i in 1:nrow(found_CNVs_total)) {
-    coordsInBedOn = which(bedFileFiltered[,1] == found_CNVs_total[i,1] & as.numeric(bedFileFiltered[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileFiltered[,3]) <= as.numeric(found_CNVs_total[i,3]))
-    if (length(coordsInBedOn) > 0) {
-    valueOfSample = median(coverage.normalised[coordsInBedOn,sam_no])
-    if (!chrom %in% c("chrX","chrY")) {
-      valueOfOthers = apply(coverage.normalised[coordsInBedOn,-sam_no,drop=F],2,median)
-    } else {
-      valueOfOthers = apply(coverage.normalised[coordsInBedOn,which(genderOfSamples == genderOfSamples[sam_no]),drop=F],2,median)
+    for (i in 1:nrow(found_CNVs_total)) {
+      coordsInBedOn = which(bedFileFiltered[,1] == found_CNVs_total[i,1] & as.numeric(bedFileFiltered[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileFiltered[,3]) <= as.numeric(found_CNVs_total[i,3]))
+      if (length(coordsInBedOn) > 0) {
+        valueOfSample = median(coverage.normalised[coordsInBedOn,sam_no])
+        if (!chrom %in% c("chrX","chrY")) {
+          valueOfOthers = apply(coverage.normalised[coordsInBedOn,-sam_no,drop=F],2,median)
+        } else {
+          valueOfOthers = apply(coverage.normalised[coordsInBedOn,which(genderOfSamples == genderOfSamples[sam_no]),drop=F],2,median)
+        }
+        sdOfOthers = Qn(valueOfOthers)
+        pval = 2 * (pnorm(-abs(valueOfSample - median(valueOfOthers)) / sdOfOthers))
+        pvaluesForCNVs[i] = pval
+      } else {
+        if (sam_no_off > 0) {
+          coordsInBedOff = which(bedFileFilteredOfftarget[,1] == found_CNVs_total[i,1] & as.numeric(bedFileFilteredOfftarget[,2]) >= as.numeric(found_CNVs_total[i,2]) & as.numeric(bedFileFilteredOfftarget[,3]) <= as.numeric(found_CNVs_total[i,3]))
+          if (length(coordsInBedOff) > 0) {
+            valueOfSample = median(coverage.normalised.off[coordsInBedOff,sam_no_off])
+            if (!chrom %in% c("chrX","chrY")) {
+              valueOfOthers = apply(coverage.normalised.off[coordsInBedOff,-sam_no,drop=F],2,median)
+            } else {
+              valueOfOthers = apply(coverage.normalised.off[coordsInBedOff,which(genderOfSamples == genderOfSamples[sam_no]),drop=F],2,median)
+            }
+          }
+        }
+        sdOfOthers = Qn(valueOfOthers)
+        pval = 2 * (pnorm(-abs(valueOfSample - median(valueOfOthers)) / sdOfOthers))
+        pvaluesForCNVs[i] = pval
+      }
     }
-    sdOfOthers = Qn(valueOfOthers)
-    pval = 2 * (pnorm(-abs(valueOfSample - median(valueOfOthers)) / sdOfOthers))
-    pvaluesForCNVs[i] = pval
-    }
-  }
-  pvaluesForCNVs = p.adjust(pvaluesForCNVs, method="fdr")
-  found_CNVs_total = cbind(found_CNVs_total, format(round(pvaluesForCNVs, 5), scientific = F))
-  colnames(found_CNVs_total)[ncol(found_CNVs_total)] = "qvalue"
+    pvaluesForCNVs = p.adjust(pvaluesForCNVs, method="fdr")
+    found_CNVs_total = cbind(found_CNVs_total, format(round(pvaluesForCNVs, 5), scientific = F))
+    colnames(found_CNVs_total)[ncol(found_CNVs_total)] = "qvalue"
   }
   
   ### FDR

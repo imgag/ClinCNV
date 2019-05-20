@@ -191,6 +191,7 @@ somaticCalling <- function(matrixOfLogFold) {
         bAlleleFreqsTumor = NULL
         bAlleleFreqsNormal = NULL
         bafDeviationsForComparison = NULL
+        matrixOfBAFLikeliks = NULL
         if (frameworkDataTypes == "covdepthBAF" & germline_sample_name %in% normalNames) {
           print("Started BAF calculation")
           print(Sys.time())

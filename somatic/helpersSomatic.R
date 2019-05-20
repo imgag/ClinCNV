@@ -365,7 +365,7 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafDeviationsForComparison,
           overdispNorm = overdispersionNormalChr[var]
           overdispTumo = overdispersionTumorChr[var]
           deviation[l] = abs(numTwo - multiplierOfSNVsDueToMapping * as.numeric(bafTumorChr[var,6])) / 
-                            sqrt(as.numeric(bafTumorChr[var,6]) * overdispTumo * (1 - multiplierOfSNVsDueToMapping) * multiplierOfSNVsDueToMapping) 
+            sqrt(as.numeric(bafTumorChr[var,6]) * overdispTumo * (1 - multiplierOfSNVsDueToMapping) * multiplierOfSNVsDueToMapping) 
           pvalsOfVariants[l] = min(1, passPropTestVarCorrection(numOne, numTwo, refOne, refTwo, overdispNorm, overdispTumo))
         }
         wilcox.pval = wilcox.test(deviation, bafDeviationsForComparison)$p.value
@@ -936,7 +936,7 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
     matrixOfLogFoldAllowedChrom = matrixOfLogFoldSample[allowedChromosomesAutosomesOnly ]
     
     smoothedLogFold = runmed(matrixOfLogFoldAllowedChrom, k = lengthOfRolling)
-
+    
   } else {
     globalBed <- rbind(bedFileForCluster, bedFileForClusterOff)
     globalLogFold <- c( matrixOfLogFoldSample, matrixOfLogFoldOffSample)
@@ -966,14 +966,14 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
     }
     #globalLogFoldAllowedChroms = globalLogFold[allowedChromosomesAutosomesOnly]
     #smoothedLogFold = runmed(globalLogFoldAllowedChroms, k = lengthOfRolling)
-
+    
   }
-
+  
   clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(3/8))], model="E")
   
   weightsOfClusters = clusteredResult$parameters$pro
   meansOfClusters = clusteredResult$parameters$mean
-
+  
   if (length(weightsOfClusters) > 0)
     for (i in 1:length(weightsOfClusters)) {
       currentLocation = meansOfClusters[i]
@@ -993,7 +993,7 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
   weightsOfClusters = weightsOfClusters[order(shiftOfCoverage)]
   shiftOfCoverage = shiftOfCoverage[order(shiftOfCoverage)]
   print(paste0("Mass of clusters for finding diploid state: ", paste(round(weightsOfClusters, digits=3), collapse=";")))
-
+  
   return(shiftOfCoverage)
 }
 
@@ -1004,7 +1004,6 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
   colorsForCN = c(rgb(1,0,0,0.9), rgb(0.6470588, 0.1647059, 0.1647059, 0.9), rgb(0,0,1,0.9))
   png(filename=addressOfPlot, width=2500, height=1000)
   
-  coordsIncludedAtFirst = 1:nrow(matrixOfBAFLikeliks)
   linesOnBarplot = list()
   orderOfNames = c(paste0("chr", 1:22), "chrX", "chrY")
   orderInLists = c()
@@ -1030,15 +1029,6 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
   }
   
   
-  
-  
-  
-  correspondingRatios = unique(round( (local_majorBAF / (local_majorBAF + local_minorBAF)), digits=5))
-  matrixOfLikeliksForPlottingBAF = matrix(0, ncol=length(correspondingRatios), nrow=length(coordsIncludedAtFirst))
-  for (j in 1:length(correspondingRatios)) {
-    whichToUse = which(round( local_majorBAF / (local_majorBAF + local_minorBAF), digits=5) == correspondingRatios[j])
-    matrixOfLikeliksForPlottingBAF[,j] = apply(matrixOfBAFLikeliks[,whichToUse,drop=F], 1, median)
-  }
   par(bg="white", mfrow = c(3, 1),     # 2x2 layout
       oma = c(1, 1, 1, 1), # two rows of text at the outer left and bottom margin
       mar = c(1, 1, 1, 1))  
@@ -1049,25 +1039,37 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
     mtext(at=armOfChromMarker[i], text=orderOfNames[i-1],col="black",side=1, cex=0.8)
   }
   abline(h=c(1.01,-0.01), col="black")
-  if (!is.null(bafMatrix))
-  for (l in 1:nrow(bafMatrix)) {
-    if (l %in% coordsIncludedAtFirst) {
-      i = which(coordsIncludedAtFirst == l)
-      entry = bafMatrix[l,]
-      chrom = as.character(entry[1])
-      startOfChr = verticalBorders[which(orderOfNames == chrom)]
-      horizontalCoord = startOfChr + as.numeric(entry[2])
-      likeliks = matrixOfLikeliksForPlottingBAF[l,] 
-      if (length(unique(likeliks)) == 0) next
-      minLikelik = which.min(likeliks)
-      if (as.numeric(entry[5]) > 0.5) {
-        points(horizontalCoord, (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.005)), col=rgb(0,0,0,0.25), pch=19, cex=0.7)
-      } else {
-        points(horizontalCoord, 1- (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.005)), col=rgb(0,0,0,0.25), pch=19, cex=0.7)
-      }
-      
+  
+  if (!is.null(matrixOfBAFLikeliks)) {
+    coordsIncludedAtFirst = 1:nrow(matrixOfBAFLikeliks)
+    
+    correspondingRatios = unique(round( (local_majorBAF / (local_majorBAF + local_minorBAF)), digits=5))
+    matrixOfLikeliksForPlottingBAF = matrix(0, ncol=length(correspondingRatios), nrow=length(coordsIncludedAtFirst))
+    for (j in 1:length(correspondingRatios)) {
+      whichToUse = which(round( local_majorBAF / (local_majorBAF + local_minorBAF), digits=5) == correspondingRatios[j])
+      matrixOfLikeliksForPlottingBAF[,j] = apply(matrixOfBAFLikeliks[,whichToUse,drop=F], 1, median)
     }
-  } 
+    
+    if (!is.null(bafMatrix))
+      for (l in 1:nrow(bafMatrix)) {
+        if (l %in% coordsIncludedAtFirst) {
+          i = which(coordsIncludedAtFirst == l)
+          entry = bafMatrix[l,]
+          chrom = as.character(entry[1])
+          startOfChr = verticalBorders[which(orderOfNames == chrom)]
+          horizontalCoord = startOfChr + as.numeric(entry[2])
+          likeliks = matrixOfLikeliksForPlottingBAF[l,] 
+          if (length(unique(likeliks)) == 0) next
+          minLikelik = which.min(likeliks)
+          if (as.numeric(entry[5]) > 0.5) {
+            points(horizontalCoord, (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.005)), col=rgb(0,0,0,0.25), pch=19, cex=0.7)
+          } else {
+            points(horizontalCoord, 1- (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.005)), col=rgb(0,0,0,0.25), pch=19, cex=0.7)
+          }
+          
+        }
+      } 
+  }
   
   
   if (nrow(found_CNVs_total) > 0)
@@ -1088,10 +1090,10 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
       BAF_number_of_reads_minor <- (1-as.numeric(entry[6])) + (as.numeric(entry[6])) * as.numeric(entry[5])
       BAF_number_of_reads_major <- (1-as.numeric(entry[6])) + (as.numeric(entry[6])) * as.numeric(entry[4])
       if ((BAF_number_of_reads_minor + BAF_number_of_reads_major) > 0) {
-      firstHeight = BAF_number_of_reads_minor / (BAF_number_of_reads_minor + BAF_number_of_reads_major)
-      secondHeight = BAF_number_of_reads_major / (BAF_number_of_reads_minor + BAF_number_of_reads_major)
-      segments(horizontalCoord1,firstHeight,horizontalCoord2,firstHeight,col=colToUse, lwd=8)
-      segments(horizontalCoord1,secondHeight,horizontalCoord2,secondHeight,col=colToUse, lwd=8)
+        firstHeight = BAF_number_of_reads_minor / (BAF_number_of_reads_minor + BAF_number_of_reads_major)
+        secondHeight = BAF_number_of_reads_major / (BAF_number_of_reads_minor + BAF_number_of_reads_major)
+        segments(horizontalCoord1,firstHeight,horizontalCoord2,firstHeight,col=colToUse, lwd=8)
+        segments(horizontalCoord1,secondHeight,horizontalCoord2,secondHeight,col=colToUse, lwd=8)
       }
     }
   
@@ -1144,7 +1146,7 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
   
   
   if (nrow(found_CNVs_total) > 0) {
-  actual_copy_numbers = as.numeric(found_CNVs_total[,4]) + as.numeric(found_CNVs_total[,5])
+    actual_copy_numbers = as.numeric(found_CNVs_total[,4]) + as.numeric(found_CNVs_total[,5])
   } else {
     actual_copy_numbers = 2
   }

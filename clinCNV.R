@@ -162,7 +162,6 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
-
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -271,6 +270,7 @@ normal <- ReadFileFast(opt$normal, header=T)
 colnames(normal) = cutX(colnames(normal))
 if (!startsWith(normal[,1], "chr"))
   normal[,1] <- paste0("chr", normal[,1])
+
 normal <- normal[order(normal[,1], as.numeric(normal[,2])),]
 normal <- as.matrix(normal[,opt$colNum:ncol(normal)])
 normal = checkForDuplicatesAndRemove(normal, opt$normalSample)
@@ -278,6 +278,12 @@ if (length(whichBedIsNA) > 0)
   normal = normal[-whichBedIsNA,]
 avgDepthNormalOn = determineAverageDepth(normal, bedFile)
 numberOfRowsBeforeAllTheFiltrationNormal = nrow(normal)
+
+
+if (nrow(normal) != nrow(bedFile)) {
+  print("ERROR: your file with normal coverages have different amount of rows with bed file. It is most probably a technical mistake. Check the input.")
+  quit()
+}
 
 if (framework == "somatic") {
   tumor <- ReadFileFast(opt$tumor, header=T)
@@ -290,6 +296,10 @@ if (framework == "somatic") {
   if (length(whichBedIsNA) > 0)
     tumor = tumor[-whichBedIsNA,]
   avgDepthTumorOn = determineAverageDepth(normal, bedFile)
+  
+  if (nrow(normal) != nrow(bedFile)) {
+    print("WARNING: your file with tumor coverages have different amount of rows with bed file. It is most probably a technical mistake. Check the input.")
+  }
 }
 
 
@@ -336,7 +346,9 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   normalOff <- checkForDuplicatesAndRemove(normalOff, opt$normalSample)
   normalOff <- normalOff[-whichBedOffIsNA,]
   avgDepthNormalOff = determineAverageDepth(normalOff, bedFileOfftarget)
-  
+  if (nrow(normalOff) != nrow(bedFileOfftarget)) {
+    print("WARNING: your file with offtarget normal coverages have different amount of rows with offtarget bed file. It is most probably a technical mistake. Check the input.")
+  }
   
   if (frameworkOff == "offtarget") {
     tumorOff <- ReadFileFast(opt$tumorOfftarget, header=T) 
@@ -350,6 +362,9 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
     tumorOff <- checkForDuplicatesAndRemove(tumorOff, opt$tumorSample)
     tumorOff <- tumorOff[-whichBedOffIsNA,]
     avgDepthTumorOff = determineAverageDepth(tumorOff, bedFileOfftarget)
+    if (nrow(tumorOff) != nrow(bedFileOfftarget)) {
+      print("WARNING: your file with offtarget normal coverages have different amount of rows with offtarget bed file. It is most probably a technical mistake. Check the input.")
+    }
   }
 }
 
