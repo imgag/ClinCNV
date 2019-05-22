@@ -88,6 +88,10 @@ findSDsOfSamples <- function(pairs, normalCov, tumorCov, bedFileForCalc, borders
 
 formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, genderOfSamplesInCluster) {
   matrixOfLogFold <- matrix(0, nrow=nrow(normalCov), ncol=0)
+  if (length(which(colnames(normalCov) %in% pairs[,2])) == 0) {
+    print("None of the samples are in your pairs text file. Check this file - names should match ones from header of .cov files.")
+  }
+  
   matrixOfLogFold <- foreach(i=1:ncol(normalCov), .combine="cbind") %dopar% {
     matrixOfLogFoldTmp <- matrix(0, nrow=nrow(normalCov), ncol=0)
     sampleNames1 <- which(pairs[,2] == colnames(normalCov)[i])
@@ -1047,7 +1051,7 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
     matrixOfLikeliksForPlottingBAF = matrix(0, ncol=length(correspondingRatios), nrow=length(coordsIncludedAtFirst))
     for (j in 1:length(correspondingRatios)) {
       whichToUse = which(round( local_majorBAF / (local_majorBAF + local_minorBAF), digits=5) == correspondingRatios[j])
-      matrixOfLikeliksForPlottingBAF[,j] = apply(matrixOfBAFLikeliks[,whichToUse,drop=F], 1, median)
+      matrixOfLikeliksForPlottingBAF[,j] = apply(matrixOfBAFLikeliks[,whichToUse,drop=F], 1, min)
     }
     
     if (!is.null(bafMatrix))

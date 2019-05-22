@@ -6,8 +6,8 @@ registerDoParallel(cl)
 
 cn_states <- 0:8
 if (opt$mosaicism) {
-  cn_states_mosaicism <- unique(c(cn_states, seq(from=1.2,to=1.8,by=0.1)))
-  cn_states_mosaicism <- unique(c(cn_states_mosaicism, seq(from=2.2,to=2.8,by=0.1)))
+  cn_states_mosaicism <- unique(c(cn_states, seq(from=1.1,to=1.9,by=0.1)))
+  cn_states_mosaicism <- unique(c(cn_states_mosaicism, seq(from=2.1,to=7.9,by=0.1)))
 }
 
 
@@ -500,6 +500,10 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     }
     found_CNVs_total = cbind(found_CNVs_total, columnOfFilter)
     colnames(found_CNVs_total)[ncol(found_CNVs_total)] = "FDR_filter"
+  }
+  
+  if (opt$mosaicism) {
+    # BLOCK WITH CLONALITY
   }
   
   finalPValue = 1.0
