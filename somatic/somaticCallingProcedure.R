@@ -815,7 +815,8 @@ somaticCalling <- function(matrixOfLogFold) {
       }
       fileToOut <- paste0(folder_name, sample_name, paste0("/CNAs_", sample_name, ".txt"))
       fileConn<-file(fileToOut)
-      writeLines(c(paste("##"," QC ", 0, ", gender of sample:", genderOfSamples[germline_sample_no], "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
+      ploidyEst = round(2 + (2 * 2 ** median(matrixOfLogFold[which(!bedFileForCluster[,1] %in% c("chrX", "chrY")),sam_no]) - 2) / ifelse(max(local_purities) == 0, 1, max(local_purities)), 4)
+      writeLines(c(paste("##"," QC ", 0, ", gender of sample:", genderOfSamples[germline_sample_no], "ploidy: ", ploidyEst, "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
       close(fileConn)
       
       if(opt$debug) {

@@ -233,7 +233,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   #print(evaluated)
   #print(binomialConfidences)
   #print(indicesOfAllowedChroms)
-  pvalueShift = min(0.05, max(mean(evaluated[evaluated <= 0.05]), 0.011))
+  pvalueShift = min(0.05, max(mean(evaluated[evaluated <= 0.05]) + 0.01, 0.011))
   indicesOfAllowedChroms = which(evaluated <= pvalueShift)
   if (is.nan(pvalueShift)) {
     pvalueShift = 0.05
