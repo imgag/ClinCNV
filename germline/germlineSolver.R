@@ -6,8 +6,8 @@ registerDoParallel(cl)
 
 cn_states <- 0:8
 if (opt$mosaicism) {
-  cn_states_mosaicism <- unique(c(cn_states, seq(from=1.1,to=1.9,by=0.1)))
-  cn_states_mosaicism <- unique(c(cn_states_mosaicism, seq(from=2.1,to=7.9,by=0.1)))
+  cn_states_mosaicism <- unique(c(cn_states, seq(from=0.1,to=1.9,by=0.05)))
+  cn_states_mosaicism <- unique(c(cn_states_mosaicism, seq(from=2.1,to=7.9,by=0.05)))
 }
 
 

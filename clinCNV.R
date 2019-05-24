@@ -139,6 +139,10 @@ option_list = list(
   make_option(c("-filterS", "--filterStep"), type="integer", default=1, 
               help="This value indicates if ClinCNV should perform QC internally (starting from threshold specified by --clonalityForChecking). Value 0 means no, value 1 - only for finding clonality, value 2 - for clonality and final calls too"),  
   
+  make_option(c("-baseline", "--guideBaseline"), type="character", default=NULL, 
+              help="For complex samples with potential whole-genome duplication - string denoting which region you suspect to be diploid so tool will take it is a baseline (format chrN:12345-67890)"),  
+  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
@@ -146,7 +150,6 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
-
 
 
 

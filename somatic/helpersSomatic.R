@@ -923,6 +923,21 @@ determine_potential_states = function(sampleLogFold, local_cn_states, sampleLogF
 
 
 find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, bedFileForCluster, matrixOfLogFoldOffSample=NULL, bedFileForClusterOff=NULL) {
+  if (!is.null(opt$guideBaseline)) {
+    splitted = strsplit(opt$guideBaseline, ":")
+    chrom = splitted[[1]][1]
+    splitted = strsplit(splitted[[1]][2], "-")
+    start = as.numeric(splitted[[1]][1])
+    end = as.numeric(splitted[[1]][2])
+    return(median(matrixOfLogFoldSample[which(bedFileForCluster[,1] == chrom &
+                                                bedFileForCluster[,2] >= start &
+                                                bedFileForCluster[,3] <= end)]))
+  }
+  
+  
+  array_of_medians = c()
+  weightOfMedians = c()
+  chrRegion = c()
   if (is.null(matrixOfLogFoldOffSample)) {
     allowedChromosomesAutosomesOnly = c()
     for (allowedArm in allowedChromsBafSample) {
@@ -934,6 +949,13 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
         allowedChromosomesAutosomesOnly = union(allowedChromosomesAutosomesOnly, which(bedFileForCluster[,1] == chrom &
                                                                                          bedFileForCluster[,2] >= startOfArm &
                                                                                          bedFileForCluster[,3] <= endOfArm))
+        array_of_medians = c(array_of_medians, median(matrixOfLogFoldSample[which(bedFileForCluster[,1] == chrom &
+                                                                                    bedFileForCluster[,2] >= startOfArm &
+                                                                                    bedFileForCluster[,3] <= endOfArm)]))
+        weightOfMedians = c(weightOfMedians, length(which(bedFileForCluster[,1] == chrom &
+                                                            bedFileForCluster[,2] >= startOfArm &
+                                                            bedFileForCluster[,3] <= endOfArm)))
+        chrRegion = c(chrRegion, paste(chrom, startOfArm, endOfArm))
       }
     }
     lengthOfRolling = 21
@@ -966,6 +988,13 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
         smoothedLogFold = c(smoothedLogFold, runmedian(lengthOfRolling, globalLogFold[which(globalBed[,1] == chrom &
                                                                                               as.numeric(globalBed[,2]) >= startOfArm &
                                                                                               as.numeric(globalBed[,3]) <= endOfArm)]))
+        array_of_medians = c(array_of_medians, median(globalLogFold[which(globalBed[,1] == chrom &
+                                                                                    globalBed[,2] >= startOfArm &
+                                                                                    globalBed[,3] <= endOfArm)]))
+        weightOfMedians = c(weightOfMedians, length(which(globalBed[,1] == chrom &
+                                                            globalBed[,2] >= startOfArm &
+                                                            globalBed[,3] <= endOfArm)))
+        chrRegion = c(chrRegion, paste(chrom, startOfArm, endOfArm))
       }
     }
     #globalLogFoldAllowedChroms = globalLogFold[allowedChromosomesAutosomesOnly]
@@ -996,9 +1025,45 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
   }
   weightsOfClusters = weightsOfClusters[order(shiftOfCoverage)]
   shiftOfCoverage = shiftOfCoverage[order(shiftOfCoverage)]
-  print(paste0("Mass of clusters for finding diploid state: ", paste(round(weightsOfClusters, digits=3), collapse=";")))
   
-  return(shiftOfCoverage)
+  print(chrRegion)
+  print(array_of_medians)
+
+  anyChangeHappen = T
+  numOfIter = 1
+  
+  while(anyChangeHappen) {
+    numOfIter = numOfIter + 1
+    array_of_medians_new = array_of_medians
+    if (length(array_of_medians) > 0)
+      for (i in 1:length(array_of_medians)) {
+        currentLocation = array_of_medians[i]
+        diffs = abs(array_of_medians - currentLocation)
+        array_of_medians_new[i] = (array_of_medians[which(diffs < 0.018)] * weightOfMedians[which(diffs < 0.018)]) / sum(weightOfMedians[which(diffs < 0.018)])
+        weightOfMedians[i] = sum(weightOfMedians[which(diffs < 0.018)]) / sum(weightOfMedians)
+      }
+    if (sum(abs(array_of_medians - array_of_medians_new)) < 0.0001 | numOfIter > 20) {
+      print(paste("Baseline found in", numOfIter, "steps"))
+      anyChangeHappen = F
+    }
+    array_of_medians = array_of_medians_new
+  }
+  array_of_medians = round(array_of_medians, 3)
+  weightOfMedians = weightOfMedians[which(!duplicated(array_of_medians))]
+  array_of_medians = array_of_medians[which(!duplicated(array_of_medians))]
+  if (length(which(weightOfMedians > 0.1)) > 0) {
+    array_of_medians = array_of_medians[which(weightOfMedians > 0.1)]
+    weightOfMedians = weightOfMedians[which(weightOfMedians > 0.1)]
+  } else {
+    array_of_medians = median(array_of_medians)
+    weightOfMedians = 1
+  }
+  print(paste0("Mass of clusters for finding diploid state: ", paste(round(weightOfMedians[order(array_of_medians)], digits=3), collapse="; ")))
+  
+  
+  array_of_medians = array_of_medians[order(array_of_medians)]
+  
+  return(array_of_medians)
 }
 
 
