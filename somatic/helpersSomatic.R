@@ -1028,9 +1028,11 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
   
   print(chrRegion)
   print(array_of_medians)
+  print(weightOfMedians / sum(weightOfMedians))
 
   anyChangeHappen = T
   numOfIter = 1
+  weightOfMediansNew = weightOfMedians
   
   while(anyChangeHappen) {
     numOfIter = numOfIter + 1
@@ -1039,8 +1041,8 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
       for (i in 1:length(array_of_medians)) {
         currentLocation = array_of_medians[i]
         diffs = abs(array_of_medians - currentLocation)
-        array_of_medians_new[i] = (array_of_medians[which(diffs < 0.018)] * weightOfMedians[which(diffs < 0.018)]) / sum(weightOfMedians[which(diffs < 0.018)])
-        weightOfMedians[i] = sum(weightOfMedians[which(diffs < 0.018)]) / sum(weightOfMedians)
+        array_of_medians_new[i] = sum(array_of_medians[which(diffs < 0.018)] * weightOfMediansNew[which(diffs < 0.018)]) / sum(weightOfMediansNew[which(diffs < 0.018)])
+        weightOfMediansNew[i] = sum(weightOfMedians[which(diffs < 0.018)])
       }
     if (sum(abs(array_of_medians - array_of_medians_new)) < 0.0001 | numOfIter > 20) {
       print(paste("Baseline found in", numOfIter, "steps"))
@@ -1048,17 +1050,18 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
     }
     array_of_medians = array_of_medians_new
   }
+  weightOfMediansNew = weightOfMediansNew / sum(weightOfMedians)
   array_of_medians = round(array_of_medians, 3)
-  weightOfMedians = weightOfMedians[which(!duplicated(array_of_medians))]
+  weightOfMediansNew = weightOfMediansNew[which(!duplicated(array_of_medians))]
   array_of_medians = array_of_medians[which(!duplicated(array_of_medians))]
-  if (length(which(weightOfMedians > 0.1)) > 0) {
-    array_of_medians = array_of_medians[which(weightOfMedians > 0.1)]
-    weightOfMedians = weightOfMedians[which(weightOfMedians > 0.1)]
+  if (length(which(weightOfMediansNew > 0.1)) > 0) {
+    array_of_medians = array_of_medians[which(weightOfMediansNew > 0.1)]
+    weightOfMediansNew = weightOfMediansNew[which(weightOfMediansNew > 0.1)]
   } else {
     array_of_medians = median(array_of_medians)
-    weightOfMedians = 1
+    weightOfMediansNew = 1
   }
-  print(paste0("Mass of clusters for finding diploid state: ", paste(round(weightOfMedians[order(array_of_medians)], digits=3), collapse="; ")))
+  print(paste0("Mass of clusters for finding diploid state: ", paste(round(weightOfMediansNew[order(array_of_medians)], digits=3), collapse="; ")))
   
   
   array_of_medians = array_of_medians[order(array_of_medians)]
