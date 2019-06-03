@@ -165,6 +165,9 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
+
+
+
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -218,23 +221,24 @@ if (opt$mosaicism) {
 #cl<-makeCluster(no_cores, type="FORK")
 #registerDoParallel(cl)
  
- cl = NULL
- no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
- cl = makeCluster(no_cores, type="FORK")
- registerDoParallel(cl)
- # numberOfAttempts = 0
- # while(is.null(cl)) {
- #  if (numberOfAttempts > 10) break
- #  numberOfAttempts = numberOfAttempts + 1
- #  print(paste("Attempting to allocate parallel clustering....", numberOfAttempts))
- #  cl = withTimeout(makeCluster(no_cores, type="FORK"), timeout = 1, onTimeout = "warning")
- #  registerDoParallel(cl)
- # }
- # 
- # if (is.null(cl)) {
- #  print("Cluster allocation was not succesfull. Quit.")
- #  quit(status=-1)
- # }
+cl = NULL
+ numberOfAttempts = 0
+ while(is.null(cl)) {
+  if (numberOfAttempts > 10) break
+  numberOfAttempts = numberOfAttempts + 1
+  print(paste("Attempting to allocate parallel clustering....", numberOfAttempts))
+  cl = withTimeout(makeCluster(no_cores, type="FORK"), timeout = 1, onTimeout = "warning")
+  registerDoParallel(cl)
+ }
+
+ if (is.null(cl)) {
+  print("Cluster allocation was not succesfull. Quit.")
+  quit(status=-1)
+ }
+cl = NULL
+no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
+cl = makeCluster(no_cores, type="FORK")
+registerDoParallel(cl)
 
 ### READING DATA
 print(paste("We are started with reading the coverage files and bed files",Sys.time()))
