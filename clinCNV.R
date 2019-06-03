@@ -229,6 +229,7 @@ cl = NULL
   print(paste("Attempting to allocate parallel clustering....", numberOfAttempts))
   cl = withTimeout(makeCluster(no_cores, type="FORK"), timeout = 1, onTimeout = "warning")
   registerDoParallel(cl)
+  stopCluster(cl)
  }
 
  if (is.null(cl)) {
@@ -239,6 +240,7 @@ cl = NULL
 no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 cl = makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
+print("Cluster allocated.")
 
 ### READING DATA
 print(paste("We are started with reading the coverage files and bed files",Sys.time()))
