@@ -223,6 +223,7 @@ if (opt$mosaicism) {
  
 cl = NULL
  numberOfAttempts = 0
+ no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
  while(is.null(cl)) {
   if (numberOfAttempts > 10) break
   numberOfAttempts = numberOfAttempts + 1
@@ -237,7 +238,7 @@ cl = NULL
   quit(status=-1)
  }
 cl = NULL
-no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
+
 cl = makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
 print("Cluster allocated.")

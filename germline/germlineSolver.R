@@ -248,7 +248,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
               endOfFoundCNV = as.numeric(toybedFileFiltered[found_CNVs[z,3], 3])
               
               valuesInsideBed = which(bedFileFiltered[,1] == chrom & bedFileFiltered[,2] >= startOfFoundCNV & bedFileFiltered[,3] <= endOfFoundCNV)
-              if (length(valuesInsideBed) > 0) {
+              if (length(valuesInsideBed) > 1) {
                 listForLikeliks = form_matrix_of_likeliks_one_sample_with_cov(1, ncol(coverage.normalised), sam_no, localSds[valuesInsideBed], coverage.normalised[valuesInsideBed,,drop=F], sqrt(local_cn_states / 2), covarianceTree, bedFileFiltered[valuesInsideBed,], threshold)
                 if (!is.null(listForLikeliks)) {
                   matrix_of_likeliks_with_covar_CNV <- listForLikeliks[[1]]
@@ -521,3 +521,4 @@ for (sam_no in 1:ncol(coverage.normalised)) {
 }
 
 stopCluster(cl)
+

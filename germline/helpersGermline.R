@@ -611,10 +611,10 @@ returnTreeForCorrelation <- function(coverage.normalised.local, sdsOfGermlineSam
   }
   
   trainingDataset <- as.data.frame(cbind(covariancesClose, distnacesClose, sumOfLengths, minLength, maxLength))
-  if (length(which(distnacesClose < 0)) > 0)
-  trainingDataset = trainingDataset[-which(distnacesClose < 0 | distnacesClose > 9500),]
+  if (length(which(distnacesClose > 1000 )) > 0)
+  trainingDataset = trainingDataset[-which(distnacesClose > 1000),]
   if (nrow(trainingDataset) > 100) {
-  fit <- ctree(covariancesClose ~ log2((distnacesClose)) + (sumOfLengths) + minLength + maxLength, data=trainingDataset, control=ctree_control(mincriterion = 0.99))
+  fit <- ctree(covariancesClose ~ (distnacesClose) + (sumOfLengths) + minLength + maxLength, data=trainingDataset, control=ctree_control(mincriterion = 0.99))
   png(filename="treeOnCorrelationOfCoverage.png", width=4000, height=1800)
   plot(fit)
   dev.off()
@@ -629,7 +629,7 @@ returnTreeForCorrelation <- function(coverage.normalised.local, sdsOfGermlineSam
 
 form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_states, covarianceTree, currentBedFile, threshold_local) {
   distancesToPredict = (currentBedFile[2:nrow(currentBedFile),2] - currentBedFile[1:(nrow(currentBedFile) - 1),3] + 1)
-  distancesToPredict[which(is.na(distancesToPredict) | distancesToPredict <= 0)] = 10**6
+  distancesToPredict[which(is.na(distancesToPredict))] = 10**6
   lengthsLeft = as.numeric(currentBedFile[1:(nrow(currentBedFile) - 1),3] - currentBedFile[1:(nrow(currentBedFile) - 1),2])
   lengthsRight = as.numeric(currentBedFile[2:nrow(currentBedFile),3] - currentBedFile[2:nrow(currentBedFile),2])
   sumLengths <- lengthsLeft + lengthsRight
@@ -660,7 +660,7 @@ form_matrix_of_likeliks_one_sample_with_cov <- function(i, j, k, sds, resid, cn_
   })
   
   covariancesForWholeDataset <- Predict(covarianceTree, datasetToPredice)
-  smallDistances = which(covariancesForWholeDataset > 0.1 & distancesToPredict < 9500)
+  smallDistances = which(covariancesForWholeDataset > 0.1 & distancesToPredict < 1000)
   if (length(smallDistances) > 0) {
     distancesToPredict = distancesToPredict[smallDistances]
     covariances <- covariancesForWholeDataset[smallDistances]
