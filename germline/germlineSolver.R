@@ -33,7 +33,7 @@ folder_name <- paste0(opt$out, "/normal/")
 if (!dir.exists(folder_name)) {
   dir.create(folder_name)
 }
-if (ncol(coverage.normalised) > 50) {
+if (ncol(coverage.normalised) > 25) {
   covar = T
 } else {
   covar = F
