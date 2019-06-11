@@ -254,15 +254,19 @@ find_final_state <- function(start, end, initial_state, matrix_of_likeliks_local
   super_small_likelik = -10^20
   sweeped_matrix <- sweep(matrix_of_likeliks_local[min(start + 1, end):(max(end - 1, start)),,drop=F], 1, matrix_of_likeliks_local[min(start + 1, end):(max(end - 1, start)),initial_state])
   res_within <- apply(sweeped_matrix, 2, sum)
+  res_within_median <- apply(sweeped_matrix, 2, median)
   if (length(penalties) == ncol(sweeped_matrix)) {
     res_within = res_within + penalties
   }
   res_within[blocked_states] = max(res_within) + 1
+  res_within[which(res_within_median > 10**-4)] = max(res_within) + 1
   cn_state_by_central_points <- which.min(res_within)
   
   only_central=F
   sweeped_matrix <- sweep(matrix_of_likeliks_local[(start):(end),,drop=F], 1, matrix_of_likeliks_local[(start):(end),initial_state])
   res <- apply(sweeped_matrix, 2, sum)
+  res_median <- apply(sweeped_matrix, 2, median)
+  res[which(res_median > 10**-4)] = max(res) + 1
   likelihood_score_including_all_tiles <- min(res[cn_state_by_central_points], res_within[cn_state_by_central_points])
   if (likelihood_score_including_all_tiles == res_within[cn_state_by_central_points]) {
     only_central=T
@@ -333,6 +337,16 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, 
     maxSubArraySum(matrix_of_BFs[,i])
   }
   detectedCNVs = matrix(detectedCNVs, ncol=3)
+  for (i in 1:nrow(detectedCNVs)) {
+    if (median(matrix_of_BFs[detectedCNVs[i,2]:detectedCNVs[i,3], sequence_for_iteration[i]]) < -10**-4) {
+      #print(sequence_for_iteration[i])
+      #print(detectedCNVs[i,])
+      #print(median(matrix_of_BFs[detectedCNVs[i,2]:detectedCNVs[i,3], sequence_for_iteration[i]]))
+      #print("")
+      detectedCNVs[i,1] = -10**6
+      
+    }
+  }
   resultCNV = detectedCNVs[which.max(detectedCNVs[,1]),]
 
   while (resultCNV[1] > threshold & resultCNV[3] - resultCNV[2] < min_CNV_len) {

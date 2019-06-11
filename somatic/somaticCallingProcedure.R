@@ -1,13 +1,14 @@
 
 somaticCalling <- function(matrixOfLogFold) {
-  for (sam_no in 1:ncol(matrixOfLogFold)) {
-    cl<-makeCluster(no_cores, type="FORK")
+  for (sam_no in ncol(matrixOfLogFold):1) {
+    cl<-makeCluster(no_cores, type="FORK",outfile=paste0(opt$out, "/output.txt"))
     registerDoParallel(cl)
     clusterExport(cl,c('maxSubArraySum', 'fillInPList', 'likelihoodOfSNV','return_likelik', 'vect_of_norm_likeliks', 'vect_of_t_likeliks'))
     sample_name <- colnames(matrixOfLogFold)[sam_no]
     overdispersionNormal = NULL
     sampleInOfftarget = F
     local_datasetOfPuritiesCopies = datasetOfPuritiesCopies
+    local_datasetOfPuritiesCopiesForFinal = datasetOfPuritiesCopiesForFinalIteration
     
     germline_sample_no = which(colnames(tmpNormal) == strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2])
     germline_sample_name = colnames(tmpNormal)[germline_sample_no]
@@ -94,9 +95,19 @@ somaticCalling <- function(matrixOfLogFold) {
           do.call(file.remove, list(list.files(paste0(folder_name, sample_name), full.names = TRUE)))
         
         if (finalIteration ) {
-          indices_to_remove_by_purity <- which(!(local_datasetOfPuritiesCopies[,6] %in% c(0, clonalBestPurities)))
+          indices_to_remove_by_purity <- which(!(local_datasetOfPuritiesCopiesForFinal[,6] %in% c(0, clonalBestPurities)))
           if (length(indices_to_remove_by_purity) > 0)
+            local_datasetOfPuritiesCopies = local_datasetOfPuritiesCopiesForFinal[-indices_to_remove_by_purity,]
+          
+          
+          potential_second_copy_changes <- c(unique(dist(unique(local_datasetOfPuritiesCopies[,6]))))
+          #potential_second_copy_changes <- c(unique(local_datasetOfPuritiesCopies[,6]))
+          potential_second_copy_changes <- c(setdiff(potential_second_copy_changes, max(potential_second_copy_changes)), 0)
+          if (length(potential_second_copy_changes) > 0) {
+            indices_to_remove_by_purity <- which(!(local_datasetOfPuritiesCopies[,9] %in% c(0, potential_second_copy_changes)))
+            if (length(indices_to_remove_by_purity) > 0)
             local_datasetOfPuritiesCopies = local_datasetOfPuritiesCopies[-indices_to_remove_by_purity,]
+          }
         }
         
         local_purities <- local_datasetOfPuritiesCopies[,6]
@@ -105,14 +116,17 @@ somaticCalling <- function(matrixOfLogFold) {
         local_cn_states <- local_datasetOfPuritiesCopies[,1]
         local_majorBAF <- local_datasetOfPuritiesCopies[,4]
         local_minorBAF <- local_datasetOfPuritiesCopies[,5]
-        
+        local_copy_numbers_used_major_second <- local_datasetOfPuritiesCopies[,7]
+        local_copy_numbers_used_minor_second <- local_datasetOfPuritiesCopies[,8]
+        local_purities_second <- local_datasetOfPuritiesCopies[,9]
         
         # PART FOR MATRIX OF CLONALITY (ONLY 2 CLONES)
         uniqueLocalPurities = unique(local_purities)
         zeroPurity <- which(uniqueLocalPurities == 0)
         if (length(zeroPurity) > 0)
           uniqueLocalPurities = sort(uniqueLocalPurities[-zeroPurity])
-        likeliksFoundCNVsVsPuritiesGlobal = matrix(nrow=0, ncol=length(uniqueLocalPurities))
+        uniqueLocalPuritiesSecond = unique(local_purities_second)
+        likeliksFoundCNVsVsPuritiesGlobal = matrix(nrow=0, ncol=length(uniqueLocalPurities) * length(uniqueLocalPuritiesSecond))
         
         
         pvalsForQC <- c()
@@ -173,6 +187,9 @@ somaticCalling <- function(matrixOfLogFold) {
           local_cn_states <- local_cn_states[-blocked_states_global]
           local_majorBAF <- local_majorBAF[-blocked_states_global]
           local_minorBAF <- local_minorBAF[-blocked_states_global]
+          local_copy_numbers_used_major_second <- local_copy_numbers_used_major_second[-blocked_states_global]
+          local_copy_numbers_used_minor_second <- local_copy_numbers_used_minor_second[-blocked_states_global]
+          local_purities_second <- local_purities_second[-blocked_states_global]
         }
         
         matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1,  matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2))
@@ -399,8 +416,9 @@ somaticCalling <- function(matrixOfLogFold) {
         
         
         
-        found_CNVs_total <- matrix(0, nrow=0, ncol=10)
-        colnames(found_CNVs_total) <- c("#chr", "start", "end", "major_CN_allele", "minor_CN_allele", "tumor_clonality", "CN_change", "loglikelihood", "number_of_regions", "genes")
+        found_CNVs_total <- matrix(0, nrow=0, ncol=13)
+        colnames(found_CNVs_total) <- c("#chr", "start", "end", "major_CN_allele", "minor_CN_allele", "tumor_clonality", "CN_change", "loglikelihood", "number_of_regions", 
+                                        "major_CN_allele2",  "minor_CN_allele2", "tumor_clonality2", "genes")
         allDetectedPurities = c()
         
         
@@ -491,7 +509,8 @@ somaticCalling <- function(matrixOfLogFold) {
             copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
             penalties = penaltyForHigherCN * abs(copy_numbers_for_penalties)
             toyMatrixOfLikeliks = sweep(toyMatrixOfLikeliks, 2, abs(copy_numbers_for_penalties) * penaltyForHigherCNoneTile, FUN="+")
-            whichAreUnrealistic <- which((local_majorBAF == 0 & local_purities < 0.6))
+            if (length(blocked_states) > 0) toyMatrixOfLikeliks[,blocked_states] = toyMatrixOfLikeliks[,blocked_states] + 10
+            whichAreUnrealistic <- which((local_majorBAF == 0 & local_purities < 0.6) | local_purities_second > 10**-4)
             penalties[whichAreUnrealistic] = penalties[whichAreUnrealistic] + 20
             if (length(local_cn_states) - length(blocked_states) > 1) {
               found_CNVs <- as.matrix(find_all_CNVs(minimum_length_of_CNV, threshold, price_per_tile, initial_state, toyMatrixOfLikeliks, 1, blocked_states, penalties))
@@ -519,16 +538,19 @@ somaticCalling <- function(matrixOfLogFold) {
             
             
             if (nrow(found_CNVs) > 0){# & !chrom %in% c("chrX", "chrY", "X", "Y")) {
-              likeliksFoundCNVsVsPurities <- matrix(0,nrow=nrow(found_CNVs), ncol=length(uniqueLocalPurities))
+              likeliksFoundCNVsVsPurities <- matrix(0,nrow=nrow(found_CNVs), ncol=length(uniqueLocalPurities) * length(uniqueLocalPuritiesSecond))
               for (m in 1:length(uniqueLocalPurities)) {
                 localPurityCurrent = uniqueLocalPurities[m]
-                for (q in 1:nrow(found_CNVs)) {
-                  startOfCNV <- found_CNVs[q,2]
-                  endOfCNV <- found_CNVs[q,3]
-                  if (endOfCNV - startOfCNV > 3) { 
-                    
-                    likeliksFoundCNVsVsPurities[q, m] = min(apply(toyMatrixOfLikeliks[(startOfCNV + 1):(endOfCNV - 1),which(local_purities == localPurityCurrent),drop=F], 2, sum)
-                                                            + penaltyForHigherCN * abs(copy_numbers_for_penalties[which(local_purities == localPurityCurrent)]))
+                for (snd in 1:length(uniqueLocalPuritiesSecond)) {
+                  localPurityCurrentSnd = uniqueLocalPuritiesSecond[snd]
+                  for (q in 1:nrow(found_CNVs)) {
+                    startOfCNV <- found_CNVs[q,2]
+                    endOfCNV <- found_CNVs[q,3]
+                    if (endOfCNV - startOfCNV > 3) { 
+            
+                      likeliksFoundCNVsVsPurities[q, (snd - 1) * m + m] = min(apply(toyMatrixOfLikeliks[(startOfCNV + 1):(endOfCNV - 1),which(local_purities == localPurityCurrent & local_purities_second == localPurityCurrentSnd),drop=F], 2, sum)
+                                                              + penaltyForHigherCN * abs(copy_numbers_for_penalties[which(local_purities == localPurityCurrent & local_purities_second == localPurityCurrentSnd)]))
+                    }
                   }
                 }
               }
@@ -567,7 +589,9 @@ somaticCalling <- function(matrixOfLogFold) {
             
             
             if (nrow(found_CNVs) > 0) {
-              cnvsToWriteOut <- plotFoundCNVsNew(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, local_cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, local_purities, 
+              cnvsToWriteOut <- plotFoundCNVsNew(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, 
+                                                 local_cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, local_purities, 
+                                                 local_copy_numbers_used_major_second, local_copy_numbers_used_minor_second, local_purities_second,
                                                  toySizesOfPointsFromLocalSds, plottingOfPNGs)
               if (found_CNVs[1,1] != -1000) {
                 found_CNVs_total = rbind(found_CNVs_total, cnvsToWriteOut)
@@ -663,17 +687,19 @@ somaticCalling <- function(matrixOfLogFold) {
             bestCombination = 1
             
             for (q in 1:ncol(combinationsOfPurities)) {
-              if (length(combinationsOfPurities[,q]) > 1) {
-                combinationOfDifferences = combn(uniqueLocalPurities[combinationsOfPurities[,q]], 2)
-                allDiffs <- abs(combinationOfDifferences[1,] - combinationOfDifferences[2,])
-                #if (min(allDiffs) < 0.0499) {
-                #  next
-                #}
-              }
               minResultForCombination = as.numeric(opt$clonePenalty) * m
+              positionsWithSpecifiedPurities = combinationsOfPurities[,q]
+              if (length(intersect(
+                uniqueLocalPurities[combinationsOfPurities[,q]], uniqueLocalPuritiesSecond)) > 0) {
+                whichToIncludeFromSecond <- which(uniqueLocalPuritiesSecond %in% uniqueLocalPurities[combinationsOfPurities[,q]])
+                for (sndPurity in whichToIncludeFromSecond) {
+                  positionsWithSpecifiedPurities = c(positionsWithSpecifiedPurities, (sndPurity - 1) * combinationsOfPurities[,q] + combinationsOfPurities[,q])
+                }
+                positionsWithSpecifiedPurities = unique(positionsWithSpecifiedPurities)
+              }
               for (r in 1:nrow(likeliksFoundCNVsVsPuritiesGlobal)) {
                 minResultForCombination = minResultForCombination + min(
-                  likeliksFoundCNVsVsPuritiesGlobal[r,combinationsOfPurities[,q]])
+                  likeliksFoundCNVsVsPuritiesGlobal[r,positionsWithSpecifiedPurities])
               }
               if (minResult > minResultForCombination) {
                 bestCombination = q
@@ -698,9 +724,13 @@ somaticCalling <- function(matrixOfLogFold) {
       addressOfPlot = paste0(sample_name, "_CNAs_plot.png")
       if (finalIteration & frameworkDataTypes == "covdepthBAF") {
         if (sampleInOfftarget) {
-          plotLikelihoodLandscape(datasetOfPuritiesCopies, addressOfPlot, found_CNVs_total, matrix_of_likeliks, globalBed, matrixOfBAFLikeliks, bAlleleFreqsTumor, coordsIncludedAtFirst, globalLogFold, local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms)
+          plotLikelihoodLandscape(datasetOfPuritiesCopiesForFinalIteration, addressOfPlot, found_CNVs_total, matrix_of_likeliks, globalBed, matrixOfBAFLikeliks, bAlleleFreqsTumor, 
+                                  coordsIncludedAtFirst, globalLogFold, local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms,
+                                  local_copy_numbers_used_major_second, local_copy_numbers_used_minor_second, local_purities_second)
          } else {
-          plotLikelihoodLandscape(datasetOfPuritiesCopies, addressOfPlot, found_CNVs_total, matrix_of_likeliks, bedFileForCluster, matrixOfBAFLikeliks, bAlleleFreqsTumor, coordsIncludedAtFirst,matrixOfLogFold[,sam_no],local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms)
+          plotLikelihoodLandscape(datasetOfPuritiesCopiesForFinalIteration, addressOfPlot, found_CNVs_total, matrix_of_likeliks, bedFileForCluster, matrixOfBAFLikeliks, bAlleleFreqsTumor, 
+                                  coordsIncludedAtFirst,matrixOfLogFold[,sam_no],local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms,
+                                  local_copy_numbers_used_major_second, local_copy_numbers_used_minor_second, local_purities_second)
         }
       }
       
@@ -801,7 +831,8 @@ somaticCalling <- function(matrixOfLogFold) {
         BAFsignature[,3] = format(round(as.numeric(BAFsignature[,3]), 4), scientific = F)
         colnamesForFutureMatrix <- colnames(found_CNVs_total)
         tumor_cn_change = as.numeric(found_CNVs_total[,4]) + as.numeric(found_CNVs_total[,5])
-        states_for_report = sapply(1:nrow(found_CNVs_total), function(i) {if (tumor_cn_change[i] == 2) return("LOH"); if (tumor_cn_change[i] > 2) return("AMP"); if (tumor_cn_change[i] < 2) return("DEL")})
+        tumor_cn_state = round(as.numeric(found_CNVs_total[,7]), 2)
+        states_for_report = sapply(1:nrow(found_CNVs_total), function(i) {if (tumor_cn_state[i] == 2) return("LOH"); if (tumor_cn_state[i] > 2) return("AMP"); if (tumor_cn_state[i] < 2) return("DEL")})
         colnamesForFutureMatrix = c(colnamesForFutureMatrix[1:3], "tumor_CN_change", "state", colnamesForFutureMatrix[4:length(colnamesForFutureMatrix)])
         found_CNVs_total = cbind(found_CNVs_total[,1:3,drop=F], tumor_cn_change, states_for_report, found_CNVs_total[,4:ncol(found_CNVs_total),drop=F],
                                  matrix(CIsOnTarget[,3:2,drop=F], ncol=2), matrix(CIsOnTargetOff[,3:2,drop=F], ncol=2), snvUpperAndBottom, BAFsignature[,3,drop=F], format(round(overallPvalues,5), scientific = F))
@@ -823,6 +854,7 @@ somaticCalling <- function(matrixOfLogFold) {
         print(found_CNVs_total)
       }
       found_CNVs_total = found_CNVs_total[order(found_CNVs_total[,1], as.numeric(found_CNVs_total[,2])), , drop=F]
+      if (nrow(found_CNVs_total) > 0) found_CNVs_total[which(found_CNVs_total[,14] == "0"), 12:14] = ""
       write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)	
       # For some additional analysis we need to provide areas free of CNVs
       if (sampleInOfftarget) {
@@ -838,3 +870,4 @@ somaticCalling <- function(matrixOfLogFold) {
     stopCluster(cl)
   }
 }
+

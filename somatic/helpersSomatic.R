@@ -826,9 +826,11 @@ returnAreasFreeOfCNVsForAdditionalAnalysis <- function(found_CNVs_total, sample_
 
 
 
-plotFoundCNVsNew <- function(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, purities, toySizesOfPointsFromLocalSds, plottingOfPNGs) {
+plotFoundCNVsNew <- function(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, purities, 
+                             local_copy_numbers_used_major_second, local_copy_numbers_used_minor_second, local_purities_second,
+                             toySizesOfPointsFromLocalSds, plottingOfPNGs) {
   vector_of_states <- cn_states
-  cnvsToOutput <- matrix(0, nrow=0, ncol=10)
+  cnvsToOutput <- matrix(0, nrow=0, ncol=13)
   if (nrow(found_CNVs) > 0) {
     for (s in 1:nrow(found_CNVs)) {
       if(opt$debug) {
@@ -858,12 +860,16 @@ plotFoundCNVsNew <- function(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, o
                            local_copy_numbers_used_major[found_CNVs[s,4]], local_copy_numbers_used_minor[found_CNVs[s,4]],
                            purities[found_CNVs[s,4]],
                            vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), 
-                           found_CNVs[s,3] - found_CNVs[s,2] + 1, annotationGenes), nrow=1)
+                           found_CNVs[s,3] - found_CNVs[s,2] + 1, 
+                           local_copy_numbers_used_major_second[found_CNVs[s,4]], 
+                           local_copy_numbers_used_minor_second[found_CNVs[s,4]], 
+                           local_purities_second[found_CNVs[s,4]],
+                           annotationGenes), nrow=1)
       if(opt$debug)
       {
         print(CNVtoOut)
       }
-      cnvsToOutput = as.matrix(rbind(cnvsToOutput, CNVtoOut), ncol=10, drop=F)
+      cnvsToOutput = as.matrix(rbind(cnvsToOutput, CNVtoOut), ncol=13, drop=F)
       
       
       length_of_repr <- 500
@@ -1011,8 +1017,8 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
     for (i in 1:length(weightsOfClusters)) {
       currentLocation = meansOfClusters[i]
       diffs = abs(meansOfClusters - currentLocation)
-      meansOfClusters[i] = (clusteredResult$parameters$mean[which(diffs < 0.018)] * clusteredResult$parameters$pro[which(diffs < 0.018)]) / sum(clusteredResult$parameters$pro[which(diffs < 0.018)])
-      weightsOfClusters[i] = sum(clusteredResult$parameters$pro[which(diffs < 0.018)])
+      meansOfClusters[i] = (clusteredResult$parameters$mean[which(diffs < 0.035)] * clusteredResult$parameters$pro[which(diffs < 0.035)]) / sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
+      weightsOfClusters[i] = sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
     }
   
   bigClusters <- which(weightsOfClusters > 0.25)
@@ -1072,7 +1078,8 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
 
 plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, found_CNVs_total, matrix_of_likeliks, bedFileForMatrix, matrixOfBAFLikeliks, bafMatrix, coordsIncludedAtFirst,
                                     matrixOfLogFoldSample,
-                                    local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms) {
+                                    local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms,
+                                    local_majorBAF_second, local_minorBAF_second, local_purities_second) {
   colorsForCN = c(rgb(1,0,0,0.9), rgb(0.6470588, 0.1647059, 0.1647059, 0.9), rgb(0,0,1,0.9))
   png(filename=addressOfPlot, width=2500, height=1000)
   
@@ -1101,8 +1108,8 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
   }
   
   
-  par(bg="white", mfrow = c(3, 1),     # 2x2 layout
-      oma = c(1, 1, 1, 1), # two rows of text at the outer left and bottom margin
+  par(bg="white", mfrow = c(3, 1),    
+      oma = c(1, 1, 1, 1), 
       mar = c(1, 1, 1, 1))  
   plot(0,0, ylim=c(0,1), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="")
   abline(v=verticalBorders, col="black")
