@@ -170,7 +170,7 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
   if (complexTumor) {
     purityDoubleCopyNumberEvent = seq(from=max(2 * opt$minimumPurity, 20), to=100.1, by=opt$purityStep) / 100
     puritySecondCopyNumberEvent = seq(from=opt$minimumPurity, to=100.1, by=opt$purityStep) / 100
-    copy_numbers_double_event = 0:3
+    copy_numbers_double_event = 0:2
     copy_number_second_events = c(0,2)
     for (pur in purityDoubleCopyNumberEvent) {
       for (cn in copy_numbers_double_event) {
@@ -179,7 +179,7 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
               (cn1 + cn) <= max(copy_numbers) & ((1-pur) + pur * cn) > 0 ) {
             for (cn2 in copy_number_second_events) {
               for (pur1 in puritySecondCopyNumberEvent) {
-                if (pur1 <= 0.5 * pur) {
+                if (pur1 <= 0.5 * pur + opt$purityStep / 100) {
                   if (cn > 0) {
                     if (cn - 1 + cn2 == 1 & cn1 == 1) next
                     cn_state = (1 - pur) * 2 + (pur - pur1) * cn + (pur) * cn1 + pur1 * (cn - 1 + cn2)
