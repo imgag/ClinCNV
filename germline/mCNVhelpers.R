@@ -225,9 +225,9 @@ findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, mu
     coverageSummarised = apply(coverageNeededToCheck[startOfmCNV:endOfmCNV,,drop=F], 2, median)
   #}
     coverageSummarised = coverageSummarised / quantile(coverageSummarised, 0.8)
-  notHomozygousDeletions = which(coverageSummarised >= ifelse(nrow(coverageNeededToCheck) < 3, 0.7, 0.5))
-  if (length(which(coverageSummarised <= 0.25)) > 0) {
-    homozygousDelShit = median(coverageSummarised[which(coverageSummarised <= 0.25)]) ** 2
+  notHomozygousDeletions = which(coverageSummarised >=  0.5)
+  if (length(which(coverageSummarised <= ifelse(nrow(coverageNeededToCheck) < 3 & medianOfMediansPolymorphicCNV < sqrt(3/2), 0.5, 0.25))) > 0) {
+    homozygousDelShit = median(coverageSummarised[which(coverageSummarised <= ifelse(nrow(coverageNeededToCheck) < 3 & medianOfMediansPolymorphicCNV < sqrt(3/2), 0.5, 0.25))]) ** 2
     coverageSummarised = sqrt(abs(coverageSummarised ** 2 - homozygousDelShit))
   }
   for (i in 1:20) {
