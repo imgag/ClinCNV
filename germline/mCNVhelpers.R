@@ -37,7 +37,7 @@ likelihoodOfGaussianMixture <- function(location, value , sd_to_start, robustPer
     return(sum(points_likeliks))
   } else {
     sd_counter = sd_to_start
-    eps = 0.01
+    eps = 0.001
     cluster_weights = rep(1/ length(location), length(location))
     points_likeliks <- (sapply(1:length(location), 
                                function(i) {
@@ -84,8 +84,9 @@ likelihoodOfGaussianMixture <- function(location, value , sd_to_start, robustPer
       counter = counter + 1
       delta_loglik = current_loglik - previous_loglik
       previous_loglik = current_loglik
+      if (counter > 500) break
     }
-    if (counter > 500)    print(paste("We finished fitting in", counter, "steps"))
+    if (counter > 400)    print(paste("We finished fitting in", counter, "steps"))
     weights = points_likeliks * (1 / vect_sum) / length(value)
     cluster_weights <- colSums(weights)
     # make small values as nulls
@@ -211,7 +212,7 @@ checkConnectivityComplex = function(j) {
 }
 
 
-findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, multipliersSamples, numberOfClusterAnalysed, plotting, chromX = F, folder_name_mcnv) {
+findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, multipliersSamples, numberOfClusterAnalysed, plotting, chromX = F, folder_name_mcnv, medianOfMediansPolymorphicCNV) {
   startOfmCNV = 2
   endOfmCNV = (nrow(coverageNeededToCheck) - 1)
   if (toyBedFilePolymorphCurrent[1,3] - toyBedFilePolymorphCurrent[1,2] < 250 | nrow(coverageNeededToCheck) < 3) {
@@ -224,7 +225,7 @@ findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, mu
     coverageSummarised = apply(coverageNeededToCheck[startOfmCNV:endOfmCNV,,drop=F], 2, median)
   #}
     coverageSummarised = coverageSummarised / quantile(coverageSummarised, 0.8)
-  notHomozygousDeletions = which(coverageSummarised >= 0.5)
+  notHomozygousDeletions = which(coverageSummarised >= ifelse(nrow(coverageNeededToCheck) < 3, 0.7, 0.5))
   if (length(which(coverageSummarised <= 0.25)) > 0) {
     homozygousDelShit = median(coverageSummarised[which(coverageSummarised <= 0.25)]) ** 2
     coverageSummarised = sqrt(abs(coverageSummarised ** 2 - homozygousDelShit))
@@ -245,12 +246,13 @@ findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, mu
   bestDivisor = 2
   bestWeight = c(1)
   bestLoc = c(1)
-  #possibleLocations = round(medianOfCoverage ** 2 * 2)
-  #possibleLocations = unique(c(possibleLocations, possibleLocations + -5:5))
+  
+  possibleLocations = round(medianOfMediansPolymorphicCNV ** 2 * 2)
+  possibleLocations = unique(c(possibleLocations, round(1/3 * possibleLocations):round(3 * possibleLocations) ))
   coverageSummarisedCleaned = coverageSummarised[which(multipliersSamples < quantile(multipliersSamples, 0.95))]
   notHomozygousDeletionsCleaned = which(coverageSummarisedCleaned >= 0.45)
   for (j in 1:length(locations)) {
-    #if (!j %in% possibleLocations) next
+    if (!j %in% possibleLocations) next
     vecOfMeans = locations[[j]]
     vecOfMeans = vecOfMeans[which(vecOfMeans > min(coverageSummarisedCleaned[notHomozygousDeletionsCleaned]) - 0.25 & vecOfMeans < max(coverageSummarisedCleaned[notHomozygousDeletionsCleaned]) + 0.25)]
     if (length(which(coverageSummarisedCleaned <= 0.25)) / length(coverageSummarisedCleaned) > 0.01) {

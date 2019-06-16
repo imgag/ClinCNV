@@ -432,12 +432,14 @@ returnClustering <- function(minNumOfElemsInCluster) {
 
   coverageForClustering = sqrt(normal[which(!bedFile[,1] %in% c("chrX","chrY")),])
   sdsOfRegions <- apply(coverageForClustering, 1, mad)
-  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.75) | sdsOfRegions < quantile(sdsOfRegions, 0.25))
+  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.8) | sdsOfRegions < quantile(sdsOfRegions, 0.2))
   
   coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
-  if (nrow(coverageForClustering) > 20000) {
-    coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 20000),]
+  coverageForClustering = apply(coverageForClustering, 2, function(x) {runmed(x, 5)})
+  
+  if (nrow(coverageForClustering) > 50000) {
+    coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 50000),]
   }
   
 

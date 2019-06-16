@@ -102,6 +102,7 @@ for (l in 1:length(left_borders)) {
     coverageToWorkWith = coverage.normalised.polymorph[which_to_allow,samplesForAnalysisDiscovery]
     mediansOfPolymorphicLocal = mediansOfPolymorphic[which_to_allow]
     localSdsOfProbes <- sdsOfProbesCorrected[which_to_allow]
+    localSdsOfProbesUncorrected = sdsOfProbes[which_to_allow]
     toyBedFilePolymorph = bedFilePolymorph[which_to_allow,]
     locations = list()
     for (i in 1:16) {
@@ -123,7 +124,8 @@ for (l in 1:length(left_borders)) {
       if (i %% 1000 == 0) print(i)
       coverageOfProbe = coverageToWorkWith[i,]
       localSdsCurrentProbe = localSdsOfProbes[i]
-      if (max(correlationsAround) > quantile(correlations, 0.7) | localSdsCurrentProbe > quantile(localSdsOfProbes, 0.7)) {
+      localSdsCurrentProbeUncorrected = localSdsOfProbesUncorrected[i]
+      if (max(correlationsAround) > quantile(correlations, 0.9) | localSdsCurrentProbe > quantile(localSdsOfProbesUncorrected, 0.9)) {
         notHomozygousDeletions = which(coverageOfProbe > 0.25)
         if (length(notHomozygousDeletions) < length(coverageOfProbe)) {
           homozygousDelShit = median(coverageOfProbe[which(coverageOfProbe < 0.25)]) ** 2
@@ -174,6 +176,7 @@ for (l in 1:length(left_borders)) {
     finalMCNVs <- matrix(0, nrow=0, ncol=ncol(found_CNVsTmp))
     smallRegions <- matrix(0, nrow=0, ncol=ncol(found_CNVsTmp))
     regionsToLookForMCNVs <- found_CNVsTmp
+    medianCorrelation = median(correlations)
     if (nrow(found_CNVsTmp) > 0) {
       counter = 1
       while (counter <= nrow(regionsToLookForMCNVs)) {
@@ -219,7 +222,7 @@ for (l in 1:length(left_borders)) {
       for (i in 1:nrow(finalMCNVs)) {
         mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                                          toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                                         multipliersSamplesForAnalysis, cluster, T, F, folder_name_mcnv)
+                                         multipliersSamplesForAnalysis, cluster, T, F, folder_name_mcnv, median(mediansOfPolymorphicLocal[finalMCNVs[i,2]:finalMCNVs[i,3]]))
         if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < percentageToBePolymorphism * ncol(coverageToWorkWith)) {
           print(i)
           finalMCNVsToRemove = c(finalMCNVsToRemove, i)
@@ -273,11 +276,11 @@ for (l in 1:length(left_borders)) {
         if (chrom != "chrX") {
         mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                                          toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                                         multipliersSamples, cluster, T, F, folder_name_mcnv)
+                                         multipliersSamples, cluster, T, F, folder_name_mcnv, median(mediansOfPolymorphicLocal[finalMCNVs[i,2]:finalMCNVs[i,3]]))
         } else {
           mcnvCopyNumber <- findFinalState(coverageToWorkWith[finalMCNVs[i,2]:finalMCNVs[i,3],,drop=F], 
                                            toyBedFilePolymorph[finalMCNVs[i,2]:finalMCNVs[i,3],],
-                                           multipliersSamples, cluster, T, T, folder_name_mcnv)
+                                           multipliersSamples, cluster, T, T, folder_name_mcnv, median(mediansOfPolymorphicLocal[finalMCNVs[i,2]:finalMCNVs[i,3]]))
         }
         if (length(which(mcnvCopyNumber != as.numeric(names(sort(table(mcnvCopyNumber),decreasing=TRUE)[1])))) < percentageToBePolymorphism * ncol(coverageToWorkWith)) {
           print(i)
