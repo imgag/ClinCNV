@@ -123,7 +123,7 @@ checkConnectivity = function(covOne, covTwo) {
   return(F)
 }
 
-checkConnectivityMed = function(covOne, covTwo, sampleVariability) {
+checkConnectivityMed = function(covOne, covTwo, sampleVariability, sdOne, sdTwo, correlationMedian) {
   whichBothNonHomo = which(covOne > 0.3 & covTwo > 0.3)
   if (length(whichBothNonHomo) < 5) {
     return(F)
@@ -133,10 +133,21 @@ checkConnectivityMed = function(covOne, covTwo, sampleVariability) {
   x0 = covTwo[whichBothNonHomo[i]];
   (-angle * x0 + y0) / sqrt(angle ** 2 + 1)
   })
+  mahalanobisDistances = c()
+  for (i in whichBothNonHomo) {
+    covMatrix = matrix(c( (sampleVariability[i] * sdOne) ** 2,  correlationMedian * sdOne * sdTwo * sampleVariability[i] ** 2,
+                          correlationMedian * sdOne * sdTwo * sampleVariability[i] ** 2, (sampleVariability[i] * sdTwo) ** 2), nrow=2)
+    mahalanobisDistances <- c(mahalanobisDistances, 
+                              mahalanobis(c(covOne[i], covTwo[i]), c(median(covOne),median(covTwo)), covMatrix)
+                              )
+  }
+  if (length(which(mahalanobisDistances > qchisq(0.99, 2))) < 0.05 * length(whichBothNonHomo)) {
+    return(F)
+  }
   if (length(which(abs(distances) < abs(1 - sqrt(1/2)) / 2)) < 5) {
     return(F)
   }
-  QnDist = Qn(distances[which(abs(distances) < abs(1 - sqrt(1/2)) / 2)]) * sampleVariability
+  QnDist = Qn(distances[which(abs(distances) < abs(1 - sqrt(1/2)) / 2)]) * sampleVariabilitys[which(abs(distances) < abs(1 - sqrt(1/2)) / 2)]
   if (length(which(distances > qnorm(0.99) * QnDist)) < 0.05 * length(whichBothNonHomo)) {
     return(T)
   }

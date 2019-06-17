@@ -188,9 +188,9 @@ for (l in 1:length(left_borders)) {
           wasDivided = F
           for (j in (regionsToLookForMCNVs[counter,2] + 1):(regionsToLookForMCNVs[counter,3] - 2)) {
             print(j)
-            if (!checkConnectivityMed(coverageToWorkWith[j,], coverageToWorkWith[j + 1,], multipliersSamplesForAnalysisDiscovery)) {
+            if (!checkConnectivityMed(coverageToWorkWith[j,], coverageToWorkWith[j + 1,], multipliersSamplesForAnalysisDiscovery, localSdsOfProbes[j], localSdsOfProbes[j + 1], medianCorrelation)) {
               if (j + 2 <= nrow(coverageToWorkWith)) {
-                if (checkConnectivityMed(coverageToWorkWith[j,], coverageToWorkWith[j + 2,], multipliersSamplesForAnalysisDiscovery)) {
+                if (checkConnectivityMed(coverageToWorkWith[j,], coverageToWorkWith[j + 2,], multipliersSamplesForAnalysisDiscovery, localSdsOfProbes[j], localSdsOfProbes[j + 1], medianCorrelation)) {
                   next
                 }
               }
