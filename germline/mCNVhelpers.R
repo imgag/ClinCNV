@@ -133,11 +133,11 @@ checkConnectivityMed = function(covOne, covTwo, sampleVariability) {
   x0 = covTwo[whichBothNonHomo[i]];
   (-angle * x0 + y0) / sqrt(angle ** 2 + 1)
   })
-  if (length(which(abs(distances) < sqrt(3/2) - 1)) < 5) {
+  if (length(which(abs(distances) < abs(1 - sqrt(1/2)) / 2)) < 5) {
     return(F)
   }
-  QnDist = Qn(distances[which(abs(distances) < sqrt(3/2) - 1)]) * sampleVariability
-  if (length(which(distances > 3 * QnDist)) < 0.05 * length(whichBothNonHomo)) {
+  QnDist = Qn(distances[which(abs(distances) < abs(1 - sqrt(1/2)) / 2)]) * sampleVariability
+  if (length(which(distances > qnorm(0.99) * QnDist)) < 0.05 * length(whichBothNonHomo)) {
     return(T)
   }
   plot(covOne ~ covTwo, main="CHECKED")
@@ -248,7 +248,7 @@ findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, mu
   bestLoc = c(1)
   
   possibleLocations = round(medianOfMediansPolymorphicCNV ** 2 * 2)
-  possibleLocations = unique(c(possibleLocations, round(1/3 * possibleLocations):round(3 * possibleLocations) ))
+  possibleLocations = unique(c(possibleLocations, round(1/2 * possibleLocations):round(2 * possibleLocations) ))
   coverageSummarisedCleaned = coverageSummarised[which(multipliersSamples < quantile(multipliersSamples, 0.95))]
   notHomozygousDeletionsCleaned = which(coverageSummarisedCleaned >= 0.45)
   for (j in 1:length(locations)) {
