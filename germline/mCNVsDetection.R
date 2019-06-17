@@ -68,7 +68,7 @@ sdsOfProbesCorrected = apply(cbind(sdsOfProbes, predictedVariances[,3]), 1, min)
 lowerBoundOfSD = quantile(sdsOfProbesCorrected, 0.0001)
 vect_of_norm_likeliks <- fast_dnorm_list()
 minimum_length_of_CNV = 0
-threshold = 100
+threshold = 200
 initial_state = 1
 price_per_tile = 5
 resultingMCNVs <- matrix(0, nrow=0, ncol=11)
@@ -108,7 +108,7 @@ for (l in 1:length(left_borders)) {
     for (i in 1:16) {
       locations[[i]] = sqrt(1:20/i) #[sqrt(1:20/i) > 0.4]
     }
-    matrixOfLikeliksLocal = matrix(threshold, nrow= nrow(coverageToWorkWith), ncol=2)
+    matrixOfLikeliksLocal = matrix(1000 * threshold, nrow= nrow(coverageToWorkWith), ncol=2)
     matrixOfLikeliksLocal[,1] = 0
     correlations <- sapply(2:nrow(coverageToWorkWith), function(i) {
       moreThanZero = which(coverageToWorkWith[i,] > 0.5 & coverageToWorkWith[i-1,] > 0.5) ; 

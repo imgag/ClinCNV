@@ -337,16 +337,16 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, 
     maxSubArraySum(matrix_of_BFs[,i])
   }
   detectedCNVs = matrix(detectedCNVs, ncol=3)
-  for (i in 1:nrow(detectedCNVs)) {
-    if (median(matrix_of_BFs[detectedCNVs[i,2]:detectedCNVs[i,3], sequence_for_iteration[i]]) < -10**-4) {
+  #for (i in 1:nrow(detectedCNVs)) {
+  #  if (median(matrix_of_BFs[detectedCNVs[i,2]:detectedCNVs[i,3], sequence_for_iteration[i]]) < -10**-4) {
       #print(sequence_for_iteration[i])
       #print(detectedCNVs[i,])
       #print(median(matrix_of_BFs[detectedCNVs[i,2]:detectedCNVs[i,3], sequence_for_iteration[i]]))
       #print("")
-      detectedCNVs[i,1] = -10**6
+  #    detectedCNVs[i,1] = -10**6
       
-    }
-  }
+  #  }
+  #}
   resultCNV = detectedCNVs[which.max(detectedCNVs[,1]),]
 
   while (resultCNV[1] > threshold & resultCNV[3] - resultCNV[2] < min_CNV_len) {
@@ -407,7 +407,12 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
         result_CNV[1] = bf_and_state[1]
         result_CNV[4] = bf_and_state[2]
         likelik_score_read_depth_only <- bf_and_state[3]
-        if (bf_and_state[2] != initial_state & bf_and_state[1] < min(-threshold,  -price_per_tile * (end - start + 1) )) {
+        print(bf_and_state)
+        plot(matrix_of_likeliks_local[start:end,bf_and_state[2]] ~ matrix_of_likeliks_local[start:end,very_initial_state])
+        abline(a=0, b=1)
+        print(median(matrix_of_likeliks_local[start:end,bf_and_state[2]] - matrix_of_likeliks_local[start:end,very_initial_state]))
+        print(sum(matrix_of_likeliks_local[start:end,bf_and_state[2]] - matrix_of_likeliks_local[start:end,very_initial_state]))
+        if (bf_and_state[2] != initial_state & bf_and_state[1] < min(-threshold,  -price_per_tile * (end - start + 1)) {#}  & median(matrix_of_likeliks_local[start:end,bf_and_state[2]] - matrix_of_likeliks_local[start:end,very_initial_state]) <= 0) {
           if (likelik_score_read_depth_only < -threshold) {
             found_CNVs <- rbind(found_CNVs, result_CNV)
           }

@@ -284,10 +284,10 @@ findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, mu
     bestWeightCheckForEvenDominance = bestWeightCheckForEvenDominance / sum(bestWeightCheckForEvenDominance)
     bestLocEvenDominance = c(vecOfMeans)
     bestLocEvenDominance = round(bestLocEvenDominance ** 2 * j)
-    if (!chromX & (sum(bestWeightCheckForEvenDominance[which(bestLocEvenDominance %% 2 == 0)]) * length(notHomozygousDeletionsCleaned) + length(which(coverageSummarisedCleaned < 0.5))) / length(coverageSummarisedCleaned) < 0.4) next
+    if (!chromX & (sum(bestWeightCheckForEvenDominance[which(bestLocEvenDominance %% 2 == 0)]) * length(notHomozygousDeletionsCleaned) + length(which(coverageSummarisedCleaned < 0.5))) / length(coverageSummarisedCleaned) < 0.5) next
 
     if (tmpLikelik < bestLikelik | is.null(bestSD)) {
-      if (4 * likelikAndWeights[[3]] < 1 - sqrt((j-1)/j)) {
+      if (2 * likelikAndWeights[[3]] < 1 - sqrt((j-1)/j)) {
         bestLikelik= tmpLikelik
         bestLoc = vecOfMeans
         bestSD = likelikAndWeights[[3]]
