@@ -828,9 +828,9 @@ returnAreasFreeOfCNVsForAdditionalAnalysis <- function(found_CNVs_total, sample_
 
 plotFoundCNVsNew <- function(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, outputFolder, chrom, cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, purities, 
                              local_copy_numbers_used_major_second, local_copy_numbers_used_minor_second, local_purities_second,
-                             toySizesOfPointsFromLocalSds, plottingOfPNGs) {
+                             toySizesOfPointsFromLocalSds, plottingOfPNGs, medianLikelihoods) {
   vector_of_states <- cn_states
-  cnvsToOutput <- matrix(0, nrow=0, ncol=13)
+  cnvsToOutput <- matrix(0, nrow=0, ncol=14)
   if (nrow(found_CNVs) > 0) {
     for (s in 1:nrow(found_CNVs)) {
       if(opt$debug) {
@@ -859,7 +859,7 @@ plotFoundCNVsNew <- function(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, o
       CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], 
                            local_copy_numbers_used_major[found_CNVs[s,4]], local_copy_numbers_used_minor[found_CNVs[s,4]],
                            purities[found_CNVs[s,4]],
-                           vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), 
+                           vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), round(medianLikelihoods[s], 5),
                            found_CNVs[s,3] - found_CNVs[s,2] + 1, 
                            local_copy_numbers_used_major_second[found_CNVs[s,4]], 
                            local_copy_numbers_used_minor_second[found_CNVs[s,4]], 
@@ -869,7 +869,7 @@ plotFoundCNVsNew <- function(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, o
       {
         print(CNVtoOut)
       }
-      cnvsToOutput = as.matrix(rbind(cnvsToOutput, CNVtoOut), ncol=13, drop=F)
+      cnvsToOutput = as.matrix(rbind(cnvsToOutput, CNVtoOut), ncol=14, drop=F)
       
       
       length_of_repr <- 500
@@ -1008,33 +1008,33 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
     
   }
   
-  clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(3/8))], model="E")
-  
-  weightsOfClusters = clusteredResult$parameters$pro
-  meansOfClusters = clusteredResult$parameters$mean
-  
-  if (length(weightsOfClusters) > 0)
-    for (i in 1:length(weightsOfClusters)) {
-      currentLocation = meansOfClusters[i]
-      diffs = abs(meansOfClusters - currentLocation)
-      meansOfClusters[i] = (clusteredResult$parameters$mean[which(diffs < 0.035)] * clusteredResult$parameters$pro[which(diffs < 0.035)]) / sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
-      weightsOfClusters[i] = sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
-    }
-  
-  bigClusters <- which(weightsOfClusters > 0.25)
-  if (length(bigClusters) == 0) {
-    shiftOfCoverage <- median(globalLogFold[allowedChromosomesAutosomesOnly])
-    weightsOfClusters = 1
-  } else {
-    shiftOfCoverage = meansOfClusters[bigClusters]
-    weightsOfClusters = weightsOfClusters[bigClusters]
-  }
-  weightsOfClusters = weightsOfClusters[order(shiftOfCoverage)]
-  shiftOfCoverage = shiftOfCoverage[order(shiftOfCoverage)]
+  # clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(3/8))], model="E")
+  # 
+  # weightsOfClusters = clusteredResult$parameters$pro
+  # meansOfClusters = clusteredResult$parameters$mean
+  # 
+  # if (length(weightsOfClusters) > 0)
+  #   for (i in 1:length(weightsOfClusters)) {
+  #     currentLocation = meansOfClusters[i]
+  #     diffs = abs(meansOfClusters - currentLocation)
+  #     meansOfClusters[i] = (clusteredResult$parameters$mean[which(diffs < 0.035)] * clusteredResult$parameters$pro[which(diffs < 0.035)]) / sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
+  #     weightsOfClusters[i] = sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
+  #   }
+  # 
+  # bigClusters <- which(weightsOfClusters > 0.25)
+  # if (length(bigClusters) == 0) {
+  #   shiftOfCoverage <- median(globalLogFold[allowedChromosomesAutosomesOnly])
+  #   weightsOfClusters = 1
+  # } else {
+  #   shiftOfCoverage = meansOfClusters[bigClusters]
+  #   weightsOfClusters = weightsOfClusters[bigClusters]
+  # }
+  # weightsOfClusters = weightsOfClusters[order(shiftOfCoverage)]
+  # shiftOfCoverage = shiftOfCoverage[order(shiftOfCoverage)]
   
   print(chrRegion)
   print(array_of_medians)
-  print(weightOfMedians / sum(weightOfMedians))
+  #print(weightOfMedians / sum(weightOfMedians))
 
   anyChangeHappen = T
   numOfIter = 1
@@ -1140,10 +1140,10 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
           likeliks = matrixOfLikeliksForPlottingBAF[l,] 
           if (length(unique(likeliks)) == 0) next
           minLikelik = which.min(likeliks)
-          if (as.numeric(entry[5]) > 0.5) {
-            points(horizontalCoord, (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.005)), col=rgb(0,0,0,0.25), pch=19, cex=0.7)
+          if (as.numeric(entry[5]) >= 0.5) {
+            points(horizontalCoord + rnorm(n=1,sd=50), (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.007)), col=rgb(0,0,0,0.2), pch=19, cex=0.8)
           } else {
-            points(horizontalCoord, 1- (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.005)), col=rgb(0,0,0,0.25), pch=19, cex=0.7)
+            points(horizontalCoord + rnorm(n=1,sd=50), 1- (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.007)), col=rgb(0,0,0,0.2), pch=19, cex=0.8)
           }
           
         }

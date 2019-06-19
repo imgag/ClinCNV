@@ -108,7 +108,7 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
   
   
   cn_states <- c()
-  copy_numbers = 0:15
+  copy_numbers = 0:30
   purity <- seq(from=opt$minimumPurity, to=100.1, by=opt$purityStep) / 100
   purities <- c()
   puritiesSecond <- c()
@@ -127,6 +127,7 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
   
   for (pur in purity) {
     for (cn in copy_numbers) {
+      #if (cn > 10 & pur < 0.2) next
       for (cn1 in copy_numbers) {
         if (cn1 <= 4 & cn1 <= cn & !(cn1 == 1 & cn == 1) & 
             (cn1 + cn) <= max(copy_numbers) & ((1-pur) + pur * cn) > 0 ) {
@@ -163,6 +164,7 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
   final_order <- order(cn_states)
   datasetOfPuritiesCopies = datasetOfPuritiesCopies[final_order,]
   datasetOfPuritiesCopies = rbind(c(2,1,1,1,1,0,1,1,0), c(1,1,0,1,0,0,1,1,0), datasetOfPuritiesCopies)
+  #datasetOfPuritiesCopiesSimplified = duplicated(cbind(datasetOfPuritiesCopies[,1], datasetOfPuritiesCopies[,4] / (datasetOfPuritiesCopies[,4] + datasetOfPuritiesCopies[,5])))
   
   
   

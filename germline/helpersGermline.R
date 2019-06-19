@@ -438,8 +438,8 @@ returnClustering <- function(minNumOfElemsInCluster) {
   
   coverageForClustering = apply(coverageForClustering, 2, function(x) {runmed(x, 5)})
   
-  if (nrow(coverageForClustering) > 50000) {
-    coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 50000),]
+  if (nrow(coverageForClustering) > 100000) {
+    coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 100000),]
   }
   
 
@@ -465,9 +465,10 @@ returnClustering <- function(minNumOfElemsInCluster) {
   } else {
     coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) {runmed(x, 2)}))
   }
-  matrixOfDistForMDS = as.matrix(dist(t(coverageForClustering), method="manhattan"))
+  matrixOfDistForMDS = as.matrix(as.dist(1 - cor(coverageForClustering)))
+  #matrixOfDistForMDS = as.matrix(dist(t(coverageForClustering), method="manhattan"))
   
-  fit <- isoMDS(as.dist(matrixOfDistForMDS), k=2) # k is the number of dim
+  fit <- isoMDS(as.dist(matrixOfDistForMDS), k=3) # k is the number of dim
   x <- trimValues(fit$points[,1], 0.01)
   y <- trimValues(fit$points[,2], 0.01)
   
@@ -795,6 +796,6 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
     }
     sdsResults <- c(sdsResults, QNs)
   }
-  return(list(coverage.normalised + 1, cbind(mediansResult, sdsResults), sdsOfGermlineSamplesTmp))
+  return(list(cbind(mediansResult, sdsResults), sdsOfGermlineSamplesTmp))
 }
 
