@@ -147,7 +147,7 @@ checkConnectivityMed = function(covOne, covTwo, sampleVariability, sdOne, sdTwo,
   if (length(which(abs(distances) < abs(1 - sqrt(1/2)) / 2)) < 5) {
     return(F)
   }
-  QnDist = Qn(distances[which(abs(distances) < abs(1 - sqrt(1/2)) / 2)]) * sampleVariabilitys[which(abs(distances) < abs(1 - sqrt(1/2)) / 2)]
+  QnDist = Qn(distances[which(abs(distances) < abs(1 - sqrt(1/2)) / 2)]) * sampleVariability[which(abs(distances) < abs(1 - sqrt(1/2)) / 2)]
   if (length(which(distances > qnorm(0.999) * QnDist)) < percentageToBePolymorphism * length(whichBothNonHomo)) {
     return(T)
   }

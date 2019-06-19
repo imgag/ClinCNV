@@ -16,9 +16,9 @@ vect_of_norm_likeliks = fast_dt_list(100)
 ## MAKING COHORT ONLY OF LOW VARIANCE SAMPLES
 QnSample <- apply(coverage[which(!bedFile[,1] %in% c("chrX","chrY")),], 2, mad)
 modeOfVariances <- EstimateModeSimple(QnSample)
-samplesForExclusion <- which(QnSample > 2.5 * modeOfVariances)
+samplesForExclusion <- which(QnSample > 1.5 * modeOfVariances)
 if (length(samplesForExclusion) > 0) {
-  print(paste("Samples", paste(colnames(coverage), collapse=", "), "have variances 2.5 times bigger than the mode variance of the cohort. We have to exclude them."))
+  print(paste("Samples", paste(colnames(coverage)[samplesForExclusion], collapse=", "), "have variances 2.5 times bigger than the mode variance of the cohort. We have to exclude them."))
   coverageForNormalization = coverage[,-samplesForExclusion]
   genderOfSamplesUsed = genderOfSamples[-samplesForExclusion]
   if (ncol(coverageForNormalization) < 50) {
@@ -32,8 +32,8 @@ if (length(samplesForExclusion) > 0) {
 
 autosomes = which(!bedFile[,1] %in% c("chrX", "chrY"))
 mediansAndSdsPolymorphic = calculateLocationAndScale(bedFile, coverageForNormalization, genderOfSamplesUsed, autosomes, polymorphic=T)
-coverage.normalised.polymorph = mediansAndSdsPolymorphic[[1]]
-mediansOfPolymorphic = mediansAndSdsPolymorphic[[2]][,1]
+mediansOfPolymorphic = mediansAndSdsPolymorphic[[1]][,1]
+coverage.normalised.polymorph = sweep(coverageForNormalization, 1, mediansOfPolymorphic + 10**-40, FUN="/")
 rm(mediansAndSdsPolymorphic)
 rm(coverageForNormalization)
 
