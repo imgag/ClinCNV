@@ -4,8 +4,8 @@ options(warn=-1)
 
 ## CHECK R VERSION
 if (!(as.numeric(version$major) >= 3 & as.numeric(version$minor) > 2.0)) {
- print("Your R version is too old. We can not guarantee stable work.")
- print(version)
+  print("Your R version is too old. We can not guarantee stable work.")
+  print(version)
 }
 
 ### PART WITH PARSING OPTIONS
@@ -99,7 +99,7 @@ option_list = list(
   
   make_option(c("-fdrG", "--fdrGermline"), type="integer", default=0, 
               help="number of iterations for FDR check (more - better, but slower, 0 = no FDR correction)"),
-
+  
   make_option(c("-numT", "--numberOfThreads"), type="integer", default=1, 
               help="number of threads used for some bottleneck parts, default=1"),  
   
@@ -217,23 +217,23 @@ if (opt$mosaicism) {
 #no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 #cl<-makeCluster(no_cores, type="FORK")
 #registerDoParallel(cl)
- 
+
 cl = NULL
- numberOfAttempts = 0
- no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
- while(is.null(cl)) {
+numberOfAttempts = 0
+no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
+while(is.null(cl)) {
   if (numberOfAttempts > 10) break
   numberOfAttempts = numberOfAttempts + 1
   print(paste("Attempting to allocate parallel clustering....", numberOfAttempts))
   cl = withTimeout(makeCluster(no_cores, type="FORK"), timeout = 1, onTimeout = "warning")
   registerDoParallel(cl)
   stopCluster(cl)
- }
+}
 
- if (is.null(cl)) {
+if (is.null(cl)) {
   print("Cluster allocation was not succesfull. Quit.")
   quit(status=-1)
- }
+}
 cl = NULL
 
 cl = makeCluster(no_cores, type="FORK")
@@ -251,14 +251,15 @@ if (ncol(bedFile)  == 4) {
   colnames(bedFile) <- colnames(bedFile)
 }
 colnames(bedFile) <- c("chr.X", "start", "end", "gc", "genes")
-bedFile <- bedFile[order(bedFile$chr.X, as.numeric(bedFile$start)),]
+if (!opt$colNum == 1)
+  bedFile <- bedFile[order(bedFile$chr.X, as.numeric(bedFile$start)),]
 presentedChromsOn = unique(bedFile[,1])
 numberOfElemsInEachChromosome = sapply(1:length(presentedChromsOn), function(i) {
-   if (length(which(bedFile[,1] == presentedChromsOn[i])) > 5) {
-     return(T)
-   } else {
-     return(F)
-   }
+  if (length(which(bedFile[,1] == presentedChromsOn[i])) > 5) {
+    return(T)
+  } else {
+    return(F)
+  }
 })
 
 
@@ -277,13 +278,16 @@ normal <- ReadFileFast(opt$normal, header=T)
 colnames(normal) = cutX(colnames(normal))
 if (!startsWith(normal[,1], "chr") & !opt$colNum == 1)
   normal[,1] <- paste0("chr", normal[,1])
-normal <- normal[order(normal[,1], as.numeric(normal[,2])),]
+if (!opt$colNum == 1)
+  normal <- normal[order(normal[,1], as.numeric(normal[,2])),]
 
 if (length(whichBedIsNA) > 0)
   normal = normal[-whichBedIsNA,]
 
-if (!checkBedAndCoverageValidity(bedFile, normal)) {
-  quit()
+if (!opt$colNum == 1) {
+  if (!checkBedAndCoverageValidity(bedFile, normal)) {
+    quit()
+  }
 }
 
 normal <- as.matrix(normal[,opt$colNum:ncol(normal)])
@@ -310,7 +314,7 @@ if (framework == "somatic") {
   tumor = checkForDuplicatesAndRemove(tumor, opt$tumorSample)
   avgDepthTumorOn = determineAverageDepth(normal, bedFile)
   
-
+  
 }
 
 
@@ -359,7 +363,7 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   # remain only samples that are in Normal cohort 
   normalOff <- checkForDuplicatesAndRemove(normalOff, opt$normalSample)
   
-
+  
   normalOff <- normalOff[,which(colnames(normalOff) %in% colnames(normal))]
   avgDepthNormalOff = determineAverageDepth(normalOff, bedFileOfftarget)
   if (nrow(normalOff) != nrow(bedFileOfftarget)) {
@@ -442,9 +446,9 @@ ends_of_chroms <- lstOfChromBorders[[3]]
 if (frameworkDataTypes == "covdepthBAF") {
   print(paste("We are reading BAF files. It may take time - especially if you have a lot of SNV positions.", Sys.time()))
   setwd(opt$folderWithScript)
-
-    source(file.path(opt$folderWithScript, "somatic", "bafSegmentation.R"), local=T)
-
+  
+  source(file.path(opt$folderWithScript, "somatic", "bafSegmentation.R"), local=T)
+  
   if (!dir.exists(file.path(opt$bafFolder, "/result"))) {
     dir.create(file.path(opt$bafFolder, "/result"))
   }
@@ -479,7 +483,7 @@ if (max(bedFile[,3] - bedFile[,2]) / min(bedFile[,3] - bedFile[,2]) > 16) {
 } else {
   lengthBasedNorm = F
 }
-  
+
 lst <- gc_and_sample_size_normalise(bedFile, normal)
 normal <- lst[[1]]
 writeOutLevelOfNoiseVersusCoverage(avgDepthNormalOn, normal, bedFile, paste0(opt$out, "/ontargetNormal.summary.xls"))
@@ -531,11 +535,11 @@ if (framework == "somatic") {
 print(paste("Amount of regions after Systematically Low Covered regions filtering", round(100 * nrow(normal) / numberOfRowsBeforeAllTheFiltrationNormal, digits = 3) ) )
 
 if (length(regionsToFilerOutOn)>0) {
-	normal = normal[-regionsToFilerOutOn,] + 10**-20
-	if (framework == "somatic") {
-	  tumor = tumor[-regionsToFilerOutOn,] + 10**-20
-	}
-	bedFile = bedFile[-regionsToFilerOutOn,]
+  normal = normal[-regionsToFilerOutOn,] + 10**-20
+  if (framework == "somatic") {
+    tumor = tumor[-regionsToFilerOutOn,] + 10**-20
+  }
+  bedFile = bedFile[-regionsToFilerOutOn,]
 }
 
 
@@ -589,7 +593,7 @@ clusteringList <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
 clustering = clusteringList[[1]]
 outliersByClusteringCohort = clusteringList[[2]]
 stopCluster(cl)
-  
+
 orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
 bedFile = bedFile[orderOfBedFile,]
 normal = normal[orderOfBedFile,]
@@ -608,7 +612,7 @@ if (framework == "germline") {
   gc()
   print(paste("Processing of germline variants started (we need to do it as an additional step for Saomtic calling since we need to know at least genders).", Sys.time()))
   
-
+  
   
   if (frameworkOff == "offtargetGermline") {
     orderOfBedFileOff <- order(bedFileOfftarget[,1], as.numeric(bedFileOfftarget[,2]))
@@ -623,7 +627,7 @@ if (framework == "germline") {
       print(colnames(normal)[which(clustering == -1)])
       next
     }
-
+    
     
     # We create cluster for parallel computation each time we run germline analysis
     no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
@@ -657,7 +661,7 @@ if (framework == "germline") {
     if (opt$polymorphicCalling == "YES") {
       source(paste0(opt$folderWithScript, "/germline/mCNVsDetection.R"),local=TRUE)
       if (nrow(copyNumberForReportingGlobal) > 0)
-      polymorphicRegions = copyNumberForReportingGlobal
+        polymorphicRegions = copyNumberForReportingGlobal
     }
     if (opt$polymorphicCalling != "YES" & opt$polymorphicCalling != "NO") {
       print("Since polymorphicCalling option was not YES or NO, we interpret the value as a path to file")
@@ -668,7 +672,7 @@ if (framework == "germline") {
     
     
     autosomes <- which(!bedFile[,1] %in% c("chrX", "chrY", "X", "Y"))
-
+    
     #medians <- parSapply(cl=cl, 1:nrow(coverage), function(i) {EstimateModeSimple(coverage[i,], bedFile[i,1], FindRobustMeanAndStandardDeviation)})
     print(paste("We start estimation of parameters of germline cohort. It may take some time. Cluster of samples being analysed:", cluster, Sys.time()))
     mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes)
@@ -676,7 +680,7 @@ if (framework == "germline") {
     rm(coverage)
     gc()
     
-
+    
     
     sdsOfProbes = trimValues(as.numeric(mediansAndSds[[1]][,2]), 0.01)
     sdsOfGermlineSamples = mediansAndSds[[2]]
@@ -699,7 +703,7 @@ if (framework == "germline") {
       sdsOfProbesOff = sdsOfProbesOff[filterOutRegionsWithSmallMedians]
       bedFileFilteredOfftarget = bedFileOfftarget[filterOutRegionsWithSmallMedians,]
       coverage.normalised.off = coverage.normalised.off[filterOutRegionsWithSmallMedians,]
-
+      
     }
     
     
@@ -737,30 +741,30 @@ print(paste("Processing of somatic variants started.", Sys.time()))
 setwd(opt$folderWithScript)
 
 for (cluster in unique(clustering)) {
-    print(paste("Working on somatic samples, cluster", cluster, Sys.time()))
-    vect_of_norm_likeliks <- fast_dt_list(as.numeric(opt$degreesOfFreedomStudent))
-    vect_of_t_likeliks <- fast_dt_list(as.numeric(opt$degreesOfFreedomStudent))
-    
-    samplesToAnalyse = which(clustering == cluster)
-    genderOfSamples = genderOfSamplesCohort[samplesToAnalyse]
-    tmpNormal = normal[,which(clustering == cluster)]
-    if (frameworkOff == "offtarget") {
-      tmpNormalOff = normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))]
-      bedFileForClusterOff = bedFileOfftarget
+  print(paste("Working on somatic samples, cluster", cluster, Sys.time()))
+  vect_of_norm_likeliks <- fast_dt_list(as.numeric(opt$degreesOfFreedomStudent))
+  vect_of_t_likeliks <- fast_dt_list(as.numeric(opt$degreesOfFreedomStudent))
+  
+  samplesToAnalyse = which(clustering == cluster)
+  genderOfSamples = genderOfSamplesCohort[samplesToAnalyse]
+  tmpNormal = normal[,which(clustering == cluster)]
+  if (frameworkOff == "offtarget") {
+    tmpNormalOff = normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))]
+    bedFileForClusterOff = bedFileOfftarget
+  }
+  if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
+    if (!opt$normalSample %in% colnames(tmpNormal)) {
+      next
     }
-    if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {
-      if (!opt$normalSample %in% colnames(tmpNormal)) {
-        next
-      }
-    }
-    bedFileForCluster = bedFile
-    
-    source(paste0(opt$folderWithScript, "/somatic/somaticSolver.R"),local=TRUE)
-    if (frameworkOff == "offtarget") {
-      prepareDataAndCall(bedFileForCluster, tmpNormal, tumor, genderOfSamples, bedFileForClusterOff, tmpNormalOff, tumorOff)
-    } else {
-      prepareDataAndCall(bedFileForCluster, tmpNormal, tumor, genderOfSamples)
-    }
+  }
+  bedFileForCluster = bedFile
+  
+  source(paste0(opt$folderWithScript, "/somatic/somaticSolver.R"),local=TRUE)
+  if (frameworkOff == "offtarget") {
+    prepareDataAndCall(bedFileForCluster, tmpNormal, tumor, genderOfSamples, bedFileForClusterOff, tmpNormalOff, tumorOff)
+  } else {
+    prepareDataAndCall(bedFileForCluster, tmpNormal, tumor, genderOfSamples)
+  }
 }
 
 

@@ -465,8 +465,8 @@ returnClustering <- function(minNumOfElemsInCluster) {
   } else {
     coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) {runmed(x, 2)}))
   }
-  matrixOfDistForMDS = as.matrix(as.dist(1 - cor(coverageForClustering)))
-  #matrixOfDistForMDS = as.matrix(dist(t(coverageForClustering), method="manhattan"))
+  #matrixOfDistForMDS = as.matrix(as.dist(1 - cor(coverageForClustering)))
+  matrixOfDistForMDS = as.matrix(dist(t(coverageForClustering), method="manhattan"))
   
   fit <- isoMDS(as.dist(matrixOfDistForMDS), k=3) # k is the number of dim
   x <- trimValues(fit$points[,1], 0.01)
