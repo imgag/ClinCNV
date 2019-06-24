@@ -8,10 +8,12 @@ cn_states <- 0:8
 degree_of_mosaicism = seq(from=0.1, to=0.9, by=0.05)
 if (opt$mosaicism) {
   cn_states_mosaicism <- unique(c(cn_states, round(sapply(degree_of_mosaicism, function(dg) {dg * 0:4}), 2)))
+  
+  diffs <- sapply(cn_states_mosaicism, function(i) {min(abs(cn_states - i))})
+  cn_states_mosaicism = cn_states_mosaicism[-which(diffs > 0.01 & diffs < 0.09)]
 }
 
-diffs <- sapply(cn_states_mosaicism, function(i) {min(abs(cn_states - i))})
-cn_states_mosaicism = cn_states_mosaicism[-which(diffs > 0.01 & diffs < 0.09)]
+
 
 #load("/Users/gdemidov/Downloads/prepared.RData")
 #opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/"
