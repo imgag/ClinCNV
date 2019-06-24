@@ -5,11 +5,13 @@ cl<-makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
 
 cn_states <- 0:8
+degree_of_mosaicism = seq(from=0.1, to=0.9, by=0.05)
 if (opt$mosaicism) {
-  cn_states_mosaicism <- unique(c(cn_states, seq(from=0.1,to=1.9,by=0.05)))
-  cn_states_mosaicism <- unique(c(cn_states_mosaicism, seq(from=2.1,to=7.9,by=0.05)))
+  cn_states_mosaicism <- unique(c(cn_states, round(sapply(degree_of_mosaicism, function(dg) {dg * 0:4}), 2)))
 }
 
+diffs <- sapply(cn_states_mosaicism, function(i) {min(abs(cn_states - i))})
+cn_states_mosaicism = cn_states_mosaicism[-which(diffs > 0.01 & diffs < 0.09)]
 
 #load("/Users/gdemidov/Downloads/prepared.RData")
 #opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/"
@@ -67,6 +69,9 @@ if (!is.null(polymorphicRegions)) {
 
 print(paste("Calling started", Sys.time()))
 for (sam_no in 1:ncol(coverage.normalised)) {
+  
+  
+  
   sample_name <- colnames(coverage.normalised)[sam_no]
   if (frameworkOff == "offtargetGermline") { 
     if (sample_name %in% colnames(coverage.normalised.off)) {
@@ -103,6 +108,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   
   if (!dir.exists(paste0(folder_name, sample_name))) {
     dir.create(paste0(folder_name, sample_name))
+  } else {
+    if (is.null(opt$reanalyseCohort)) next
   }
   setwd(paste0(folder_name, sample_name))
   
