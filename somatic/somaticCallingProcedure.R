@@ -439,7 +439,7 @@ somaticCalling <- function(matrixOfLogFold) {
           }
           if (!is.null(matrixOfBAFLikeliks) & nrow(chrMatrixOfLikeliksOn) > 0) {
             closestBedRegionsToyChr = closestBedRegionsToy[which(bAlleleFreqsTumorToy[,1] == chrom)]
-            matrixOfBAFsFromChr = matrixOfBAFLikeliks[which(bAlleleFreqsTumorToy[,1] == chrom),]
+            matrixOfBAFsFromChr = matrixOfBAFLikeliks[which(bAlleleFreqsTumorToy[,1] == chrom),,drop=F]
             closestBedRegionsToyChrMapped = sapply(1:length(closestBedRegionsToyChr), function(i) {which(whichAreFromChr == closestBedRegionsToyChr[i])})
             for (mappedPosBaf in 1:length(closestBedRegionsToyChrMapped)) {
               if (length(closestBedRegionsToyChrMapped[[mappedPosBaf]]) > 0) {
