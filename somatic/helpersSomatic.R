@@ -1076,7 +1076,7 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
 }
 
 
-plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, found_CNVs_total, matrix_of_likeliks, bedFileForMatrix, matrixOfBAFLikeliks, bafMatrix, coordsIncludedAtFirst,
+plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, found_CNVs_total, bedFileForMatrix, matrixOfBAFLikeliks, bafMatrix, coordsIncludedAtFirst,
                                     matrixOfLogFoldSample,
                                     local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms,
                                     local_majorBAF_second, local_minorBAF_second, local_purities_second) {
@@ -1273,4 +1273,15 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
   
   dev.off()
 }
+
+
+
+
+
+
+
+
+
+
+
 

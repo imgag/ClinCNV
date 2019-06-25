@@ -192,16 +192,16 @@ somaticCalling <- function(matrixOfLogFold) {
           local_purities_second <- local_purities_second[-blocked_states_global]
         }
         
-        matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1,  matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2))
+        #matrix_of_likeliks <- form_matrix_of_likeliks_one_sample(1,  matrixOfLogFoldCorrectedSmall[,sam_no], localSds, log2(local_cn_states/2))
         
         
         
-        if (genderOfSamples[germline_sample_no] == "M") {
-          if (length(which(bedFileForCluster[,1] %in% c("chrX","chrY"))) > 0)
-            matrix_of_likeliks[which(bedFileForCluster[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
-              1, matrixOfLogFoldCorrectedSmall[which(bedFileForCluster[,1] %in% c("chrX","chrY")),sam_no], 
-              localSds[which(bedFileForCluster[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used_major))
-        }
+        #if (genderOfSamples[germline_sample_no] == "M") {
+        #  if (length(which(bedFileForCluster[,1] %in% c("chrX","chrY"))) > 0)
+        #    matrix_of_likeliks[which(bedFileForCluster[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
+        #      1, matrixOfLogFoldCorrectedSmall[which(bedFileForCluster[,1] %in% c("chrX","chrY")),sam_no], 
+        #      localSds[which(bedFileForCluster[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used_major))
+        #}
         
         
         ### ADD LIKELIHOODS
@@ -351,7 +351,7 @@ somaticCalling <- function(matrixOfLogFold) {
                 if (closestBedRegionsToy[i] != 0) {
                   numberOfAssignedPositions = numberOfAssignedPositions + 1
                   pList = fillInPList(altAlleleDepth, overallDepth,  expectedBAFsUnique, overdispersionValue)
-                  vecOfLikeliks <- rep(0, ncol(matrix_of_likeliks))
+                  vecOfLikeliks <- rep(0, length(local_cn_states))
                   for (j in 1:length(expectedBAFsUnique)) {
                     statesBAFIsUsed = whereThisBAFIsUsed[[j]]
                     likelihood = pList[[as.character(expectedBAFsUnique[j])]]
@@ -362,12 +362,12 @@ somaticCalling <- function(matrixOfLogFold) {
                   return(rep(0, length(local_cn_states)))
                 }
               }
-              for (i in 1:nrow(bAlleleFreqsTumorToy)) {
-                closestBedRegion = closestBedRegionsToy[i]
-                if (!is.na(closestBedRegion))
-                  if (closestBedRegion != 0)
-                    matrix_of_likeliks[closestBedRegion,] = matrix_of_likeliks[closestBedRegion,] + matrixOfBAFLikeliks[i,]
-              }
+              #for (i in 1:nrow(bAlleleFreqsTumorToy)) {
+              #  closestBedRegion = closestBedRegionsToy[i]
+              #  if (!is.na(closestBedRegion))
+              #    if (closestBedRegion != 0)
+              #      matrix_of_likeliks[closestBedRegion,] = matrix_of_likeliks[closestBedRegion,] + matrixOfBAFLikeliks[i,]
+              #}
             }
           }
           print("Finished BAF calculation")
@@ -382,37 +382,37 @@ somaticCalling <- function(matrixOfLogFold) {
           matrixOfLogFoldOffCorrectedExtraSmallValues <- matrixOfLogFoldOff
           matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues < log2(min(local_cn_states) / 2))] = log2(min(local_cn_states) / 2)
           matrixOfLogFoldOffCorrectedExtraSmallValues[which(matrixOfLogFoldOffCorrectedExtraSmallValues > log2(max(local_cn_states) / 2))] = log2(max(local_cn_states) / 2)
-          matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, matrixOfLogFoldOffCorrectedExtraSmallValues[,sam_no_off], localSdsOff, log2(local_cn_states/2))
-          if (genderOfSamples[germline_sample_no] == "M") {
-            matrix_of_likeliks_off[which(bedFileForClusterOff[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
-              1, matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileForClusterOff[,1] %in% c("chrX","chrY")),sam_no_off], 
-              localSdsOff[which(bedFileForClusterOff[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used_major))
-          }
+          #matrix_of_likeliks_off <- form_matrix_of_likeliks_one_sample(1, matrixOfLogFoldOffCorrectedExtraSmallValues[,sam_no_off], localSdsOff, log2(local_cn_states/2))
+          #if (genderOfSamples[germline_sample_no] == "M") {
+          #  matrix_of_likeliks_off[which(bedFileForClusterOff[,1] %in% c("chrX","chrY")),] = form_matrix_of_likeliks_one_sample(
+          #    1, matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileForClusterOff[,1] %in% c("chrX","chrY")),sam_no_off], 
+          #    localSdsOff[which(bedFileForClusterOff[,1] %in% c("chrX","chrY"))], log2((1 - local_purities) + local_purities * local_copy_numbers_used_major))
+          #}
           
           
           
-          globalMatrOfLikeliks <- rbind(matrix_of_likeliks, matrix_of_likeliks_off)
+          #globalMatrOfLikeliks <- rbind(matrix_of_likeliks, matrix_of_likeliks_off)
           globalBed <- rbind(bedFileForCluster, bedFileForClusterOff)
           sizesOfPointsFromLocalSdsOff <- 0.5 / localSdsOff
           vecOfOrder = order(globalBed[,1], as.numeric(globalBed[,2]))
           globalSizesOfPoints <- c(sizesOfPointsFromLocalSds, sizesOfPointsFromLocalSdsOff)[vecOfOrder]
-          globalMatrOfLikeliks <- globalMatrOfLikeliks[vecOfOrder,]
+          #globalMatrOfLikeliks <- globalMatrOfLikeliks[vecOfOrder,]
           globalLogFold <- c( matrixOfLogFold[,sam_no], matrixOfLogFoldOff[,sam_no_off])[vecOfOrder]
           globalSds <-  c(localSds, localSdsOff)[vecOfOrder]
           globalBed <- globalBed[vecOfOrder,]
         }
         print(paste("Block before CNV detection finished", Sys.time()))
         
-        fileNameWithGermlineVars <- paste0(opt$out, "/normal/", germline_sample_name, "/", germline_sample_name, "_cnvs.tsv")
-        if (sampleInOfftarget) {
-          coordsToMakeNull = returnCoordsThatNeedToBeNull(globalBed, fileNameWithGermlineVars)
-          if (length(coordsToMakeNull) > 0)
-            globalMatrOfLikeliks[coordsToMakeNull,] = 0
-        } else {
-          coordsToMakeNull = returnCoordsThatNeedToBeNull(bedFileForCluster, fileNameWithGermlineVars)
-          if (length(coordsToMakeNull) > 0)
-            matrix_of_likeliks[coordsToMakeNull,] = 0
-        }
+        #fileNameWithGermlineVars <- paste0(opt$out, "/normal/", germline_sample_name, "/", germline_sample_name, "_cnvs.tsv")
+        #if (sampleInOfftarget) {
+        #  coordsToMakeNull = returnCoordsThatNeedToBeNull(globalBed, fileNameWithGermlineVars)
+        #  if (length(coordsToMakeNull) > 0)
+        #    globalMatrOfLikeliks[coordsToMakeNull,] = 0
+        #} else {
+        #  coordsToMakeNull = returnCoordsThatNeedToBeNull(bedFileForCluster, fileNameWithGermlineVars)
+        #  if (length(coordsToMakeNull) > 0)
+        #    matrix_of_likeliks[coordsToMakeNull,] = 0
+        #}
         
         
         
@@ -425,11 +425,46 @@ somaticCalling <- function(matrixOfLogFold) {
         
         for (l in 1:length(left_borders)) {
           
-          
-          
-          
           chrom = names(left_borders)[l]
           print(paste(chrom, Sys.time()))
+          
+          
+          whichAreFromChr = which(bedFileForCluster[,1] == chrom)
+          if (genderOfSamples[germline_sample_no]== "M" & chrom %in% c("chrX", "chrY")) {
+            chrMatrixOfLikeliksOn = form_matrix_of_likeliks_one_sample(1,  matrixOfLogFoldCorrectedSmall[whichAreFromChr,sam_no], localSds[whichAreFromChr], log2((1 - local_purities) + local_purities * local_copy_numbers_used_major))
+            if (sampleInOfftarget) chrMatrixOfLikeliksOff = form_matrix_of_likeliks_one_sample(1, matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileForClusterOff[,1] == chrom),sam_no_off], localSdsOff[which(bedFileForClusterOff[,1] == chrom)], log2((1 - local_purities) + local_purities * local_copy_numbers_used_major))
+          } else {
+            chrMatrixOfLikeliksOn = form_matrix_of_likeliks_one_sample(1,  matrixOfLogFoldCorrectedSmall[whichAreFromChr,sam_no], localSds[whichAreFromChr], log2(local_cn_states/2))
+            if (sampleInOfftarget) chrMatrixOfLikeliksOff = form_matrix_of_likeliks_one_sample(1, matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileForClusterOff[,1] == chrom),sam_no_off], localSdsOff[which(bedFileForClusterOff[,1] == chrom)], log2(local_cn_states/2))
+          }
+          if (!is.null(matrixOfBAFLikeliks) & nrow(chrMatrixOfLikeliksOn) > 0) {
+            closestBedRegionsToyChr = closestBedRegionsToy[which(bAlleleFreqsTumorToy[,1] == chrom)]
+            matrixOfBAFsFromChr = matrixOfBAFLikeliks[which(bAlleleFreqsTumorToy[,1] == chrom),]
+            closestBedRegionsToyChrMapped = sapply(1:length(closestBedRegionsToyChr), function(i) {which(whichAreFromChr == closestBedRegionsToyChr[i])})
+            for (mappedPosBaf in 1:length(closestBedRegionsToyChrMapped)) {
+              if (length(closestBedRegionsToyChrMapped[[mappedPosBaf]]) > 0) {
+                chrMatrixOfLikeliksOn[closestBedRegionsToyChrMapped[[mappedPosBaf]],] = chrMatrixOfLikeliksOn[closestBedRegionsToyChrMapped[[mappedPosBaf]],] + matrixOfBAFsFromChr[mappedPosBaf,]
+              }
+            }
+          }
+          
+          
+          resultMatrixOfLikelihoods <- matrix(0, ncol=length(local_cn_states), nrow=0)
+          resultBedForOrdering <- matrix(0, ncol=ncol(bedFileForCluster), nrow=0)
+          if (nrow(chrMatrixOfLikeliksOn) > 0) {
+            resultMatrixOfLikelihoods = rbind(resultMatrixOfLikelihoods, chrMatrixOfLikeliksOn)
+            resultBedForOrdering = rbind(resultBedForOrdering, bedFileForCluster[which(bedFileForCluster[,1] == chrom),])
+          }
+          if (sampleInOfftarget) {
+            if (nrow(chrMatrixOfLikeliksOff) > 0) {
+              resultMatrixOfLikelihoods = rbind(resultMatrixOfLikelihoods, chrMatrixOfLikeliksOff)
+              resultBedForOrdering = rbind(resultBedForOrdering, bedFileForClusterOff[which(bedFileForClusterOff[,1] == chrom),])
+            }
+          }
+          resultMatrixOfLikelihoods = resultMatrixOfLikelihoods[order(resultBedForOrdering[,1], resultBedForOrdering[,2]),]
+          resultBedForOrdering = resultBedForOrdering[order(resultBedForOrdering[,1], resultBedForOrdering[,2]),]
+          
+          
           
           if (chrom == "chrY" & genderOfSamples[germline_sample_no] == "F") {
             next
@@ -454,12 +489,14 @@ somaticCalling <- function(matrixOfLogFold) {
             if (sampleInOfftarget) {
               if (k == 1) {
                 which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) <= as.numeric(start) )
+                which_to_allow_chr = which(as.numeric(resultBedForOrdering[,2]) <= as.numeric(start) )
               } else {
                 which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) >= as.numeric(end) )
+                which_to_allow_chr = which(as.numeric(resultBedForOrdering[,2]) >= as.numeric(end) )
               }
               toyBedFile = globalBed[which_to_allow,]
               
-              toyMatrixOfLikeliks = globalMatrOfLikeliks[which_to_allow,]
+              toyMatrixOfLikeliks = resultMatrixOfLikelihoods[which_to_allow_chr,]
               toyLogFoldChange = globalLogFold[which_to_allow]
               
               toySds <- globalSds[which_to_allow]
@@ -469,10 +506,12 @@ somaticCalling <- function(matrixOfLogFold) {
             } else {
               if (k == 1) {
                 which_to_allow = which(bedFileForCluster[,1] == chrom & bedFileForCluster[,2] <= start )
+                which_to_allow_chr = which(as.numeric(resultBedForOrdering[,2]) <= as.numeric(start) )
               } else {
                 which_to_allow = which(bedFileForCluster[,1] == chrom & bedFileForCluster[,2] >= end )
+                which_to_allow_chr = which(as.numeric(resultBedForOrdering[,2]) >= as.numeric(end) )
               }
-              toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
+              toyMatrixOfLikeliks = resultMatrixOfLikelihoods[which_to_allow_chr,]
               toyBedFile = bedFileForCluster[which_to_allow,]
               toyLogFoldChange = matrixOfLogFold[which_to_allow, sam_no]
               
@@ -732,11 +771,11 @@ somaticCalling <- function(matrixOfLogFold) {
       addressOfPlot = paste0(sample_name, "_CNAs_plot.png")
       if (finalIteration & frameworkDataTypes == "covdepthBAF") {
         if (sampleInOfftarget) {
-          plotLikelihoodLandscape(datasetOfPuritiesCopiesForFinalIteration, addressOfPlot, found_CNVs_total, matrix_of_likeliks, globalBed, matrixOfBAFLikeliks, bAlleleFreqsTumor, 
+          plotLikelihoodLandscape(datasetOfPuritiesCopiesForFinalIteration, addressOfPlot, found_CNVs_total, globalBed, matrixOfBAFLikeliks, bAlleleFreqsTumor, 
                                   coordsIncludedAtFirst, globalLogFold, local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms,
                                   local_copy_numbers_used_major_second, local_copy_numbers_used_minor_second, local_purities_second)
          } else {
-          plotLikelihoodLandscape(datasetOfPuritiesCopiesForFinalIteration, addressOfPlot, found_CNVs_total, matrix_of_likeliks, bedFileForCluster, matrixOfBAFLikeliks, bAlleleFreqsTumor, 
+          plotLikelihoodLandscape(datasetOfPuritiesCopiesForFinalIteration, addressOfPlot, found_CNVs_total, bedFileForCluster, matrixOfBAFLikeliks, bAlleleFreqsTumor, 
                                   coordsIncludedAtFirst,matrixOfLogFold[,sam_no],local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms,
                                   local_copy_numbers_used_major_second, local_copy_numbers_used_minor_second, local_purities_second)
         }
