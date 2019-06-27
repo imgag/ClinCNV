@@ -79,6 +79,9 @@ form_matrix_of_likeliks_one_sample <- function(i, j, k, sds, resid, vectorOfCNst
     value = return_likelik((vector_of_values - vectorOfCNstates[l]) / (sds) ) / (sds) + 10^-100
     return(-2 * log(value))
   })
+  if (!is.matrix(matrix_of_BFs)) {
+    matrix_of_BFs = matrix(matrix_of_BFs, ncol=length(vectorOfCNstates))
+  }
   return(matrix_of_BFs)
 }
 
@@ -213,7 +216,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
 
 Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
   set.seed(100)
-  if (length(which(probes[,1] == "chrX")) > 100 & length(which(probes[,1] == "chrY")) > 10) {
+  if (length(which(probes[,1] == "chrX")) > 19 & length(which(probes[,1] == "chrY")) > 4) {
     matrix_of_values <- cbind(apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrY"),], 2, median), apply(normalized.coverage.corrected.gc[which(probes[,1] == "chrX"),], 2, median))
     matrix_of_values[matrix_of_values > 1.5] = 1.5
     clKmeans <- NULL

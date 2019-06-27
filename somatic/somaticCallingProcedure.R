@@ -106,7 +106,7 @@ somaticCalling <- function(matrixOfLogFold) {
           if (length(potential_second_copy_changes) > 0) {
             indices_to_remove_by_purity <- which(!(local_datasetOfPuritiesCopies[,9] %in% c(0, potential_second_copy_changes)))
             if (length(indices_to_remove_by_purity) > 0)
-            local_datasetOfPuritiesCopies = local_datasetOfPuritiesCopies[-indices_to_remove_by_purity,]
+              local_datasetOfPuritiesCopies = local_datasetOfPuritiesCopies[-indices_to_remove_by_purity,]
           }
         }
         
@@ -437,24 +437,26 @@ somaticCalling <- function(matrixOfLogFold) {
             chrMatrixOfLikeliksOn = form_matrix_of_likeliks_one_sample(1,  matrixOfLogFoldCorrectedSmall[whichAreFromChr,sam_no], localSds[whichAreFromChr], log2(local_cn_states/2))
             if (sampleInOfftarget) chrMatrixOfLikeliksOff = form_matrix_of_likeliks_one_sample(1, matrixOfLogFoldOffCorrectedExtraSmallValues[which(bedFileForClusterOff[,1] == chrom),sam_no_off], localSdsOff[which(bedFileForClusterOff[,1] == chrom)], log2(local_cn_states/2))
           }
-          if (!is.null(matrixOfBAFLikeliks) & nrow(chrMatrixOfLikeliksOn) > 0) {
-            closestBedRegionsToyChr = closestBedRegionsToy[which(bAlleleFreqsTumorToy[,1] == chrom)]
-            matrixOfBAFsFromChr = matrixOfBAFLikeliks[which(bAlleleFreqsTumorToy[,1] == chrom),,drop=F]
-            closestBedRegionsToyChrMapped = sapply(1:length(closestBedRegionsToyChr), function(i) {which(whichAreFromChr == closestBedRegionsToyChr[i])})
-            for (mappedPosBaf in 1:length(closestBedRegionsToyChrMapped)) {
-              if (length(closestBedRegionsToyChrMapped[[mappedPosBaf]]) > 0) {
-                chrMatrixOfLikeliksOn[closestBedRegionsToyChrMapped[[mappedPosBaf]],] = chrMatrixOfLikeliksOn[closestBedRegionsToyChrMapped[[mappedPosBaf]],] + matrixOfBAFsFromChr[mappedPosBaf,]
+          if (!is.null(nrow(chrMatrixOfLikeliksOn)))
+            if (!is.null(matrixOfBAFLikeliks) & nrow(chrMatrixOfLikeliksOn) > 0) {
+              closestBedRegionsToyChr = closestBedRegionsToy[which(bAlleleFreqsTumorToy[,1] == chrom)]
+              matrixOfBAFsFromChr = matrixOfBAFLikeliks[which(bAlleleFreqsTumorToy[,1] == chrom),,drop=F]
+              closestBedRegionsToyChrMapped = sapply(1:length(closestBedRegionsToyChr), function(i) {which(whichAreFromChr == closestBedRegionsToyChr[i])})
+              for (mappedPosBaf in 1:length(closestBedRegionsToyChrMapped)) {
+                if (length(closestBedRegionsToyChrMapped[[mappedPosBaf]]) > 0) {
+                  chrMatrixOfLikeliksOn[closestBedRegionsToyChrMapped[[mappedPosBaf]],] = chrMatrixOfLikeliksOn[closestBedRegionsToyChrMapped[[mappedPosBaf]],] + matrixOfBAFsFromChr[mappedPosBaf,]
+                }
               }
             }
-          }
           
           
           resultMatrixOfLikelihoods <- matrix(0, ncol=length(local_cn_states), nrow=0)
           resultBedForOrdering <- matrix(0, ncol=ncol(bedFileForCluster), nrow=0)
-          if (nrow(chrMatrixOfLikeliksOn) > 0) {
-            resultMatrixOfLikelihoods = rbind(resultMatrixOfLikelihoods, chrMatrixOfLikeliksOn)
-            resultBedForOrdering = rbind(resultBedForOrdering, bedFileForCluster[which(bedFileForCluster[,1] == chrom),])
-          }
+          if (!is.null(nrow(chrMatrixOfLikeliksOn)))
+            if (nrow(chrMatrixOfLikeliksOn) > 0) {
+              resultMatrixOfLikelihoods = rbind(resultMatrixOfLikelihoods, chrMatrixOfLikeliksOn)
+              resultBedForOrdering = rbind(resultBedForOrdering, bedFileForCluster[which(bedFileForCluster[,1] == chrom),])
+            }
           if (sampleInOfftarget) {
             if (nrow(chrMatrixOfLikeliksOff) > 0) {
               resultMatrixOfLikelihoods = rbind(resultMatrixOfLikelihoods, chrMatrixOfLikeliksOff)
@@ -547,7 +549,7 @@ somaticCalling <- function(matrixOfLogFold) {
               losingPrecision = which(duplicated(round(20 * datasetOfPuritiesCopiesSimplified, digits=0) / 20))
               blocked_states = unique(union(blocked_states, losingPrecision))
             }
-
+            
             
             # BLOCK WITH PENALTIES
             copy_numbers_for_penalties = 3 - (local_copy_numbers_used_major + local_copy_numbers_used_minor)
@@ -592,9 +594,9 @@ somaticCalling <- function(matrixOfLogFold) {
                     startOfCNV <- found_CNVs[q,2]
                     endOfCNV <- found_CNVs[q,3]
                     if (endOfCNV - startOfCNV > 3) { 
-            
+                      
                       likeliksFoundCNVsVsPurities[q, (snd - 1) * m + m] = min(apply(toyMatrixOfLikeliks[(startOfCNV + 1):(endOfCNV - 1),which(local_purities == localPurityCurrent & local_purities_second == localPurityCurrentSnd),drop=F], 2, sum)
-                                                              + penaltyForHigherCN * abs(copy_numbers_for_penalties[which(local_purities == localPurityCurrent & local_purities_second == localPurityCurrentSnd)]))
+                                                                              + penaltyForHigherCN * abs(copy_numbers_for_penalties[which(local_purities == localPurityCurrent & local_purities_second == localPurityCurrentSnd)]))
                     }
                   }
                 }
@@ -635,7 +637,7 @@ somaticCalling <- function(matrixOfLogFold) {
             
             if (nrow(found_CNVs) > 0) {
               medianLikelihoods <- -1 * sapply(1:nrow(found_CNVs), function(i) {median(toyMatrixOfLikeliks[found_CNVs[i,2]:found_CNVs[i,3], found_CNVs[i,4]] - 
-                                                                                    toyMatrixOfLikeliks[found_CNVs[i,2]:found_CNVs[i,3], initial_state])})
+                                                                                         toyMatrixOfLikeliks[found_CNVs[i,2]:found_CNVs[i,3], initial_state])})
               cnvsToWriteOut <- plotFoundCNVsNew(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, 
                                                  local_cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, local_purities, 
                                                  local_copy_numbers_used_major_second, local_copy_numbers_used_minor_second, local_purities_second,
@@ -774,7 +776,7 @@ somaticCalling <- function(matrixOfLogFold) {
           plotLikelihoodLandscape(datasetOfPuritiesCopiesForFinalIteration, addressOfPlot, found_CNVs_total, globalBed, matrixOfBAFLikeliks, bAlleleFreqsTumor, 
                                   coordsIncludedAtFirst, globalLogFold, local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms,
                                   local_copy_numbers_used_major_second, local_copy_numbers_used_minor_second, local_purities_second)
-         } else {
+        } else {
           plotLikelihoodLandscape(datasetOfPuritiesCopiesForFinalIteration, addressOfPlot, found_CNVs_total, bedFileForCluster, matrixOfBAFLikeliks, bAlleleFreqsTumor, 
                                   coordsIncludedAtFirst,matrixOfLogFold[,sam_no],local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms,
                                   local_copy_numbers_used_major_second, local_copy_numbers_used_minor_second, local_purities_second)

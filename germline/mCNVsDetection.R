@@ -249,7 +249,7 @@ for (l in 1:length(left_borders)) {
           currentLine = c(i)
         }
         if (i < nrow(finalMCNVs)) {
-          if (sum(copyNumberForReportingBefore[i,] != copyNumberForReportingBefore[i+1,]) < 0.05 * ncol(copyNumberForReportingBefore)) {
+          if (sum(copyNumberForReportingBefore[i,] != copyNumberForReportingBefore[i+1,]) < percentageToBePolymorphism * ncol(coverageToWorkWith)) {
             currentLine = c(currentLine, i + 1)
           } else {
             forMergingList[[i]] = currentLine
@@ -302,13 +302,13 @@ for (l in 1:length(left_borders)) {
   
   
   folder_name <- paste0(opt$out, "/normal/")
-  write.table(copyNumberForReporting, file=paste0(opt$out, "/normal/", cluster, "_", chrom, "_", "mCNVs.txt"), quote = F, row.names = F)
+  write.table(copyNumberForReporting, file=paste0(opt$out, "/normal/", cluster, "_", chrom, "_", "mCNVs.txt"), quote = F, row.names = F, sep="\t")
   if (!dir.exists(folder_name)) {
     dir.create(folder_name)
   }
 }
 
-write.table(copyNumberForReportingGlobal, file=paste0(opt$out, "/normal/", cluster, "mCNVs.txt"), quote = F, row.names = F, col.names = T)
+write.table(copyNumberForReportingGlobal, file=paste0(opt$out, "/normal/", cluster, "mCNVs.txt"), quote = F, row.names = F, col.names = T, sep="\t")
 
 
 for (sam_no in 4:ncol(copyNumberForReportingGlobal)) {

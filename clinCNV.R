@@ -255,7 +255,7 @@ if (!opt$colNum == 1)
   bedFile <- bedFile[order(bedFile$chr.X, as.numeric(bedFile$start)),]
 presentedChromsOn = unique(bedFile[,1])
 numberOfElemsInEachChromosome = sapply(1:length(presentedChromsOn), function(i) {
-  if (length(which(bedFile[,1] == presentedChromsOn[i])) > 5) {
+  if (length(which(bedFile[,1] == presentedChromsOn[i])) > 3) {
     return(T)
   } else {
     return(F)
