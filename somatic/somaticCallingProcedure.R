@@ -1,8 +1,10 @@
 
 somaticCalling <- function(matrixOfLogFold) {
   for (sam_no in 1:ncol(matrixOfLogFold)) {
+    print("START cluster allocation.")
     cl<-makeCluster(no_cores, type="FORK",outfile=paste0(opt$out, "/output.txt"))
     registerDoParallel(cl)
+    print("END cluster allocation.")
     clusterExport(cl,c('maxSubArraySum', 'fillInPList', 'likelihoodOfSNV','return_likelik', 'vect_of_norm_likeliks', 'vect_of_t_likeliks'))
     sample_name <- colnames(matrixOfLogFold)[sam_no]
     overdispersionNormal = NULL
@@ -220,7 +222,7 @@ somaticCalling <- function(matrixOfLogFold) {
           if (length(position) == 1) {
             bAlleleFreqsTumor <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][1] ]]
             bAlleleFreqsNormal <- bAlleleFreqsAllSamples[[position]][[ strsplit(colnames(matrixOfLogFold)[sam_no], split="-")[[1]][2] ]]
-            degreeOfRoughness = round(quantile(bAlleleFreqsTumor[,6], 0.6))
+            degreeOfRoughness = round(quantile(bAlleleFreqsTumor[,6], 0.5))
             if (finalIteration) {
               degreeOfRoughness = round(max(bAlleleFreqsTumor[,6]))
             }
@@ -896,7 +898,7 @@ somaticCalling <- function(matrixOfLogFold) {
       fileToOut <- paste0(folder_name, sample_name, paste0("/CNAs_", sample_name, ".txt"))
       fileConn<-file(fileToOut)
       ploidyEst = round(2 + (2 * 2 ** median(matrixOfLogFold[which(!bedFileForCluster[,1] %in% c("chrX", "chrY")),sam_no]) - 2) / ifelse(max(local_purities) == 0, 1, max(local_purities)), 4)
-      writeLines(c(paste("##"," QC ", 0, ", gender of sample:", genderOfSamples[germline_sample_no], "ploidy: ", ploidyEst, "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
+      writeLines(c(paste0("##", clincnvVersion), paste0("##Analysis finished on ", Sys.time()),  paste("##"," QC ", 0, ", gender of sample:", genderOfSamples[germline_sample_no], "ploidy: ", ploidyEst, "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
       close(fileConn)
       
       if(opt$debug) {
