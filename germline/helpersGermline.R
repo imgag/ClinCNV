@@ -619,7 +619,7 @@ returnTreeForCorrelation <- function(coverage.normalised.local, sdsOfGermlineSam
   trainingDataset <- as.data.frame(cbind(covariancesClose, distnacesClose, sumOfLengths, minLength, maxLength))
   if (length(which(distnacesClose > 1000 )) > 0)
   trainingDataset = trainingDataset[-which(distnacesClose > 1000),]
-  if (nrow(trainingDataset) > 100) {
+  if (nrow(trainingDataset) > 100 & nrow(unique(trainingDataset)) > 10) {
   fit <- ctree(covariancesClose ~ (distnacesClose) + (sumOfLengths) + minLength + maxLength, data=trainingDataset, control=ctree_control(mincriterion = 0.99))
   png(filename="treeOnCorrelationOfCoverage.png", width=4000, height=1800)
   plot(fit)
