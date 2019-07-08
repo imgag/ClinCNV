@@ -319,8 +319,13 @@ for (sam_no in 1:ncol(coverage.normalised)) {
                                       as.numeric(bedFileFiltered[which_to_allow_ontarget,3]) <= as.numeric(toybedFileFiltered[found_CNVs[i,3],3])
               )
               cnState = local_cn_states[found_CNVs[i,4]]
+              if (chrom %in% c("chrX", "chrY")) {
+                allowedSamples <- which(genderOfSamples = genderOfSamples[sam_no])
+              } else {
+                allowedSamples = 1:ncol(toyCoverageGermlineCohort)
+              }
               if (length(whichOnTarget) > 0) {
-                mediansOfCoveragesInsideTheCohort <- apply(toyCoverageGermlineCohort[whichOnTarget,,drop=F], 2, median)
+                mediansOfCoveragesInsideTheCohort <- apply(toyCoverageGermlineCohort[whichOnTarget,allowedSamples,drop=F], 2, median)
                 if (cnState < 2) {
                   alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort < (1 - (1 - sqrt(1/2)) / 2))) / ncol(coverage.normalised)
                 }
