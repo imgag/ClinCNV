@@ -320,7 +320,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
               )
               cnState = local_cn_states[found_CNVs[i,4]]
               if (chrom %in% c("chrX", "chrY")) {
-                allowedSamples <- which(genderOfSamples = genderOfSamples[sam_no])
+                allowedSamples <- which(genderOfSamples == genderOfSamples[sam_no])
               } else {
                 allowedSamples = 1:ncol(toyCoverageGermlineCohort)
               }
