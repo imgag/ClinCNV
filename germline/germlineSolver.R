@@ -1,8 +1,10 @@
 library(party)
 
+print("START cluster allocation.")
 no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 cl<-makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
+print("END cluster allocation.")
 
 cn_states <- 0:8
 degree_of_mosaicism = seq(from=0.1, to=0.9, by=0.05)
@@ -317,8 +319,13 @@ for (sam_no in 1:ncol(coverage.normalised)) {
                                       as.numeric(bedFileFiltered[which_to_allow_ontarget,3]) <= as.numeric(toybedFileFiltered[found_CNVs[i,3],3])
               )
               cnState = local_cn_states[found_CNVs[i,4]]
+              if (chrom %in% c("chrX", "chrY")) {
+                allowedSamples <- which(genderOfSamples = genderOfSamples[sam_no])
+              } else {
+                allowedSamples = 1:ncol(toyCoverageGermlineCohort)
+              }
               if (length(whichOnTarget) > 0) {
-                mediansOfCoveragesInsideTheCohort <- apply(toyCoverageGermlineCohort[whichOnTarget,,drop=F], 2, median)
+                mediansOfCoveragesInsideTheCohort <- apply(toyCoverageGermlineCohort[whichOnTarget,allowedSamples,drop=F], 2, median)
                 if (cnState < 2) {
                   alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort < (1 - (1 - sqrt(1/2)) / 2))) / ncol(coverage.normalised)
                 }
@@ -519,6 +526,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   fileToOut <- paste0(folder_name, sample_name, paste0("/", sample_name, "_cnvs.tsv"))
   fileConn<-file(fileToOut)
   writeLines(c(
+    paste0("##", clincnvVersion), 
+    paste("##Analysis finished on ", Sys.time()),
     paste("##gender of sample:", genderOfSamples[sam_no], collapse = " "),
     paste("##number of iterations:", iterations, ", quality used at final iteration:", threshold, collapse = " "), 
     paste("##was it outlier after clustering?", outliersByClustering[sam_no], collapse = " "),

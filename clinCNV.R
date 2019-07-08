@@ -1,6 +1,7 @@
 #!/usr/bin/env Rscript
 set.seed(100)
 options(warn=-1)
+clincnvVersion = paste0("ClinCNV version: v1.16.0")
 
 ## CHECK R VERSION
 if (!(as.numeric(version$major) >= 3 & as.numeric(version$minor) > 2.0)) {
@@ -161,10 +162,6 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
-
-
-
-
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -236,9 +233,11 @@ if (is.null(cl)) {
 }
 cl = NULL
 
+print("START cluster allocation.")
 cl = makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
 print("Cluster allocated.")
+print("END cluster allocation.")
 
 ### READING DATA
 print(paste("We are started with reading the coverage files and bed files",Sys.time()))
@@ -630,9 +629,11 @@ if (framework == "germline") {
     
     
     # We create cluster for parallel computation each time we run germline analysis
+    print("START cluster allocation.")
     no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
     cl<-makeCluster(no_cores, type="FORK")
     registerDoParallel(cl)
+    print("END cluster allocation.")
     
     
     samplesToAnalyse = which(clustering == cluster)
