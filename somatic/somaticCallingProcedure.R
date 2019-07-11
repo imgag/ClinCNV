@@ -638,8 +638,8 @@ somaticCalling <- function(matrixOfLogFold) {
             
             
             if (nrow(found_CNVs) > 0) {
-              medianLikelihoods <- -1 * sapply(1:nrow(found_CNVs), function(i) {median(toyMatrixOfLikeliks[found_CNVs[i,2]:found_CNVs[i,3], found_CNVs[i,4]] - 
-                                                                                         toyMatrixOfLikeliks[found_CNVs[i,2]:found_CNVs[i,3], initial_state])})
+              medianLikelihoods <- round(-1 * sapply(1:nrow(found_CNVs), function(i) {median(toyMatrixOfLikeliks[found_CNVs[i,2]:found_CNVs[i,3], found_CNVs[i,4]] - 
+                                                                                               toyMatrixOfLikeliks[found_CNVs[i,2]:found_CNVs[i,3], initial_state])}), 3)
               cnvsToWriteOut <- plotFoundCNVsNew(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, 
                                                  local_cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, local_purities, 
                                                  local_copy_numbers_used_major_second, local_copy_numbers_used_minor_second, local_purities_second,
@@ -878,6 +878,11 @@ somaticCalling <- function(matrixOfLogFold) {
           overallPvalues[i] = pchisq((sum(log(min(1, pvalsSeparateTests + 10**-10)))*-2), df=length(pvalsSeparateTests)*2, lower.tail=F)
         }
         overallPvalues = p.adjust(overallPvalues, method="fdr")
+        if (length(which(found_CNVs_total[,4] != found_CNVs_total[,5])) > 0) {
+          QC_value = 2 * length(which(as.numeric(BAFsignature[which(found_CNVs_total[,5] != found_CNVs_total[,4]),3]) > 0.5)) / length(which(found_CNVs_total[,4] != found_CNVs_total[,5]))
+        } else {
+          QC_value = "NA"
+        }
         BAFsignature[,3] = p.adjust(as.numeric(BAFsignature[,3]), method="fdr")
         BAFsignature[,3] = format(round(as.numeric(BAFsignature[,3]), 4), scientific = F)
         colnamesForFutureMatrix <- colnames(found_CNVs_total)
@@ -898,7 +903,7 @@ somaticCalling <- function(matrixOfLogFold) {
       fileToOut <- paste0(folder_name, sample_name, paste0("/CNAs_", sample_name, ".txt"))
       fileConn<-file(fileToOut)
       ploidyEst = round(2 + (2 * 2 ** median(matrixOfLogFold[which(!bedFileForCluster[,1] %in% c("chrX", "chrY")),sam_no]) - 2) / ifelse(max(local_purities) == 0, 1, max(local_purities)), 4)
-      writeLines(c(paste0("##", clincnvVersion), paste0("##Analysis finished on ", Sys.time()),  paste("##"," QC ", 0, ", gender of sample:", genderOfSamples[germline_sample_no], "ploidy: ", ploidyEst, "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
+      writeLines(c(paste0("##ANALYSISTYPE=CLINCNV_TUMOR_NORMAL_PAIR"), paste0( "##", clincnvVersion), paste0("##Analysis finished on ", Sys.time()),  paste("##"," QC ", QC_value, ", gender of sample:", genderOfSamples[germline_sample_no], "ploidy: ", ploidyEst, "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
       close(fileConn)
       
       if(opt$debug) {

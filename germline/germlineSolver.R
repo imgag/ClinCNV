@@ -526,11 +526,13 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   fileToOut <- paste0(folder_name, sample_name, paste0("/", sample_name, "_cnvs.tsv"))
   fileConn<-file(fileToOut)
   writeLines(c(
+    paste0("##ANALYSISTYPE=CLINCNV_GERMLINE_SINGLE"), 
     paste0("##", clincnvVersion), 
-    paste("##Analysis finished on ", Sys.time()),
+    paste("##Analysis finished on:", Sys.time()),
     paste("##gender of sample:", genderOfSamples[sam_no], collapse = " "),
-    paste("##number of iterations:", iterations, ", quality used at final iteration:", threshold, collapse = " "), 
-    paste("##was it outlier after clustering?", outliersByClustering[sam_no], collapse = " "),
+    paste("##number of iterations:", iterations, collapse = " "), 
+    paste("##quality used at final iteration:", threshold, collapse = " "), 
+    paste("##was it outlier after clustering:", outliersByClustering[sam_no], collapse = " "),
     paste("##fraction of outliers:", round(median(vectorWithNumberOfOutliers), digits=3), collapse = " ")), fileConn)
   close(fileConn)
   found_CNVs_total[,7] = (format(as.numeric(found_CNVs_total[,7]), nsmall=3))
