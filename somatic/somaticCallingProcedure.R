@@ -904,7 +904,7 @@ somaticCalling <- function(matrixOfLogFold) {
       fileToOut <- paste0(folder_name, sample_name, paste0("/CNAs_", sample_name, ".txt"))
       fileConn<-file(fileToOut)
       ploidyEst = round(2 + (2 * 2 ** median(matrixOfLogFold[which(!bedFileForCluster[,1] %in% c("chrX", "chrY")),sam_no]) - 2) / ifelse(max(local_purities) == 0, 1, max(local_purities)), 4)
-      writeLines(c(paste0("##ANALYSISTYPE=CLINCNV_TUMOR_NORMAL_PAIR"), paste0( "##", clincnvVersion), paste0("##Analysis finished on:", Sys.time()),  paste0("##"," QC ", round(QC_value, 5)), paste0("##gender of sample:", genderOfSamples[germline_sample_no]), paste0("##ploidy: ", ploidyEst), paste0("##clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
+      writeLines(c(paste0("##ANALYSISTYPE=CLINCNV_TUMOR_NORMAL_PAIR"), paste0( "##", clincnvVersion), paste0("##Analysis finished on: ", Sys.time()),  paste0("##estimated fdr: ", round(QC_value, 5)), paste0("##gender of sample: ", genderOfSamples[germline_sample_no]), paste0("##ploidy: ", ploidyEst), paste0("##clonality by BAF (if != 1): ", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
       close(fileConn)
       
       if(opt$debug) {
