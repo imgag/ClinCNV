@@ -859,7 +859,7 @@ plotFoundCNVsNew <- function(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, o
       CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], 
                            local_copy_numbers_used_major[found_CNVs[s,4]], local_copy_numbers_used_minor[found_CNVs[s,4]],
                            purities[found_CNVs[s,4]],
-                           vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), round(medianLikelihoods[s], 5),
+                           vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), round(medianLikelihoods[s], 3),
                            found_CNVs[s,3] - found_CNVs[s,2] + 1, 
                            local_copy_numbers_used_major_second[found_CNVs[s,4]], 
                            local_copy_numbers_used_minor_second[found_CNVs[s,4]], 
