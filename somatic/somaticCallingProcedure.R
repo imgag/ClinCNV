@@ -1,10 +1,7 @@
 
 somaticCalling <- function(matrixOfLogFold) {
   for (sam_no in 1:ncol(matrixOfLogFold)) {
-    print("START cluster allocation.")
-    cl<-makeCluster(no_cores, type="FORK",outfile=paste0(opt$out, "/output.txt"))
-    registerDoParallel(cl)
-    print("END cluster allocation.")
+
     clusterExport(cl,c('maxSubArraySum', 'fillInPList', 'likelihoodOfSNV','return_likelik', 'vect_of_norm_likeliks', 'vect_of_t_likeliks'))
     sample_name <- colnames(matrixOfLogFold)[sam_no]
     overdispersionNormal = NULL
@@ -27,6 +24,10 @@ somaticCalling <- function(matrixOfLogFold) {
         next
       }
     }
+    print("START cluster allocation.")
+    cl<-makeCluster(no_cores, type="FORK",outfile=paste0(opt$out, "/output.txt"))
+    registerDoParallel(cl)
+    print("END cluster allocation.")
     # To speed up reiteration, we do not want match between BAF file and bed file a lot of times
     if (frameworkDataTypes == "covdepthBAF") {
       closestBedRegions <- c()
