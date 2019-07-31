@@ -52,11 +52,7 @@ vectors_of_cn_states = unique(vectors_of_cn_states)
 
 setwd(opt$folderWithScript)
 source("./trios/helpersTrio.R")
-print("START cluster allocation.")
-no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-cl<-makeCluster(no_cores, type="FORK")
-registerDoParallel(cl)
-print("END cluster allocation.")
+
 for (trioRow in 1:nrow(trios)) {
   child_number <- which(colnames(coverage.normalised) == trios[trioRow, 1])
   mother_number  <- which(colnames(coverage.normalised) == trios[trioRow, 2])

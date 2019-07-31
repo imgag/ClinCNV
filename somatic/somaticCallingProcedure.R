@@ -24,10 +24,7 @@ somaticCalling <- function(matrixOfLogFold) {
         next
       }
     }
-    print("START cluster allocation.")
-    cl<-makeCluster(no_cores, type="FORK",outfile=paste0(opt$out, "/output.txt"))
-    registerDoParallel(cl)
-    print("END cluster allocation.")
+
     # To speed up reiteration, we do not want match between BAF file and bed file a lot of times
     if (frameworkDataTypes == "covdepthBAF") {
       closestBedRegions <- c()
@@ -925,7 +922,6 @@ somaticCalling <- function(matrixOfLogFold) {
         write.table(areasFreeOfCNVs, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
       }
     }
-    stopCluster(cl)
   }
 }
 

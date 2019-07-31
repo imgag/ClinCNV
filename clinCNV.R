@@ -215,25 +215,11 @@ if (opt$mosaicism) {
 #cl<-makeCluster(no_cores, type="FORK")
 #registerDoParallel(cl)
 
-cl = NULL
-numberOfAttempts = 0
-no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-while(is.null(cl)) {
-  if (numberOfAttempts > 10) break
-  numberOfAttempts = numberOfAttempts + 1
-  print(paste("Attempting to allocate parallel clustering....", numberOfAttempts))
-  cl = withTimeout(makeCluster(no_cores, type="FORK"), timeout = 1, onTimeout = "warning")
-  registerDoParallel(cl)
-  stopCluster(cl)
-}
 
-if (is.null(cl)) {
-  print("Cluster allocation was not succesfull. Quit.")
-  quit(status=-1)
-}
 cl = NULL
 
 print("START cluster allocation.")
+no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 cl = makeCluster(no_cores, type="FORK")
 registerDoParallel(cl)
 print("Cluster allocated.")
@@ -591,7 +577,6 @@ print(paste("We start to cluster your data (you will find a plot if clustering i
 clusteringList <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
 clustering = clusteringList[[1]]
 outliersByClusteringCohort = clusteringList[[2]]
-stopCluster(cl)
 
 orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
 bedFile = bedFile[orderOfBedFile,]
@@ -628,12 +613,7 @@ if (framework == "germline") {
     }
     
     
-    # We create cluster for parallel computation each time we run germline analysis
-    print("START cluster allocation.")
-    no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-    cl<-makeCluster(no_cores, type="FORK")
-    registerDoParallel(cl)
-    print("END cluster allocation.")
+
     
     
     samplesToAnalyse = which(clustering == cluster)
@@ -708,8 +688,7 @@ if (framework == "germline") {
     }
     
     
-    stopCluster(cl)
-    
+
     
     
     

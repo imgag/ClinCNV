@@ -1,10 +1,6 @@
 library(party)
 
-print("START cluster allocation.")
-no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-cl<-makeCluster(no_cores, type="FORK")
-registerDoParallel(cl)
-print("END cluster allocation.")
+
 
 cn_states <- 0:8
 degree_of_mosaicism = seq(from=0.1, to=0.9, by=0.05)
@@ -540,5 +536,4 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
 }
 
-stopCluster(cl)
 
