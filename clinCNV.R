@@ -729,7 +729,7 @@ for (cluster in unique(clustering)) {
   genderOfSamples = genderOfSamplesCohort[samplesToAnalyse]
   tmpNormal = normal[,which(clustering == cluster)]
   if (frameworkOff == "offtarget") {
-    tmpNormalOff = normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal))]
+    tmpNormalOff = normalOff[,which(colnames(normalOff) %in% colnames(tmpNormal)),drop=F]
     bedFileForClusterOff = bedFileOfftarget
   }
   if (!is.null(opt$normalSample) & !is.null(opt$tumorSample)) {

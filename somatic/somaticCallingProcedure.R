@@ -729,6 +729,7 @@ somaticCalling <- function(matrixOfLogFold) {
           resultBestCombination = 0
           minResult = 10**100
           for (m in 2:maxNumOfClones) {
+            print(paste("Investigating combinations of", m, "clones"))
             combinationsOfPurities <- combn(localPurityStates, m)
             #indicesOfPuritiesWithMax = apply(combinationsOfPurities, 2, function(x) {sum(which(x == hundredPercentPurity))})
             #combinationsOfPurities = combinationsOfPurities[,which(indicesOfPuritiesWithMax > 0),drop=F]
