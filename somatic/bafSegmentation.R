@@ -240,6 +240,9 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   }
   colVec <- rep("red", length(evaluated))
   indicesOfAllowedButNotBestChroms = which(evaluated > pvalueShift & evaluated < sort(evaluated)[6])
+  if (length(indicesOfAllowedButNotBestChroms) < 3) {
+    indicesOfAllowedButNotBestChroms = 1:length(evaluated)
+  }
   colVec[indicesOfAllowedChroms] = "darkgreen"
   colVec[indicesOfAllowedButNotBestChroms] = "darkorange"
   names(evaluated) = namesOfChromArms
