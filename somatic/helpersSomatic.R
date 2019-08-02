@@ -1008,29 +1008,11 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
     
   }
   
-  # clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(3/8))], model="E")
-  # 
-  # weightsOfClusters = clusteredResult$parameters$pro
-  # meansOfClusters = clusteredResult$parameters$mean
-  # 
-  # if (length(weightsOfClusters) > 0)
-  #   for (i in 1:length(weightsOfClusters)) {
-  #     currentLocation = meansOfClusters[i]
-  #     diffs = abs(meansOfClusters - currentLocation)
-  #     meansOfClusters[i] = (clusteredResult$parameters$mean[which(diffs < 0.035)] * clusteredResult$parameters$pro[which(diffs < 0.035)]) / sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
-  #     weightsOfClusters[i] = sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
-  #   }
-  # 
-  # bigClusters <- which(weightsOfClusters > 0.25)
-  # if (length(bigClusters) == 0) {
-  #   shiftOfCoverage <- median(globalLogFold[allowedChromosomesAutosomesOnly])
-  #   weightsOfClusters = 1
-  # } else {
-  #   shiftOfCoverage = meansOfClusters[bigClusters]
-  #   weightsOfClusters = weightsOfClusters[bigClusters]
-  # }
-  # weightsOfClusters = weightsOfClusters[order(shiftOfCoverage)]
-  # shiftOfCoverage = shiftOfCoverage[order(shiftOfCoverage)]
+
+  whichMediansAreNotNA = which(!is.na(array_of_medians))
+  chrRegion = chrRegion[whichMediansAreNotNA]
+  array_of_medians = array_of_medians[whichMediansAreNotNA]
+  weightOfMedians = weightOfMedians[whichMediansAreNotNA]
   
   print(chrRegion)
   print(array_of_medians)
