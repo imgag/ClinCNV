@@ -482,7 +482,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
     setwd(opt$out)
     png(filename="clusteringSolution.png", width=1024, height=1024)
     plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
-         main="Metric MDS", type="n")
+         main="Isometric MDS", type="n")
     text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
     dev.off()
     return(list(clustering, outliersFromClustering))
@@ -569,7 +569,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
   setwd(opt$out)
   png(filename="clusteringSolution.png", width=1024, height=1024)
   plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
-       main="Metric MDS", type="n")
+       main="Isometric MDS", type="n")
   text(x, y, labels = row.names(distMatrix), cex=.7, col=clustering + 1)
   dev.off()
   setwd(opt$folderWithScript)
