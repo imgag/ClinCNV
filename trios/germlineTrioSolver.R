@@ -153,6 +153,24 @@ for (trioRow in 1:nrow(trios)) {
     
     matrix_of_likeliks[,i] = matrix_of_likeliks_child_full[,child_state] + matrix_of_likeliks_mother_full[,mother_state] + matrix_of_likeliks_father_full[,father_state]
   }
+  for (sex_chrom in c("chrX","chrY")) {
+    if (sex_chrom %in% c("chrX", "X")) {
+      if (genderOfSamples[child_number] == "F")
+        matrix_of_likeliks[which(globalBed[,1] == sex_chrom),1] = (matrix_of_likeliks_child_full[which(globalBed[,1] == sex_chrom),3] + 
+          matrix_of_likeliks_mother_full[which(globalBed[,1] == sex_chrom),3] + matrix_of_likeliks_father_full[which(globalBed[,1] == sex_chrom),2])
+      else 
+        matrix_of_likeliks[which(globalBed[,1] == sex_chrom),1] = (matrix_of_likeliks_child_full[which(globalBed[,1] == sex_chrom),2] + 
+                                                                     matrix_of_likeliks_mother_full[which(globalBed[,1] == sex_chrom),3] + matrix_of_likeliks_father_full[which(globalBed[,1] == sex_chrom),2])
+    }
+    if (sex_chrom %in% c("chrY", "Y")) {
+      if (genderOfSamples[child_number] == "F")
+        matrix_of_likeliks[which(globalBed[,1] == sex_chrom),1] = (matrix_of_likeliks_child_full[which(globalBed[,1] == sex_chrom),1] + 
+                                                                     matrix_of_likeliks_mother_full[which(globalBed[,1] == sex_chrom),1] + matrix_of_likeliks_father_full[which(globalBed[,1] == sex_chrom),2])
+      else
+        matrix_of_likeliks[which(globalBed[,1] == sex_chrom),1] = (matrix_of_likeliks_child_full[which(globalBed[,1] == sex_chrom),2] + 
+                                                                     matrix_of_likeliks_mother_full[which(globalBed[,1] == sex_chrom),1] + matrix_of_likeliks_father_full[which(globalBed[,1] == sex_chrom),2])
+    }
+  }
   
   matrix_of_likeliks_read_depth_only = matrix_of_likeliks
   
