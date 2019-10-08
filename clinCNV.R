@@ -32,117 +32,119 @@ current_working_dir <- script.basename
 
 
 option_list = list(
-  make_option(c("-norm", "--normal"), type="character", default=NULL, 
+  make_option(c("--normal"), type="character", default=NULL, 
               help="path to table with normal coverages"),
   
-  make_option(c("-t", "--tumor"), type="character", default=NULL, 
+  make_option(c("--tumor"), type="character", default=NULL, 
               help="path to table with tumor coverages"),
   
-  make_option(c("-normOff", "--normalOfftarget"), type="character", default=NULL, 
+  make_option(c("--normalOfftarget"), type="character", default=NULL, 
               help="path to table with normal offtarget coverages"),
   
-  make_option(c("-tOff", "--tumorOfftarget"), type="character", default=NULL, 
+  make_option(c("--tumorOfftarget"), type="character", default=NULL, 
               help="path to table with tumor offtarget coverages"),
   
-  make_option(c("-o", "--out"), type="character", default="./result/", 
+  make_option(c("--out"), type="character", default="./result/", 
               help="output folder path [default= %default]"),
   
-  make_option(c("-p", "--pair"), type="character", default="pairs.txt", 
+  make_option(c("--pair"), type="character", default="pairs.txt", 
               help="file with pairing information, 1st column = tumor, 2nd column = normal [default= %default]"),
   
-  make_option(c("-b", "--bed"), type="character", default=NULL, 
+  make_option(c("--bed"), type="character", default=NULL, 
               help="bed file with panel description (chr \t start \t end \t gc_content \t annotation). has to use same notation as .cov files."),
   
-  make_option(c("-bOff", "--bedOfftarget"), type="character", default=NULL, 
+  make_option(c("--bedOfftarget"), type="character", default=NULL, 
               help="offtarget bed file with panel description (chr \t start \t end \t gc_content \t annotation). has to use same notation as .cov files."),
   
-  make_option(c("-num", "--colNum"), type="integer", default=4, 
+  make_option(c("--colNum"), type="integer", default=4, 
               help="column where coverages start"),
   
-  make_option(c("-script", "--folderWithScript"), type="character", default=current_working_dir, 
+  make_option(c("--folderWithScript"), type="character", default=current_working_dir, 
               help="folder where you put script"),
   
-  make_option(c("-r", "--reanalyseCohort"), action="store_false", 
+  make_option(c("--reanalyseCohort"), action="store_false", 
               help="if specified, reanalyses whole cohort [default= %default]"),
   
-  make_option(c("-sg", "--scoreG"), type="double", default="20", 
+  make_option(c("--scoreG"), type="double", default="20", 
               help="minimum threshold for significance germline variants"),
   
-  make_option(c("-lg", "--lengthG"), type="integer", default="2", 
+  make_option(c("--lengthG"), type="integer", default="2", 
               help="minimum threshold for length of germline variants"),
   
-  make_option(c("-ss", "--scoreS"), type="double", default="100", 
+  make_option(c("--scoreS"), type="double", default="100", 
               help="minimum threshold for significance somatic variants"),
   
-  make_option(c("-ls", "--lengthS"), type="integer", default="9", 
+  make_option(c("--lengthS"), type="integer", default="9", 
               help="minimum threshold for length of somatic variants"),
   
-  make_option(c("-mnaxnumg", "--maxNumGermCNVs"), type="integer", default="10000", 
+  make_option(c("--maxNumGermCNVs"), type="integer", default="10000", 
               help="maximum number of germline CNVs allowed (increase thresholds if does not meet criteria)"),
   
-  make_option(c("-mnaxnums", "--maxNumSomCNAs"), type="integer", default="10000", 
+  make_option(c("--maxNumSomCNAs"), type="integer", default="10000", 
               help="maximum number of somatic CNAs allowed (increase thresholds if does not meet criteria)"),
   
-  make_option(c("-mnaxnumit", "--maxNumIter"), type="integer", default=3, 
+  make_option(c("--maxNumIter"), type="integer", default=3, 
               help="maximum number of iterations of variant calling"),
   
-  make_option(c("-bafF", "--bafFolder"), type="character", default=NULL, 
+  make_option(c("--bafFolder"), type="character", default=NULL, 
               help="folder where you put BAF frequencies (one per normal, one per tumor sample)"),
   
-  make_option(c("-normS", "--normalSample"), type="character", default=NULL, 
+  make_option(c("--normalSample"), type="character", default=NULL, 
               help="name of normal sample to analyse (if only one sample has to be analysed)"),
   
-  make_option(c("-tumorS", "--tumorSample"), type="character", default=NULL, 
+  make_option(c("--tumorSample"), type="character", default=NULL, 
               help="name of tumor sample to analyse (if only one sample has to be analysed, normal has to be provided too)"),
   
-  make_option(c("-triosFile", "--triosFile"), type="character", default=NULL, 
+  make_option(c("--triosFile"), type="character", default=NULL, 
               help="file with information about trios, child-father-mother"),
   
-  make_option(c("-fdrG", "--fdrGermline"), type="integer", default=0, 
+  make_option(c("--fdrGermline"), type="integer", default=0, 
               help="number of iterations for FDR check (more - better, but slower, 0 = no FDR correction)"),
   
-  make_option(c("-numT", "--numberOfThreads"), type="integer", default=1, 
+  make_option(c("--numberOfThreads"), type="integer", default=1, 
               help="number of threads used for some bottleneck parts, default=1"),  
   
-  make_option(c("-numObsInCluster", "--minimumNumOfElemsInCluster"), type="integer", default=10000, 
+  make_option(c("--minimumNumOfElemsInCluster"), type="integer", default=10000, 
               help="minimum number of elements in cluster (done for germline), default=100, clustering happens only if number of samples bigger than 3 by number of elements in cluster", metavar="number"),  
   
-  make_option(c("-vis", "--visulizationIGV"), action="store_true", default=T, 
+  make_option(c("--visulizationIGV"), action="store_true", default=T, 
               help="if you dont need IGV tracks as output, specify this flag (as printing out IGV tracks slows down the program)"),  
   
-  make_option(c("-cloneP", "--clonePenalty"), type="integer", default=300, 
+  make_option(c("--clonePenalty"), type="integer", default=300, 
               help="penalty for each additional clone (if you feel that you have some false positive clones, increase this value from default 300)"),  
   
-  make_option(c("-purityS", "--purityStep"), type="double", default=2.5, 
+  make_option(c("--purityStep"), type="double", default=2.5, 
               help="step of purity we investigate (from 5% to 100% with the step you specify, default=2.5)", metavar="number"),  
   
-  make_option(c("-dfStudent", "--degreesOfFreedomStudent"), type="integer", default=1000, 
+  make_option(c("--degreesOfFreedomStudent"), type="integer", default=1000, 
               help="number of degrees of freedom of Student's distribution for somatic analysis (a lot of outliers => reduce the default value of 1000 to e.g. 10)"),  
   
-  make_option(c("-polymC", "--polymorphicCalling"), type="character", default="NO", 
+  make_option(c("--polymorphicCalling"), type="character", default="NO", 
               help="should calling of polymorphic regions be performed, YES = calling is performed, NO = no polymorphic calling (default), any other string = mCNVs taken from the file with that path (it must have at least 3 columns chrom-start-end)"),  
   
-  make_option(c("-mosaic", "--mosaicism"), action="store_true", default=F, 
+  make_option(c("--mosaicism"), action="store_true", default=F, 
               help="if mosaic calling should be performed"),  
   
-  make_option(c("-minPurity", "--minimumPurity"), type="double", default=5, 
+  make_option(c("--minimumPurity"), type="double", default=5, 
               help="minimum purity for somatic samples"),  
   
-  make_option(c("-recall", "--superRecall"), type="double", default=10000, 
+  make_option(c("--superRecall"), type="double", default=10000, 
               help="Super recall mode - after calling normal CNVs it tries to find CNVs with any length that are better than pre-specified threshold"),  
   
-  make_option(c("-clonalityForChecking", "--clonalityForChecking"), type="double", default=0.4, 
+  make_option(c("--clonalityForChecking"), type="double", default=0.4, 
               help="Starting from which clonality BAF-based QC-control has to be applied (no allelic balanced variants with smaller purity will be detected!)"),  
   
-  make_option(c("-shiftToTry", "--shiftToTry"), type="integer", default=1, 
+  make_option(c("--shiftToTry"), type="integer", default=1, 
               help="change only if you have a sample with lots of allelic imbalance (if you think that the diploid baseline should be different, number of options for choosing will be provided during calling)"),  
   
-  make_option(c("-filterS", "--filterStep"), type="integer", default=1, 
+  make_option(c("--filterStep"), type="integer", default=1, 
               help="This value indicates if ClinCNV should perform QC internally (starting from threshold specified by --clonalityForChecking). Value 0 means no, value 1 - only for finding clonality, value 2 - for clonality and final calls too"),  
   
-  make_option(c("-baseline", "--guideBaseline"), type="character", default=NULL, 
+  make_option(c( "--guideBaseline"), type="character", default=NULL, 
               help="For complex samples with potential whole-genome duplication - string denoting which region you suspect to be diploid so tool will take it is a baseline (format chrN:12345-67890)"),  
   
+  make_option(c( "--notComplexTumor"), type="store_true", default=TRUE, 
+              help="Sometimes some CNAs happen in the same region twice and leave the signature unrecognizable by simple models. Specify this flag if you don't want the 2nd CNAs to be recognized by ClinCNV."),  
   
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 

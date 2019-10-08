@@ -15,9 +15,9 @@ We assume that you have `.bam` files. For targeted sequencing you may also have 
 
 Depending on your goal, you may want to extract:
 
-* on-target read coverage (has to be supported by on-target `.bed` file)
+* on-target read coverage (has to be supported by on-target `.bed` file, annotated with GC content - procedure for annotation will be described below)
 
-* off-target read coverage (has to be supported by off-target `.bed` file, generation of such file from on-target `.bed` file will be explained below)
+* off-target read coverage (has to be supported by off-target `.bed` file, generation of such file from on-target `.bed` file will be explained below, also has to be annotated with GC)
 
 * B-allele frequency files (for **somatic** framework)
 
@@ -55,8 +55,12 @@ BedShrink -in offtarget_chunks.bed -n 12500 | BedExtend -n 12500 -out "offtarget
 
 ```
 BedAnnotateGC -in $bedFile -out "gcAnnotated."$bedFile -ref reference.fa
+```
+
+Optionally, your `.bed` file may be annotated with genes, intersecting with target regions:
+
+```
 BedAnnotateGenes -in "gcAnnotated."$bedFile -out "annotated."$bedFile
-rm "gcAnnotated.""$bedFile
 ```
 
 
@@ -98,9 +102,49 @@ Then you need to merge your ".cov" files into one table. To do this, you can use
 
 ## B-allele frequency for Somatic framework
 
-B-allele frequency extraction works in 2 steps - first, you extract high quality positions from your `.vcf` file from the normal sample, then you calculate coverage of this position in your tumor sample using BAF file obtained at previous step.
+B-allele frequency extraction works in 2 steps - first, you extract high quality positions from your `.vcf` file from the normal sample, then you calculate coverage of this position in your tumor sample using BAF file obtained at previous step. No variant calling for tumor samples is required.
 
 You should perform standard germline variant calling on you normal sample and get `.vcf` as output. `.vcf` files may differ - so you may need to slightly change the script.
+
+The format of `baf` files should be:
+
+```
+chrI[char, "chr" is a prefix] \t startCoord[int] \t endCoord[int] \t uniqueID[char, can be used as chrom + coord merged] \t frequencyOfAltAllele[real from 0 to 1] \t coverageDepthOfThisPosition[int] \n
+```
+
+We use `GSvar` format for keeping records of variants, however, most of the researchers use `vcf`. The extraction of variants from `vcf` is a bit longer.
+
+The script that prepares BAF from gzipped `vcf` is located in `helper_scripts` folder and is called `baf_extractor.py`. To run it and to get BAF file for normal sample you should use the command:
+
+```
+VCF=PATH_TO_YOUR_VCF
+outputOnTargetNormTmp=TEMPORARY_FILE
+outputOnTargetNorm=FINAL_TSV_FILE_WITH_NORMAL_BAFS
+bafExtractor=PATH_TO_BAF_EXTRACTOR_PY
+
+python $bafExtractor  $VCF $outputOnTargetNormTmp "40"
+grep "^[^#]" $outputOnTargetNormTmp | awk -F'\t' '(length($4) == 1) && (length($5) == 1) {print $1 "\t" $2 "\t" $3 "\t" $1 "_" $2 "\t" $(NF-1) "\t" $NF}' > $outputOnTargetNorm
+rm $outputOnTargetNormTmp
+```
+
+"40" in line with `$bafExtractor` denotes the minimum quality of the variant. Higher is better, but less variants.
+
+Having this file, we can calculate `baf` file for tumor:
+
+```
+outputOnTargetTumo
+VariantAnnotateFrequency -in $outputOnTargetNormTmp -bam $BAM -out $outputOnTargetTumorTmp -depth
+grep "^[^#]" $outputOnTargetTumorTmp | awk -F'\t' '(length($4) == 1) && (length($5) == 1) {print $1 "\t" $2 "\t" $3 "\t" $1 "_" $2 "\t" $(NF-1) "\t" $NF}' > $outputOnTargetTumor
+rm $outputOnTargetTumorTmp
+```
+
+We put all the `baf` files into a separate folder (mixing tumor and normal together). This folder should be kept in a private storage and may be removed after the analysis finished.
+
+
+
+
+
+
 
 
 ## Text files with sample IDs

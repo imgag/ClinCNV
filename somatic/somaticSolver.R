@@ -167,6 +167,9 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
   
   
   complexTumor = T
+  if (!is.null(opt$notComplexTumor)) {
+    complexTumor = F
+  }
   if (complexTumor) {
     purityDoubleCopyNumberEvent = seq(from=max(2 * opt$minimumPurity, 20), to=100.1, by=opt$purityStep) / 100
     puritySecondCopyNumberEvent = seq(from=opt$minimumPurity, to=100.1, by=opt$purityStep) / 100
