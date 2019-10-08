@@ -143,7 +143,7 @@ option_list = list(
   make_option("--guideBaseline", type="character", default=NULL, 
               help="For complex samples with potential whole-genome duplication - string denoting which region you suspect to be diploid so tool will take it is a baseline (format chrN:12345-67890)"),  
   
-  make_option("--notComplexTumor", type="store_true", default=TRUE, 
+  make_option("--notComplexTumor", action="store_true", default=F, 
               help="Sometimes some CNAs happen in the same region twice and leave the signature unrecognizable by simple models. Specify this flag if you don't want the 2nd CNAs to be recognized by ClinCNV."),  
   
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
