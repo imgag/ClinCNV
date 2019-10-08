@@ -132,7 +132,9 @@ rm $outputOnTargetNormTmp
 Having this file, we can calculate `baf` file for tumor:
 
 ```
-outputOnTargetTumo
+outputOnTargetTumorTmp=TEMPORARY_FILE
+outputOnTargetTumor=OUTPUT_TUMOR_FILE
+
 VariantAnnotateFrequency -in $outputOnTargetNormTmp -bam $BAM -out $outputOnTargetTumorTmp -depth
 grep "^[^#]" $outputOnTargetTumorTmp | awk -F'\t' '(length($4) == 1) && (length($5) == 1) {print $1 "\t" $2 "\t" $3 "\t" $1 "_" $2 "\t" $(NF-1) "\t" $NF}' > $outputOnTargetTumor
 rm $outputOnTargetTumorTmp
