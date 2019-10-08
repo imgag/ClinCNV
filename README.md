@@ -18,6 +18,7 @@ NOTE: version of ClinCNV we are talking about is located in the folder `somatic`
 ## Pre-requisites
 
 We expect you to install ClinCNV on Linux or MacOS platforms. We expect you to install `R` (as new version as possible, we used ClinCNV with `R 3.2.3`, but you may experience problems installing libraries using the old version) and the following libraries: 
+
 ```
 install.packages("optparse")
 install.packages("robustbase")
@@ -25,8 +26,12 @@ install.packages("MASS")
 install.packages("data.table")
 install.packages("foreach")
 install.packages("doParallel")
-install.packages("msm")
+install.packages("mclust")
+install.packages("R.utils")
+install.packages("RColorBrewer")
+install.packages("party")
 ```
+
 For now we do not provide our own tool for pre-processing of the data. We recommend you to use *ngs-bits* (https://github.com/imgag/ngs-bits), however, as soon as your data match the format expected by ClinCNV you may proceed with any tool of choice (eg, *samtools*).
 
 You should also have `.bed` file with the coordinates of targeted regions and reference genome in `.fasta` format for annotation of `.bed` file with *ngs-bits*.
