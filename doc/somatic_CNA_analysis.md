@@ -224,6 +224,16 @@ Let's move to more complicated examples.
 
 ![Allele specific plot][somatic_2nd_round]
 
+I recommend to open this file in a separate window and inspect the variants manually. It is a panel sequenced sample, almost all these black dots of coverage are off-target data. Let's check the chr2. It looks inconsistent! Coverage profile at chr2q shows that there are several deletions, but the allelic plot shows there is only one! And BAF lines also did not change!
+
+The answer is: **several rounds of CNAs happened in chr2q**. So there was a duplication __after__ a deletion -- that's why the coverage profile changed, but allelic decomposition did not. But why it is not a separate CNA you'll ask - and you'll be right! I suggest you to look at chr5q. Coverage drop here indicates a small deletion. But BAF strongly suggests: it is A BIG DELETION in a large sub-clone. **Whom will we trust?** They both are right (at least be believe so). Probably LOH happened first and then - deletion of this part. **You can turn a second round of CNAs calling off**. Step 13. Doctors don't like this 2nd round of CNAs -- but otherwise for some samples calls will be segmented: it will be LOH for SNV-rich regions and deletion for SNV-free regions. So may be better turn it off until you will see something really weird. `ClinCNV` does not reconstruct evolutionary history of changes and it may miss the nested structure of CNAs - the tool is created for accurate segmentation and calling, other tasks should be performed during post-processing. Moreover, 2nd round of CNAs is downweighted comparing to more simplistic explanation - but sometimes data says this.
+
+Tetraploidy and something could also be an explanation - however, we can not be sure. We prefer to assume that the tumor is mostly diploid and recover the clonal structure with this complex modelling rather than increasing ploidy. `ClinCNV` works with tetraploid tumors under condition that at least part of the sample remained diploid.
+
+Even though, `ClinCNV` may be terribly wrong. E.g. in this situation (pictured below) due to not so big number of SNVs `ClinCNV` allowed extremely long homozygous deletions. This sample has to be recalled with step 12: `--guideBaseline chrN:X-Y`, where baseline should be at the same level as homozygous deletions. We can see that chr4 is "homozygously deleted" in this call - so put `--guideBaseline chr4:54506451-190696238` -- approximate coordinate of the homozygous deletion. Of course you may use homozygous deletions from chroms 10 or 18 as the baseline - but better choose it as long as possible.
+
+![Allele specific plot - wrong calls!][clincnv_wrong]
+
 
 ### Results table
 
@@ -251,7 +261,7 @@ _"genes"_ shows the list of affected genes if you've annotated your `.bed` file 
 
 
 
-## I do not have time!
+## I do not have time! I have hundreds of samples!
 
 
 
@@ -287,5 +297,6 @@ Ask them at `german dot demidov at medizin dot uni-tuebingen dot de`. We are gla
 [chrom_plot]: ./images/CNAs_plot_other_form.png "Chromosomal plot of CNAs"
 [allele_cna_plot]: ./images/CNAs_plot.png "Allele-specific plot of CNAs"
 [somatic_2nd_round]: ./images/somatic_2nd_round.png "2nd round of somatic CNAs"
+[clincnv_wrong]: ./images/clincnv_wrong.png "ClinCNV wrong"
 
 [results_table]: https://github.com/imgag/ClinCNV/raw/master/doc/images/results_table.png "Table of results"
