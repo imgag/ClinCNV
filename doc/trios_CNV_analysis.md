@@ -66,4 +66,4 @@ The columns are:
 `loglik_kid`,  `loglik_mother`, `loglik_father` shows the individual contributions of each sample into the CNV log-likelihood score. If it is equal to 0, it means that the copy-number of the sample is unchanged. If it is smaller than 0 (it may happen, shown in the red cell in the table), it indicates that the data is contradictive to the inheritance model used. `ClinCNV` detects variants according to the inheritance patterns (e.g., father had copy-numbers 2 and 1 in his alleles, mother had 1 and 0, the kid may inherit one of the alleles from mother, one from father, which gives possible copy-numbers as 3, 2, 1 or 0, or have a de novo variant - but for this case we assume that copy-numbers of mother and father are equal to 2). Negative likelihood shows that the sample is more likely to be diploid, but the maximum likelihood was achieved with another model, taking into account the inheritance schemes.
 
 
-[table_of_results]: https://github.com/imgag/ClinCNV/raw/master/doc/images/trios_report.PNG "Table with results"
+[table_of_results]: https://github.com/imgag/ClinCNV/raw/master/doc/images/trios_report.png "Table with results"
