@@ -46,9 +46,9 @@ The folder `somatic` will be created and results for each samples pair will be p
 
 12. In case some particular sample was called incorrectly and you see a large stretch of homozygous deletion (>10MBs), you may point `ClinCNV` to this mistake by providing a parameter guiding a diploid baseline:
 `--guideBaseline chrN:X-Y`
-where chrN:X-Y is the coordinate of this long stretch of homozygous deletion. `ClinCNV` will consider this part as diploid and re-call the sample.
+where chrN:X-Y is the coordinate of this long stretch of homozygous deletion. `ClinCNV` will consider this part as diploid and re-call the sample. (Don't forget to specify samples' IDs from step 11).
 
-13. If you do not want to bother with the interpretation of 2 rounds of possible CNVs (or your tumors are untreated and early stage), you may turn the support of the 2nd round of CNVs off:
+13. If you do not want to bother with the interpretation of 2 rounds of possible CNVs (or your tumor samples are untreated and early stage), you may turn the support of the 2nd round of CNVs off:
 `--notComplexTumor`
 
 ## WGS
@@ -63,11 +63,18 @@ The same, but step 3 has to be skipped. **WE HAVE NOT TESTED CLINCNV FOR WGS YET
 
 # How to interpret results
 
+If you **have time** (e.g., you are analysing a single sample in clinical context), you go through the pictures and table with variants. You may recall the sample if you do not like the results.
+
+If you **do not have time** but need to analyse thousands of samples, you identify suspicious samples and then re-analyse them or remove from the analysis. Suspicious samples are the ones with large FDR (QC value provided in the header of `ClinCNV` output files, more than 10% is a lot), the ones that have a lot of CNAs large part of them is LOH variants (it may happen when samples' labels are mixed up), samples with many short homozygous deletions. If a sample has large FDR, but less than 20%, it is usually possible just to filter out false positive variants (the ones with no deviation in B-allele frequencies). If it is bigger, may be it is easier to remove the sample. If there is a long (>10MB) homozygous deletion in the results, it is a sign that this sample is actually tetraploid (or more) and you need to apply step 12 from the list above to re-call this sample.
+
+## I have time!
+
 You will have two output folders 1) IGV tracks and summary of BAF deviations on chromosome's arms level (located in your BAF folder in subfolder `/results`), 2) CNA calling results with IGV tracks and clonality plot (located in your output folder in subfolder `/somatic/`).
 
-## BAF visualisation
 
-### Barplots of deviated positions per chromosome arm
+### BAF visualisation
+
+#### Barplots of deviated positions per chromosome arm
 You can find there barplots showing number of chromosome arms with significant deviations in BAFs between tumor and normal samples. They show proportion of SNVs with significantly (p-value<0.05) different BAFs within the tumor-normal pair, thus, 1.0 indicates that 100% of SNVs have deviations in BAFs (thus can indicate presence of aneuploidy with high tumor content in the particular sample and chromosome arm), 0.0 indicated that 0% of SNVs have deviations. By random, we expect approximately 5% of SNVs having deviations, even if no CNAs happen in particular region.
 
 ![Barplot of deviated BAFs on chromosome arm level][BAF_barplot]
@@ -82,7 +89,7 @@ In this particular example we can see that part of chr1 left arm is affected by 
 
 In this sample almost all the chromosomes were likely to be damaged by CNAs. We take the least damaged chromosomes for the internal normalization (some of chromosome arms are indicated with orange color which means that they have >5% of BAFs significantly deviated, but we still had to take them into normalization procedure since the amount of "normal" material was too low), however you may expect higher level of noise in such samples due to small amount of "seemingly normal" material for normalization.
 
-### IGV tracks
+#### IGV tracks
 
 You can find 3 IGV BAF tracks per pair tumor/normal in the BAF folder.
 
@@ -106,11 +113,11 @@ An investigator has to be especially careful with balanced copy number changes (
 
 
 
-## IGV tracks and results folder
+### IGV tracks and results folder
 
 In folder `/your_output_folder/somatic/tumor_sample-paired_normal_sample` you can find IGV tracks, clonality plot and `.tsv` file with the results table.
 
-### IGV tracks
+#### IGV tracks
 
 There are 2 tracks - first is `.seg` file with CNAs detected and second is file with tumor copy number relative to normal copy number. In other words, both plots are "centered" around copy-number 2 since we assume that germline sample is diploid (except males and sex chromosomes where we assume copy number 1) and both plots depict tumor copy number. Again, internally we apply log-transformation, that's why vertical distances between segment may be misleading since depicted values are just ratios.
 
@@ -144,7 +151,7 @@ More on this table and potentially detectable events below.
 
 
 
-### Clonality plots
+#### Clonality plots
 
 Each tumor sample may contain sub-clones - parts of tumor that share some unique variants between them which are not presented in samples that do not belong to this particular sub-clone. Further sub-clones may be divided into more sub-clones, etc. `ClinCNV` does not try to build a tree of somatic evolution for sub-clones, however it is crucially important to identify all these sub-clones and classify detected CNAs according to the abundance of such sub-clones.
 
@@ -190,7 +197,7 @@ And in this example we see 3 clones at 0.3, 0.4 and 0.725, all of them have diff
 
 
 
-### Results table
+#### Results table
 
 Results of somatic CNA calling are summarised in a table:
 
@@ -213,6 +220,10 @@ _"number_of_regions"_ is the number of datapoints within the variant (on- and of
 _"state"_ is an important column. It can be 1) **"CNV"** - classic copy-number change, 2) **"LOH"** - copy-number heutral loss-of-heterozgysity, 3) **"LOHDup"** - loss of heterozygosity followed by a duplication of the particular region (such event creates a unique pattern of B-allele frequency and coverage change), 4) **"CNVboth"** - copy-number change without B-allele frequency balance shift (that mean both 2 alleles were e.g. duplicated or triplicated), 5) **"CNVcomplex"** - when both alleles had experienced copy-number change, but with different amount (e.g. one allele was copied up to 2 copies and the second one was copied up to 5 copies). "CNVboth", "LOHDup", "CNVcomplex" are considered as rare variants and their score is slightly penalised comparing to other variants.
 
 _"genes"_ shows the list of affected genes if you've annotated your `.bed` file before the analysis, otherwise it shows just 0.
+
+
+
+## I do not have time!
 
 
 
