@@ -14,28 +14,48 @@ Same as for _germline_ samples `ClinCNV` utilize on-target and (optionally) off-
 
 The folder `somatic` will be created and results for each samples pair will be put in the corresponding subfolder.
 
-3. Adding off-target coverage (especially important for panel sequencing and overall playing bigger role in the analysis since sizes of CNAs are typically large)
+3. Adding off-target coverage (off-target reads are beneficial in somatic context comparing to germline)
 
 `--normalOfftarget normalOff.cov --tumorOfftarget tumorOff.cov --bedOfftarget bedFileOff.bed`
 
 4. Playing with _Sensitivity_ and _Specificity_ balance (increase of the threshold `--scoreS` leads to higher _Specificity_ and lower _Sensitivity_ and vice versa, default value is 100, however due to size of CNAs and high level of noise due to usage of FFPE samples it is recommended to keep this value high):
 `--scoreS 150`
 
-5. Increasing or decreasing minimum length of detected variant (measured in data points, default = 5 data points or bigger):
-`--lengthS 10`
+5. Increasing or decreasing minimum length of detected variant (measured in data points, default = 10 data points or bigger):
+`--lengthS 4`
 
-6. Including B-allele frequencies. Files with BAFs need to be located into same folder `/example/BAFs`:
+6. Including B-allele frequencies. Files with BAFs need to be located into same folder `/example/BAFs` (tumor and normal mixed, no need to keep a special directory structure):
 `--bafFolder /example/BAFs`. Due to different issues not all the samples may have BAF file, but you need to be sure that **at least one pair of tumor/normal samples has its BAF track** in the corresponding folder.
 
 7. Speeding up the tool by using several cores (only some parts of the pipeline are parallelised):
 `--numberOfThreads 4`
 
-8. In case if you have prior knowledge on number of clones in your tumor and the clonal inference of `ClinCNV` was not accurate you can specify the penalty for additional clones (less penalty = more clones, default penalty is 200):
+8. In case if you have prior knowledge on number of clones in your tumor and the clonal inference of `ClinCNV` was not accurate you can specify the penalty for additional clones (less penalty = more clones but up to 5, default penalty is 300):
 `--clonePenalty 500`
+
+9. Variants' QC filtering. This parameter may have 2 values: 0, 1 or 2. 0 means that no QC filtering of variants is performed. 1 means that QC filtering is performed only at the first step of the algorithm (clonal structure inference). 2 means that even final calls will be QC filtered. It is recommended to set it equal to 2 for WES and to 1 for gene panel sequencing.
+`--filterStep 0`
+
+10. Usually, starting from some cancer cell fraction and below this value the results become non trustable (most of them are false positives). This value depends on the quality of your data: for high coverage WES variants of 5% CCF can be called while for low-coverage targeted panel sequencing better keep it above 20-30%. For example, if you do not trust variants with cancer cell fraction below 20%, you need to specify it as:
+`--clonalityForChecking 0.2`
+`ClinCNV` will apply additional filterings for such variants. No allele balanced variants will be called below 20% since we need BAF signal to perform QC control of variants. If you absolutely do not trust variants with cancer cell fraction below 20%, you may specify:
+`--minimumPurity 20`
+
+11. If you want to call only one particular pair of samples, you need to specify their IDs:
+`--normalSample IDofNormal --tumorSample IDofTumor`
+
+12. In case some particular sample was called incorrectly and you see a large stretch of homozygous deletion (>10MBs), you may point `ClinCNV` to this mistake by providing a parameter guiding a diploid baseline:
+`--guideBaseline chrN:X-Y`
+where chrN:X-Y is the coordinate of this long stretch of homozygous deletion. `ClinCNV` will consider this part as diploid and re-call the sample.
+
+13. If you do not want to bother with the interpretation of 2 rounds of possible CNVs (or your tumors are untreated and early stage), you may turn the support of the 2nd round of CNVs off:
+`--notComplexTumor`
 
 ## WGS
 
-The same, but step 3 has to be skipped. 
+The same, but step 3 has to be skipped. **WE HAVE NOT TESTED CLINCNV FOR WGS YET**. It may be time consuming. Try to increase the clonality step:
+
+`--purityStep 5` instead of default `--purityStep 2.5`.
 
 
 
