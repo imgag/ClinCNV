@@ -119,7 +119,7 @@ An investigator has to be especially careful with balanced copy number changes (
 
 ### IGV tracks of coverage and BAFs and results folder
 
-_This step is useful if you go into in-depth analysis of each CNA in IGV. Useless otherwise (if you want to access the general quality of the calls)._
+_This step is useful if you go into in-depth analysis of each CNA in IGV. Useless otherwise (if you want to assess the general quality of the calls)._
 
 In folder `/your_output_folder/somatic/tumor_sample-paired_normal_sample` you can find IGV tracks, clonality plot and `.tsv` file with the results table.
 
@@ -238,6 +238,8 @@ Even though, `ClinCNV` may be terribly wrong. E.g. in this situation (pictured b
 
 ![Allele specific plot - wrong calls!][clincnv_wrong]
 
+For correction of mistakes not only the baseline can be changes, but also filtering step (step 9). In general, QC filtering of variants improves calling of variants, but if the tumor has at least one small cancer cell fraction sub-clone - this filtering may distort the calls. Try to turn it off (set to 0).
+
 
 ### Results table
 
@@ -245,11 +247,18 @@ Results of somatic CNA calling are summarised in a table:
 
 ![Table of results][results_table]
 
-Top line shows the clonalities that were considered "significant" by `ClinCNV`. QC is 0 so far since we were not able to find a relevant QC measure (but we are working on it and something meaningful will appear there soon).
+Top three lines just shows type of the analysis, the version used and when the analysis was finished and may be ignored.
+
+The fourth line is informative. At first, _QC_ shows predicted False Discovery Rate. It is measured as the percentage of CNVs that were detected as allele imbalanced, but show no deviation in BAFs. _gender of sample_ is, actually, gender of sample. Then there is estimated ploidy (rarely equal exactly to to 2 even if no CNAs were detected since it is estimated from coverage and it is, after all the transformations, continuous-like). Then clonality -- it shows different sub-clones' cancer cell fraction. The biggest number is considered as _purity_ of the tumor. Other numbers are given relatively to all the DNA sequenced, thus, not normalized by purity.
+
+Next line has column names. What they denote:
+
 
 First three columns of the table show coordinates of the variant.
 
 4th column - _"tumor_CN_change"_ - shows a copy number after correction on percentage of this clone in sequenced tumor mass. Usually this number is the most interesting for the researchers.
+
+5th and 6th - _"major_CN"_ and _"minor_CN"_ shows allelic decomposition of copy-number alteration.
 
 _"tumor_clonality"_ shows to which subclone this particular variant belongs.
 
@@ -257,12 +266,23 @@ _"CN_change"_ is an absolute copy-number change. At first `ClinCNV` finds an abs
 
 _"loglikelihood"_ shows the quality score of particular variant, bigger the score is - more credible is the variant.
 
+_"median_loglikelihood"_ shows the median of log-likelihood. If it is negative - then this variant was caused by several outliers and is not real. It is 0 for LOH since the BAF signal is sparse.
+
 _"number_of_regions"_ is the number of datapoints within the variant (on- and off-target regions). More datapoints usually means more credible variant.
 
-_"state"_ is an important column. It can be 1) **"CNV"** - classic copy-number change, 2) **"LOH"** - copy-number heutral loss-of-heterozgysity, 3) **"LOHDup"** - loss of heterozygosity followed by a duplication of the particular region (such event creates a unique pattern of B-allele frequency and coverage change), 4) **"CNVboth"** - copy-number change without B-allele frequency balance shift (that mean both 2 alleles were e.g. duplicated or triplicated), 5) **"CNVcomplex"** - when both alleles had experienced copy-number change, but with different amount (e.g. one allele was copied up to 2 copies and the second one was copied up to 5 copies). "CNVboth", "LOHDup", "CNVcomplex" are considered as rare variants and their score is slightly penalised comparing to other variants.
+_"major_CN_allele2"_ and _"minor_CN_allele2"_ denotes "the second round of CNAs that probably happened". Always empty when you turn this mode off (step 13). 
 
-_"genes"_ shows the list of affected genes if you've annotated your `.bed` file before the analysis, otherwise it shows just 0.
+_"tumor_clonality_2"_ denotes the percentage of cells that experienced the second round of CNAs. It is **always** smaller than the first Cancer Cell Fraction (well, it is expected).
 
+_"genes"_ field is empty if you have not annotated your `bed` file with genes. 
+
+Next 4 fields (_"ontarget_RD_CI_lower"_ etc) shows the bounds of 95% confidence interval for read depth.
+
+_"Lowmed_tumor_BAF"_ and _"Highmed"_ shows medians of tumor BAFs which are below the median of normal BAFs and above. It is useful for diagnostics of small variants (p-value may be non-significant, but the shift could be seen).
+
+_"BAF_qval_fdr"_ is a q-value for BAFs within the variant. Is expected to be low for allele-imbalanced variants and high for short variants with only couple of SNVs inside or allele-balanced variants (e.g., CN2 of one allele and CN2 of another allele).
+
+_"Overall_qvalue"_ is q-value obtained from merged p-values from coverage and BAFs.
 
 
 ## I do not have time! I have hundreds of samples!
