@@ -65,7 +65,7 @@ The same, but step 3 has to be skipped. **WE HAVE NOT TESTED CLINCNV FOR WGS YET
 
 If you **have time** (e.g., you are analysing a single sample in clinical context), you go through the pictures and table with variants. You may recall the sample if you do not like the results.
 
-If you **do not have time** but need to analyse thousands of samples, you identify suspicious samples and then re-analyse them or remove from the analysis. Suspicious samples are the ones with large FDR (QC value provided in the header of `ClinCNV` output files, more than 10% is a lot), the ones that have a lot of CNAs large part of them is LOH variants (it may happen when samples' labels are mixed up), samples with many short homozygous deletions. If a sample has large FDR, but less than 20%, it is usually possible just to filter out false positive variants (the ones with no deviation in B-allele frequencies). If it is bigger, may be it is easier to remove the sample. If there is a long (>10MB) homozygous deletion in the results, it is a sign that this sample is actually tetraploid (or more) and you need to apply step 12 from the list above to re-call this sample.
+If you **do not have time** but need to analyse thousands of samples, you identify suspicious samples and then re-analyse them or remove from the analysis. Suspicious samples are the ones with large FDR (QC value provided in the header of `ClinCNV` output files, more than 10% is a lot), the ones that have a lot of CNAs large part of them is LOH variants (it may happen when samples' labels are mixed up), samples with many short homozygous deletions. If a sample has large FDR, but less than 20%, it is usually possible just to filter out false positive variants (the ones with no deviation in B-allele frequencies). If it is bigger, may be it is easier to remove the sample. If there is a long (>10MB) homozygous deletion in the results, it is a sign that this sample is actually tetraploid (or more) and you need to apply step 12 from the list above to re-call this sample. And if you need to analyse hundreds of samples - scroll this doc until the header "I do not have time".
 
 ## I have time!
 
@@ -74,8 +74,10 @@ You will have two output folders 1) IGV tracks and summary of BAF deviations on 
 
 ### BAF visualisation
 
+This part is explanation of the weird plots you will get in the folder with `baf` files you've specified. If you run `ClinCNV` for the first time, you may skip this part.
+
 #### Barplots of deviated positions per chromosome arm
-You can find there barplots showing number of chromosome arms with significant deviations in BAFs between tumor and normal samples. They show proportion of SNVs with significantly (p-value<0.05) different BAFs within the tumor-normal pair, thus, 1.0 indicates that 100% of SNVs have deviations in BAFs (thus can indicate presence of aneuploidy with high tumor content in the particular sample and chromosome arm), 0.0 indicated that 0% of SNVs have deviations. By random, we expect approximately 5% of SNVs having deviations, even if no CNAs happen in particular region.
+You can find there barplots showing number of chromosome arms with significant deviations in BAFs between tumor and normal samples. They show proportion of SNVs with significantly (p-value<0.01) different BAFs within the tumor-normal pair, thus, 1.0 indicates that 100% of SNVs have deviations in BAFs (thus can indicate presence of aneuploidy with high tumor content in the particular sample and chromosome arm), 0.0 indicated that 0% of SNVs have deviations. By random, we expect less than 5% of SNVs having deviations, even if no CNAs happen in particular region - since quite a lot of SNVs are false positives due to alignment problems, this number is not equal to 5%.
 
 ![Barplot of deviated BAFs on chromosome arm level][BAF_barplot]
 
@@ -89,7 +91,9 @@ In this particular example we can see that part of chr1 left arm is affected by 
 
 In this sample almost all the chromosomes were likely to be damaged by CNAs. We take the least damaged chromosomes for the internal normalization (some of chromosome arms are indicated with orange color which means that they have >5% of BAFs significantly deviated, but we still had to take them into normalization procedure since the amount of "normal" material was too low), however you may expect higher level of noise in such samples due to small amount of "seemingly normal" material for normalization.
 
-#### IGV tracks
+#### IGV tracks of BAFs
+
+This section describes the BAF tracks generated for IGV visualization. 
 
 You can find 3 IGV BAF tracks per pair tumor/normal in the BAF folder.
 
@@ -113,7 +117,9 @@ An investigator has to be especially careful with balanced copy number changes (
 
 
 
-### IGV tracks and results folder
+### IGV tracks of coverage and BAFs and results folder
+
+This step is useful if you go into in-depth analysis of each CNA. Useless otherwise (if you want to access the general quality of the calls). 
 
 In folder `/your_output_folder/somatic/tumor_sample-paired_normal_sample` you can find IGV tracks, clonality plot and `.tsv` file with the results table.
 
@@ -150,6 +156,7 @@ chr7	|688268|	55208953|	3|	0.8|	2.8|	2646|	642|	LOHDup
 More on this table and potentially detectable events below.
 
 
+### Sub-clonal structure of samples
 
 #### Clonality plots
 
@@ -193,11 +200,24 @@ And in this example we see 3 clones at 0.3, 0.4 and 0.725, all of them have diff
 `ClinCNV` was never intended to be a tool for clonal evolution reconstruction, however, it makes corrections according to number of clones. But `ClinCNV` can still make mistakes. If `ClinCNV` tells you that there are 2 clones and you are absolutely sure that there should be only 1 clone, you can increase the penalty for a new clone with the flag, e.g.: `--clonePenalty 500` instead of default 200. Decrease this parameter if you want the tool to be more sensitive to different clones. This parameter does not affect the heatmap explained above - use it as a guide for choosing the penalty for additional clones in complex cases.
 
 
+### CNAs visualization plots
+
+As the result, `ClinCNV` produces several types of plots. At first, this plot shows the CNAs at different chromosomes. Some researchers prefer this visualization.
+
+![Chromosomal plot][chrom_plot]
+
+Red color denotes deletion, blue color denotes duplication, the color intensity shows the sub-clonal fraction of tumor cells harboring this variant. We can see that at chr11 the deletion was fragmented (same cancer cell fraction but multiple deletions occur) - this is not usual for `ClinCNV` and usually it shows that something real happened there (e.g., microduplications, so the non-deleted regions are, technically, LOH), however, it may still be a technical artifact. Increase the minimum length of the detected variant to get rid of this if you don't like it (step 5 from the list of commands above).
+
+We also provide a plot of allele-specific copy-number changes.
+
+![Allele specific plot][allele_cna_plot]
+
+This is the same sample as before, but in another representation. The top panel shows B-allele frequency track (more accurately, the maximum likelihood of the closest possible BAF), the middle panel shows coverage, the bottom panel shows allele decomposition. Let's discuss the bottom panel a bit more.
 
 
 
 
-#### Results table
+### Results table
 
 Results of somatic CNA calling are summarised in a table:
 
@@ -255,4 +275,8 @@ Ask them at `german dot demidov at medizin dot uni-tuebingen dot de`. We are gla
 [barplot_one_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_one_clone.png "Barplot of clonal landscape"
 [barplot_two_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_two_clone.png "Barplot of clonal landscape"
 [barplot_multiple_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_multiple_clone.png "Barplot of clonal landscape"
+
+[chrom_plot]: ./images/CNAs_plot_other_form.png "Chromosomal plot of CNAs"
+[allele_cna_plot]: ./images/CNAs_plot "Allele-specific plot of CNAs"
+
 [results_table]: https://github.com/imgag/ClinCNV/raw/master/doc/images/results_table.png "Table of results"
