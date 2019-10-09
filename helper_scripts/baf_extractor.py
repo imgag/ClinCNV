@@ -19,7 +19,7 @@ def vcf_parse_one_line(line, minimum_qual):
         if bafDepth[0] == "0/1":
             depth = bafDepth[3]
             freq = bafDepth[1]
-            if int(depth) > 30:
+            if int(depth) > 1:
                 return [chrom, start, end, reference_variant, allelic_variant[0], chrom + "_" + start,
                         freq, depth]
         return 0
@@ -27,14 +27,17 @@ def vcf_parse_one_line(line, minimum_qual):
 
 
 def parse_vcf(input_file_name, output_file_name, minimum_qual):
-    with gzip.open(input_file_name, 'r') as f:
-        header = "#chr\tstart\tend\tref\tobs\tid\tfreq\tdepth\n"
-        with open(output_file_name, "w") as f1:
-            f1.write(header)
-            for line in f:
-                parsed_line = vcf_parse_one_line(line, minimum_qual)
-                if parsed_line != 0:
-                    f1.write("\t".join(map(str, parsed_line)) + "\n")
+    if input_file_name.endswith(".gz"):
+        f = gzip.open(input_file_name)
+    elif input_file_name.endswith(".vcf") or input_file_name.endswith(".VCF"):
+        f = open(input_file_name)
+    header = "#chr\tstart\tend\tref\tobs\tid\tfreq\tdepth\n"
+    with open(output_file_name, "w") as f1:
+                f1.write(header)
+                for line in f:
+                    parsed_line = vcf_parse_one_line(line, minimum_qual)
+                    if parsed_line != 0:
+                        f1.write("\t".join(map(str, parsed_line)) + "\n")
 
 
 def main():
