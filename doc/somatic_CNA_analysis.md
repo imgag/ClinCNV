@@ -119,7 +119,7 @@ An investigator has to be especially careful with balanced copy number changes (
 
 ### IGV tracks of coverage and BAFs and results folder
 
-__This step is useful if you go into in-depth analysis of each CNA in IGV. Useless otherwise (if you want to access the general quality of the calls). __
+__This step is useful if you go into in-depth analysis of each CNA in IGV. Useless otherwise (if you want to access the general quality of the calls).__
 
 In folder `/your_output_folder/somatic/tumor_sample-paired_normal_sample` you can find IGV tracks, clonality plot and `.tsv` file with the results table.
 
@@ -204,7 +204,7 @@ And in this example we see 3 clones at 0.3, 0.4 and 0.725, all of them have diff
 
 ### CNAs visualization plots
 
-__This part is fun to read__
+__This part is fun to read (and important)__
 
 As the result, `ClinCNV` produces several types of plots. At first, this plot shows the CNAs at different chromosomes. Some researchers prefer this visualization.
 
