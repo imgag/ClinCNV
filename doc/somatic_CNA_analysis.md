@@ -208,13 +208,21 @@ As the result, `ClinCNV` produces several types of plots. At first, this plot sh
 
 Red color denotes deletion, blue color denotes duplication, the color intensity shows the sub-clonal fraction of tumor cells harboring this variant. We can see that at chr11 the deletion was fragmented (same cancer cell fraction but multiple deletions occur) - this is not usual for `ClinCNV` and usually it shows that something real happened there (e.g., microduplications, so the non-deleted regions are, technically, LOH), however, it may still be a technical artifact. Increase the minimum length of the detected variant to get rid of this if you don't like it (step 5 from the list of commands above).
 
-We also provide a plot of allele-specific copy-number changes.
+We also provide a plot of allele-specific copy-number changes. The vertical lines show the borders of chromosomes (and chromosome arms), horizontal purple lines on two bottom panels show integer copy-numbers.
 
 ![Allele specific plot][allele_cna_plot]
 
-This is the same sample as before, but in another representation. The top panel shows B-allele frequency track (more accurately, the maximum likelihood of the closest possible BAF), the middle panel shows coverage, the bottom panel shows allele decomposition. Let's discuss the bottom panel a bit more.
+This is the same sample as before, but in another representation. The top panel shows B-allele frequency track (more accurately, the maximum likelihood of the closest possible BAF), the middle panel shows coverage, the bottom panel shows allele decomposition. Let's discuss this plot a bit more.
 
+**The colors.** __Black points__ denotes data points (it does not distinguish between off-target and on-target data points). It may be BAF (top panel) or log-ratio of coverages (middle panel). Different colors at 2 tops panels denote different type of CNAs: brown colors indicates the presence of LOH, blue color shows presence of duplication, red color represents deletion. Lines are drawn "where it is expected". If you see a CNA when the lines do not intersect with the black dots - don't trust these calls, something different happened there. What could happen is the 2nd round of CNAs - when one CNA happens and then some other happen within the borders of the previously found CNA - but we will discuss it later.
 
+**The bottom panel.** For duplications when one of the alleles remained normal (one copy), we chose to show it with green color. Everything that was duplicated is depicted with blue color. Red color shows the deletion. May be it would be more natural to show it with green color (since one allele remained "normal"), but we have tried that color scheme and decided to show it with red - in order to get the attention. **Horizontal black bars** show allelic copy-numbers. Let's look at chr5. There is a horizontal bar at copy-number 1 and the same bar at copy-number 3 - which means that total copy-number is equal to 3 and the minor allele has copy-number 1. Chr9? One allele was deleted so the black bar dropped to 0 copies, but another bar is a copy-number 2 - it indicates LOH event. Intensity of the color shows the cancer cell fraction of the variant.
+
+__Easy, yes?__
+
+Let's move to more complicated examples.
+
+![Allele specific plot][somatic_2nd_round]
 
 
 ### Results table
@@ -277,6 +285,7 @@ Ask them at `german dot demidov at medizin dot uni-tuebingen dot de`. We are gla
 [barplot_multiple_clone]: https://github.com/imgag/ClinCNV/raw/master/doc/images/barplot_multiple_clone.png "Barplot of clonal landscape"
 
 [chrom_plot]: ./images/CNAs_plot_other_form.png "Chromosomal plot of CNAs"
-[allele_cna_plot]: ./images/CNAs_plot "Allele-specific plot of CNAs"
+[allele_cna_plot]: ./images/CNAs_plot.png "Allele-specific plot of CNAs"
+[somatic_2nd_round]: ./images/somatic_2nd_round.png "2nd round of somatic CNAs"
 
 [results_table]: https://github.com/imgag/ClinCNV/raw/master/doc/images/results_table.png "Table of results"
