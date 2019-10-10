@@ -19,7 +19,8 @@ install.packages("party")
 **Test run:**
 ```
 fold=/folder/with/the/cloned/ClinCNV
-Rscript $fold"/clinCNV.R" --bed $fold"/samples/bed_file.bed" --normal $fold"/samples/coverages_normal.cov"
+mkdir $fold"/results"
+Rscript $fold"/clinCNV.R" --bed $fold"/samples/bed_file.bed" --normal $fold"/samples/coverages_normal.cov" --out $fold"/results"
 ```
 
 `ClinCNV` is a set of `R` scripts. To install all the necessary packages execute [the following script](https://github.com/imgag/megSAP/blob/master/data/install_deps_clincnv.R).
