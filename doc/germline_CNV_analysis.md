@@ -15,33 +15,48 @@ We suggest the following step by step guide into CNVs detection in different use
 3. Adding offtarget coverages (does not increase _Sensitivity_ a lot since germline CNVs are rarely as long as off-target window, but improves _Specificity_ efficiently removing CNVs formed by probes standing far away from each other, off-target coverage has to be extracted for *sufficiently large number of samples*, but not necessarily for all the samples from `normal.cov` file):
 `--normalOfftarget normalOff.cov --bedOfftarget bedFileOff.bed`
 
-4. Playing with _Sensitivity_ and _Specificity_ balance (increase of the threshold `--scoreG` leads to higher _Specificity_ and lower _Sensitivity_ and vice versa, default value is 40):
+4. Playing with _Sensitivity_ and _Specificity_ balance (increase of the threshold `--scoreG` leads to higher _Specificity_ and lower _Sensitivity_ and vice versa, default value is 20):
 `--scoreG 60`
 
-5. Increasing or decreasing minimum length of detected variant (default = 3 data points or bigger):
-`--lengthG 1`
+5. Increasing or decreasing minimum length of detected variant (default = 2 data points or bigger, the real number of data points is actually +1 to you specify here, 0 means at least 1 data point):
+`--lengthG 0`
 
-6. Increasing the number of CNVs you'd expect to get from that sample (default = 100, but for WGS samples better make it 1000 or even bigger, when such threshold is exceeded, quality threshold is increased and sample is re-analysed as many times as specified with `--maxNumIter` flag):
+6. Increasing the number of CNVs you'd expect to get from that sample (default = 10000, but for WGS samples better make it 1000 or even bigger, when such threshold is exceeded, quality threshold is increased and sample is re-analysed as many times as specified with `--maxNumIter` flag):
 `--maxNumGermCNVs 2000 --maxNumIter 5`
 
-7. Running the FDR correction (you specify number of iterations, higher the number is - more accurate FDR correction will be, but we do not recommend to make it bigger than 20 since it will slow down the calling):
-`--fdrGermline 20`
 
-8. Dividing your large cohort into several clusters of similar samples for more accurate parameter estimation and speeding the tool up. You specify the minimum size of the cluster (we recommend to keep it in between 20 and 100):
+7. Dividing your large cohort into several clusters of similar samples for more accurate parameter estimation and speeding the tool up. You specify the minimum size of the cluster (we recommend to keep it in between 20 and 100):
 ` --minimumNumOfElemsInCluster 50`
 
-9. Speeding up the tool by using several cores (only some parts of the pipeline are parallelised):
+8. Speeding up the tool by using several cores (only some parts of the pipeline are parallelised):
 `--numberOfThreads 4`
 
 In the end you will have a command line like:
 
-`Rscript clinCNV.R --normal normal.cov --bed bedFile.bed --out /your/folder --normalOfftarget normalOff.cov --bedOfftarget bedFileOff.bed --scoreG 60 --lengthG 1 --maxNumGermCNVs 2000 --maxNumIter 5 --fdrGermline 20 --minimumNumOfElemsInCluster 50 --numberOfThreads 4`
+`Rscript clinCNV.R --normal normal.cov --bed bedFile.bed --out /your/folder --normalOfftarget normalOff.cov --bedOfftarget bedFileOff.bed --scoreG 60 --lengthG 0 --maxNumGermCNVs 2000 --maxNumIter 5 --minimumNumOfElemsInCluster 50 --numberOfThreads 4`
 
 ## WGS
 
-For high-coverage (>10X) WGS you should skip step 3 and pay special attention to step 6 (may be put the maximum number of expected CNVs equal to 100.000 if you run your dataset for the first time and don't know what to expect). Probably it is also better to keep step 7 (number of iterations for FDR control) at low level (1-5) since permutations of WGS data may take a while and even several permutations may be a good estimator of your data' level of noise.
+For high-coverage (>10X) WGS you should pay special attention to step 6 (may be put the maximum number of expected CNVs equal to 100.000 if you run your dataset for the first time and don't know what to expect). 
 
 For low-coverage WGS (<10X) we would recommend to use window size at least 5KB and minimal size of CNV as 3.
+
+## Polymorphic CNVs 
+
+CNVs whose frequency is larger than 2.5% are usually more difficult to detect using conventional methods. Thus, we detect them using Gaussian Mixture Models. This is a separate routine within the same script. To call such variants, you need to specify
+
+`--polymorphicCalling YES`
+
+If instead of YES you provide the path to the `.bed` file with the coordinates of polymorphic regions, `ClinCNV` will ignore them during the calling.
+
+Otherwise you may get such pictures:
+
+![Polymorphic region][polymorph_call]
+
+Here horizontal lines show different copy-numbers and each dot denotes one sample from the cohort.
+
+
+
 
 ## Mosaic CNVs calling
 
@@ -49,6 +64,8 @@ Add `--mosaicism` option to your command line. Mosaic CNVs can take values from 
 
 Several times this mode was used for CNAs calling in tumor samples under the absence of matching normal. It can be done only if CNAs affect less than a half of your sample and still will be less accurate and much less informative than the paired calling. To do the same trick, you need to manually chage `germlineSolver.R` file - there is a line starting with  `cn_states_mosaicism <- seq(from=`. Modify it accordingly (from should be the minimal copy-number you want to detect, to is the maximum, step is the step of discrete grid). Same can be done for looking for aneuploidies in prenatal testing settings - we've never tested that. You also may change the value `fineForMosaicism = 0.05` to something smaller. This fine downweights all the mosaic CNVs and thus the caller prefers integer copy-numbers, but if you want something different - go ahead. 
  
+
+
 # How to interpret results
 
 Your output files will be saved in `/your/folder/normal` directory - `ClinCNV` will make a separate folder per sample and put resulting files there. 
@@ -80,7 +97,11 @@ _First line_ in resulting `.tsv` file shows the number of iterations. If the num
 
 _Second line_ - number of outliers in autosomes. It is designed in a way that 5% of dots have to be "outliers" (their Z-score exceed the corresponding quantiles of normal distributions) in a diploid sample. If you see a bigger number (such as 0.1 or bigger), that means that either your sample is largely affected by CNVs (e.g. there is aneuploidy or mutliple small CNVs) or the tool determined variances (or locations) wrongly or your sample is too noisy comparing to the cohort (thus, _the sample itself_ is an outlier and has to be excluded from the analysis). Value much below 5% may indicate same problems with parameters' estimation, but now variances were overestimated. It may lead to low sensitivity of the tool.
 
-![Table with results (simulated data)][table_of_results]
+![Table with results][table_of_results]
+
+The first 3 lines are technical. 4th line shows the inferred gender, 5th line - how many interations of quality score increasing passed since the number of CNVs in the sample became acceptable, quality used is the quality score used, was outlier in clustering? - shows if this sample was an outlier after batch effect clustering.
+
+The last line -- fraction of outliers -- shows how many coverage data points had p-value less than 0.05. It can not really be used for the QC control since having large aneuploidy will lead to high fraction of outliers.
 
 ### Columns in the table
 
@@ -98,11 +119,11 @@ _Second line_ - number of outliers in autosomes. It is designed in a way that 5%
 
 `genes` is filled with information only if you used annotated `.bed` file. We recommend to annotate only on-target `.bed` files from the panel since you are mainly interested in ploidy of genes you've included into your panel. If you don't annotate your `.bed` file - you will see just zeros in this column.
 
-`FDR_filter` appears only if you specified flag `--fdrGermline` with the number different from 0 (default). It basically says if your variants are lower or higher than 5% False Discovery Rate threshold. We'd recommend you to use only PASSED variants.
+`qvalue` is basically p-value from Z-test, corrected for multiple test correction. High p-values are expected to be in polymorphic short regions.
 
 
-
+[polymorph_call]: ./images/polymorphic.png "Polymorphic CNV region"
 [IGV_track]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks.png "IGV tracks for germline sample"
 [IGV_track_chr]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks_chrom_level.png "IGV tracks for germline sample (chromosome level)"
 [IGV_track_cnv]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks_cnv_level.png "IGV tracks for germline sample (one CNV level)"
-[table_of_results]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_results_table.png "Table with results (simulated data)"
+[table_of_results]: ./images/normal_calling.png"Table with results (simulated data)"
