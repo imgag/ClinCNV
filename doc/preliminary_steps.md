@@ -36,6 +36,21 @@ Depending on your goal, you may want to extract:
 
 ## Generation of `.bed` files (on- and off-target)
 
+### .bed file annotation
+
+`ngsbits` has to be installed. GC-annotation is __mandatory__. Annotation with genes is optional.
+
+```
+BedAnnotateGC -in $bedFile -out "gcAnnotated."$bedFile -ref reference.fa
+```
+
+Optionally, your `.bed` file may be annotated with genes, intersecting with target regions:
+
+```
+BedAnnotateGenes -in "gcAnnotated."$bedFile -out "annotated."$bedFile
+```
+
+
 ### Targeted sequencing
 
 You should already have on-target `.bed` file. To generate off-target `.bed` file from your on-target file `panel.bed` you need to run following commands (making offset of 400 bp from the sides of targeted regions, window sike of 50KB and removing all regions that are less than 25KB in the end):
@@ -76,19 +91,6 @@ _______|_______|_______|_______
 
 Windows may be __overlapping__, but better less than 50%. `ClinCNV` corrects for the correlation between adjacent windows coverages.
 
-### .bed file annotation
-
-`ngsbits` has to be installed. GC-annotation is __mandatory__. Annotation with genes is optional.
-
-```
-BedAnnotateGC -in $bedFile -out "gcAnnotated."$bedFile -ref reference.fa
-```
-
-Optionally, your `.bed` file may be annotated with genes, intersecting with target regions:
-
-```
-BedAnnotateGenes -in "gcAnnotated."$bedFile -out "annotated."$bedFile
-```
 
 
 ## Calculation of read coverage (both on- and off- target)

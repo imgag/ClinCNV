@@ -8,7 +8,7 @@ if (opt$mosaicism) {
   
   diffs <- sapply(cn_states_mosaicism, function(i) {min(abs(cn_states - i))})
   cn_states_mosaicism = cn_states_mosaicism[which(diffs > 0.09 & diffs < 0.91)]
-  cn_states_mosaicism = unique(c(cn_states_mosaicism, cn_states))
+  cn_states_mosaicism = unique(c(cn_states, cn_states_mosaicism))
 }
 
 
