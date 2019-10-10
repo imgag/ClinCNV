@@ -49,21 +49,23 @@ You should also have `.bed` file with the coordinates of targeted regions and re
 
 ## Quick launch
 
-More informative manuals are located in the `doc` folder.
+More informative and updated manuals are located in the `doc` folder. **The order of reading**: install.md, preliminary_steps.md, and then you may choose the type of analysis that is interesting for you - _germline_, _somatic_, or _trios_.
 
-You can try to start ClinCNV as follows:
+You can try to start ClinCNV as follows (after the preparation of files `.cov`, `.bed`):
 
 ```
-Rscript firstStep.R --normal normal.cov --out outputFolder --bed annotatedBedFile --folderWithScript $PWD
+Rscript clinCNV.R --normal normal.cov --out outputFolder --bed annotatedBedFile.bed --folderWithScript $PWD
 ```
 
 for *germline* samples and for *somatic* as
 
 ```
-Rscript firstStep.R --normal normal.cov --tumor tumor.cov  --out outputFolder --pair fileWithPairs --bed annotatedBedFile --folderWithScript $PWD 
+Rscript clinCNV.R --normal normal.cov --tumor tumor.cov  --out outputFolder --pair fileWithPairs.txt --bed annotatedBedFile.bed --folderWithScript $PWD 
 ```
 
-If it does not work, check if your files (.cov, .bed, file with pairs) are concordant with the descriptions below.
+`.cov` is a matrix of coverages (merged from many samples). `.bed` file has to be annotated with GC-content (from 0 to 1, should be in 4th column).
+
+
 
 ## Use cases
 
@@ -84,8 +86,13 @@ chrI[char, "chr" is a prefix] \t startCoord[int] \t endCoord[int] \t gcContent[r
 Example of `.bed` (here and below we provide only one line, assuming that there are as many as needed):
 
 ```
+chr1    12171   12245   0.4595
+```
+or, annotated with genes,
+```
 chr1    12171   12245   0.4595  DDX11L1
 ```
+- both variants are fine.
 
 ### .cov format
 We expect AVERAGE coverage depths of samples to be written as (starting from header): 
@@ -101,7 +108,7 @@ chr1    11166636        11166864        2374.32 1224.54
 
 *Note1:* you may create such files for your samples separately and use the `mergeFilesFromFolder.R` script to merge them together.
 
-*Note2:* if you suffer a lot with calculating average coverage, but you have the raw coverage depths, you can change the function
+*Note2:* `ngs-bits` calculates average coverage. If you use other tool and if you suffer a lot with calculating average coverage, but you have the raw coverage depths, you can change the function
 ```
 gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, allowedChroms=NULL)
 ```
@@ -111,13 +118,13 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=F, all
 ```
 in the file `generalHelpers.R`.
 
-*Note3:* on-target and off-target reads should be pre-processed in `.cov` formats. If you do not have off-target reads for some samples - don't worry, ClinCNV will work with available data only.
+*Note3:* on-target and off-target reads should be pre-processed in `.cov` formats. If you do not have off-target reads for some samples - don't worry, ClinCNV will work with available data only, including off-target only for samples that have this data.
 
 *Note4:* Please be sure that you do not round your coverage of shallow-sequenced samples too much (e.g., the average coverage of the region is 0.0005, and you round it to 0.00).
 
-*Note5:* Names of columns (sample names) are meaningful and should match between `normal.cov`, `tumor.cov`, `pairs.txt` files.
+*Note5:* Names of columns (sample names) are meaningful and should match between `normal.cov`, `tumor.cov`, `pairs.txt` files for **somatic** framework.
 
-### B-allele frequency format (expected file extension is .tsv)
+### B-allele frequency format (expected file extension is `.tsv`)
 
 Without header:
 ```
@@ -246,7 +253,7 @@ VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" 
 
 `--scoreG` - germline CNV score threshold (loglikelihood difference). For additional information: https://en.wikipedia.org/wiki/Bayes_factor#Interpretation . As a guideline: 30 is usually a sensitive, but not specific option, 50 is balanced, 100 is quite strict and leads to high specificity, but (possibly) low sensitivity. 
 
-`--lengthG` - minimum length of germline CNV (number of markers = on- and off-target regions). Depends on your desired purposes. Recomended to keep up not smaller than 2.
+`--lengthG` - minimum length of germline CNV (number of markers = on- and off-target regions). Depends on your desired purposes. Recomended to keep up not smaller than 2. Due to historical reasons, actual number of data points will be bigger by one (e.g., if you put `--lengthG 0`, the actual number of datapoints will be 1).
 
 `--scoreS` - somatic score threshold. Since CNAs (copy-number changes in caner) are usually long and quite significant, but FFPE introduce huge noise into the tumor sequencing data, we do not recommend to keep it lower than 50. As a rule of thumb, we use threshold of 100 for panel of ~500 cancer genes and 200 for WES samples.
 
@@ -264,8 +271,6 @@ VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" 
 
 `--tumorSample` - name of the tumor sample (if only one sample is expected to be calculated). Has to be presented in 1) file pairs.txt in pair with the sample specified by --normalSample option, 2) in a header of the file with tumor samples. Otherwise, the tool will fail with assert message.
 
-`--fdrGermline` - number of iteration of FDR control procedure performed (more is better for FDR control, but slower). If 0, no permutations and FDR control performed (default).
-
 `--numberOfThreads` - maximum number of threads allowed to use by the tool.
 
 
@@ -275,6 +280,6 @@ ClinCNV is not published for now so it is not possible to properly cite the pape
 
 1) cite it as an unpublished tool in the text of your paper;
 
-2) ask us to help you with the analysis for the co-authorship.
+2) ask us to help you with the analysis for the co-authorship or acknowledgement.
 
 Paper is coming soon, stay tuned!
