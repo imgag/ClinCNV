@@ -133,7 +133,6 @@ bafExtractor=PATH_TO_BAF_EXTRACTOR_PY
 
 python $bafExtractor  $VCF $outputOnTargetNormTmp "40"
 grep "^[^#]" $outputOnTargetNormTmp | awk -F'\t' '(length($4) == 1) && (length($5) == 1) {print $1 "\t" $2 "\t" $3 "\t" $1 "_" $2 "\t" $(NF-1) "\t" $NF}' > $outputOnTargetNorm
-rm $outputOnTargetNormTmp
 ```
 
 "40" in line with `$bafExtractor` denotes the minimum quality of the variant. Higher is better, but less variants.
@@ -143,10 +142,12 @@ Having this file, we can calculate `baf` file for tumor:
 ```
 outputOnTargetTumorTmp=TEMPORARY_FILE
 outputOnTargetTumor=OUTPUT_TUMOR_FILE
+BAM=PATH_TO_BAM
 
 VariantAnnotateFrequency -in $outputOnTargetNormTmp -bam $BAM -out $outputOnTargetTumorTmp -depth
 grep "^[^#]" $outputOnTargetTumorTmp | awk -F'\t' '(length($4) == 1) && (length($5) == 1) {print $1 "\t" $2 "\t" $3 "\t" $1 "_" $2 "\t" $(NF-1) "\t" $NF}' > $outputOnTargetTumor
 rm $outputOnTargetTumorTmp
+rm $outputOnTargetNormTmp
 ```
 
 We put all the `baf` files into a separate folder (mixing tumor and normal together). This folder should be kept in a private storage and may be removed after the analysis finished.
