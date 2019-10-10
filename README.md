@@ -17,7 +17,7 @@ NOTE: Folder `PCAWG` was used for CNVs detection in PanCancer Analysis of Whole 
 
 ## Pre-requisites
 
-We expect you to install ClinCNV on Linux or MacOS platforms. We expect you to install `R` (as new version as possible, we used ClinCNV with `R 3.2.3`, but you may experience problems installing libraries using the old version) and the following libraries: 
+We expect you to install ClinCNV on Linux or MacOS platforms. Copy all the files using `git clone https://github.com/imgag/ClinCNV.git`. We expect you to install `R` (as new version as possible, we used ClinCNV with `R 3.2.3`, but you may experience problems installing libraries using the old version) and the following libraries: 
 
 ```
 install.packages("optparse")
@@ -38,6 +38,8 @@ fold=/folder/with/the/cloned/ClinCNV
 mkdir $fold"/results"
 Rscript $fold"/clinCNV.R" --bed $fold"/samples/bed_file.bed" --normal $fold"/samples/coverages_normal.cov" --out $fold"/results"
 ```
+
+If `ClinCNV` fails with the test run, set `chmod 755` to the output folder.
 
 You will find result in `$fold/ClinCNV/result/` folder.
 
