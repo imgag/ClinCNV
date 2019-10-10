@@ -3,7 +3,22 @@ import sys
 import gzip
 
 def vcf_parse_one_line(line, minimum_qual):
+    index_for_genotype = 0
+    index_for_depth = 0
+    index_for_other_depth = -1
+    index_for_frequency = -1
     if not line.startswith("#"):
+        format_fields = line.split("\t")[8].split(":")
+        index_for_genotype = format_fields.index("GT")
+        index_for_depth = format_fields.index("DP")
+        try:
+            index_for_other_depth = format_fields.index("AO")
+        except:
+            pass
+        try:
+            index_for_frequency = format_fields.index("AF")
+        except:
+            pass
         splitted_line = line.split("\t")
         chrom = splitted_line[0]
         start = splitted_line[1]
@@ -15,10 +30,16 @@ def vcf_parse_one_line(line, minimum_qual):
         quality = float(splitted_line[5])
         if quality < minimum_qual:
             return 0
-        bafDepth = splitted_line[9].split(":")
-        if bafDepth[0] == "0/1":
-            depth = bafDepth[3]
-            freq = bafDepth[1]
+        bafDepth = splitted_line[9].strip().split(":")
+        if bafDepth[index_for_genotype] == "0/1":
+            depth = bafDepth[index_for_depth]
+            if index_for_frequency > 0:
+                freq = bafDepth[index_for_frequency]
+            elif index_for_depth > 0:
+                freq = float(bafDepth[index_for_other_depth]) / int(depth)
+            else:
+                print("No AO or AF fields in VCF format column. Quit.")
+                quit()
             if int(depth) > 1:
                 return [chrom, start, end, reference_variant, allelic_variant[0], chrom + "_" + start,
                         freq, depth]

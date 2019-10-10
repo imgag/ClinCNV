@@ -288,6 +288,17 @@ _"Overall_qvalue"_ is q-value obtained from merged p-values from coverage and BA
 
 That's understandable. Then you need to run a script to automatically select good samples.
 
+It is located in `helper_scripts` directory and is called `summarize_CNA_calls.py`. You specify two FDR numbers: 1st is the lower border for the additional QC and second is the lower border for kicking samples out.
+
+```
+python summarize_CNA_calls.py /folder/to/ClinCNV/results/Somatic /output/folder 0.1 0.5
+```
+
+This command will apply additional filtering to the samples with FDR bigger than 0.1 and remove every sample with FDR bigger than 0.5.
+
+Command line output contains lines - sample name and FDR, but if there is a long homozygous deletion - the script will also alert you about this.
+
+The resulting file will contain summary on FDR and ploidy. Check the samples that you think are suspicious manually. It is always useful to run this script without the last parameter (all the samples will be included into the summary file) and then choose the value starting from which you don't accept samples anymore.
 
 
 # Still have questions?

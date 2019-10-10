@@ -127,21 +127,21 @@ The script that prepares BAF from `vcf` or gzipped `vcf` is located in `helper_s
 
 ```
 VCF=PATH_TO_YOUR_VCF
-outputOnTargetNormTmp=TEMPORARY_FILE
-outputOnTargetNorm=FINAL_TSV_FILE_WITH_NORMAL_BAFS
+outputOnTargetNormTmp=TEMPORARY_FILE.tsv
+outputOnTargetNorm=FINAL_TSV_FILE_WITH_NORMAL_BAFS.tsv
 bafExtractor=PATH_TO_BAF_EXTRACTOR_PY
 
 python $bafExtractor  $VCF $outputOnTargetNormTmp "40"
 grep "^[^#]" $outputOnTargetNormTmp | awk -F'\t' '(length($4) == 1) && (length($5) == 1) {print $1 "\t" $2 "\t" $3 "\t" $1 "_" $2 "\t" $(NF-1) "\t" $NF}' > $outputOnTargetNorm
 ```
 
-"40" in line with `$bafExtractor` denotes the minimum quality of the variant. Higher is better, but less variants.
+"40" in line with `$bafExtractor` denotes the minimum quality of the variant. Higher is better, but you'll get less variants.
 
 Having this file, we can calculate `baf` file for tumor:
 
 ```
-outputOnTargetTumorTmp=TEMPORARY_FILE
-outputOnTargetTumor=OUTPUT_TUMOR_FILE
+outputOnTargetTumorTmp=TEMPORARY_TUMOR_FILE_WITH_DIFFERENT_FILE_NAME.tsv
+outputOnTargetTumor=OUTPUT_TUMOR_FILE.tsv
 BAM=PATH_TO_BAM
 
 VariantAnnotateFrequency -in $outputOnTargetNormTmp -bam $BAM -out $outputOnTargetTumorTmp -depth
