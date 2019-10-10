@@ -52,11 +52,7 @@ vectors_of_cn_states = unique(vectors_of_cn_states)
 
 setwd(opt$folderWithScript)
 source("./trios/helpersTrio.R")
-print("START cluster allocation.")
-no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-cl<-makeCluster(no_cores, type="FORK")
-registerDoParallel(cl)
-print("END cluster allocation.")
+
 for (trioRow in 1:nrow(trios)) {
   child_number <- which(colnames(coverage.normalised) == trios[trioRow, 1])
   mother_number  <- which(colnames(coverage.normalised) == trios[trioRow, 2])
@@ -156,6 +152,24 @@ for (trioRow in 1:nrow(trios)) {
     father_state = which(cn_states_father == vectors_of_cn_states[i,3])
     
     matrix_of_likeliks[,i] = matrix_of_likeliks_child_full[,child_state] + matrix_of_likeliks_mother_full[,mother_state] + matrix_of_likeliks_father_full[,father_state]
+  }
+  for (sex_chrom in c("chrX","chrY")) {
+    if (sex_chrom %in% c("chrX", "X")) {
+      if (genderOfSamples[child_number] == "F")
+        matrix_of_likeliks[which(globalBed[,1] == sex_chrom),1] = (matrix_of_likeliks_child_full[which(globalBed[,1] == sex_chrom),3] + 
+          matrix_of_likeliks_mother_full[which(globalBed[,1] == sex_chrom),3] + matrix_of_likeliks_father_full[which(globalBed[,1] == sex_chrom),2])
+      else 
+        matrix_of_likeliks[which(globalBed[,1] == sex_chrom),1] = (matrix_of_likeliks_child_full[which(globalBed[,1] == sex_chrom),2] + 
+                                                                     matrix_of_likeliks_mother_full[which(globalBed[,1] == sex_chrom),3] + matrix_of_likeliks_father_full[which(globalBed[,1] == sex_chrom),2])
+    }
+    if (sex_chrom %in% c("chrY", "Y")) {
+      if (genderOfSamples[child_number] == "F")
+        matrix_of_likeliks[which(globalBed[,1] == sex_chrom),1] = (matrix_of_likeliks_child_full[which(globalBed[,1] == sex_chrom),1] + 
+                                                                     matrix_of_likeliks_mother_full[which(globalBed[,1] == sex_chrom),1] + matrix_of_likeliks_father_full[which(globalBed[,1] == sex_chrom),2])
+      else
+        matrix_of_likeliks[which(globalBed[,1] == sex_chrom),1] = (matrix_of_likeliks_child_full[which(globalBed[,1] == sex_chrom),2] + 
+                                                                     matrix_of_likeliks_mother_full[which(globalBed[,1] == sex_chrom),1] + matrix_of_likeliks_father_full[which(globalBed[,1] == sex_chrom),2])
+    }
   }
   
   matrix_of_likeliks_read_depth_only = matrix_of_likeliks

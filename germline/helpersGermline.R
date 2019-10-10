@@ -482,7 +482,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
     setwd(opt$out)
     png(filename="clusteringSolution.png", width=1024, height=1024)
     plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
-         main="Metric MDS", type="n")
+         main="Isometric MDS", type="n")
     text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
     dev.off()
     return(list(clustering, outliersFromClustering))
@@ -569,7 +569,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
   setwd(opt$out)
   png(filename="clusteringSolution.png", width=1024, height=1024)
   plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
-       main="Metric MDS", type="n")
+       main="Isometric MDS", type="n")
   text(x, y, labels = row.names(distMatrix), cex=.7, col=clustering + 1)
   dev.off()
   setwd(opt$folderWithScript)
@@ -619,7 +619,7 @@ returnTreeForCorrelation <- function(coverage.normalised.local, sdsOfGermlineSam
   trainingDataset <- as.data.frame(cbind(covariancesClose, distnacesClose, sumOfLengths, minLength, maxLength))
   if (length(which(distnacesClose > 1000 )) > 0)
   trainingDataset = trainingDataset[-which(distnacesClose > 1000),]
-  if (nrow(trainingDataset) > 100) {
+  if (nrow(trainingDataset) > 100 & nrow(unique(trainingDataset)) > 10) {
   fit <- ctree(covariancesClose ~ (distnacesClose) + (sumOfLengths) + minLength + maxLength, data=trainingDataset, control=ctree_control(mincriterion = 0.99))
   png(filename="treeOnCorrelationOfCoverage.png", width=4000, height=1800)
   plot(fit)

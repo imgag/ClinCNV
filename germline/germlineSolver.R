@@ -1,18 +1,14 @@
 library(party)
 
-print("START cluster allocation.")
-no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-cl<-makeCluster(no_cores, type="FORK")
-registerDoParallel(cl)
-print("END cluster allocation.")
+
 
 cn_states <- 0:8
-degree_of_mosaicism = seq(from=0.1, to=0.9, by=0.05)
 if (opt$mosaicism) {
-  cn_states_mosaicism <- unique(c(cn_states, round(sapply(degree_of_mosaicism, function(dg) {dg * 0:4}), 2)))
+  cn_states_mosaicism <- seq(from=1.1, to=2.9, by=0.05)
   
   diffs <- sapply(cn_states_mosaicism, function(i) {min(abs(cn_states - i))})
-  cn_states_mosaicism = cn_states_mosaicism[-which(diffs > 0.01 & diffs < 0.09)]
+  cn_states_mosaicism = cn_states_mosaicism[which(diffs > 0.09 & diffs < 0.91)]
+  cn_states_mosaicism = unique(c(cn_states_mosaicism, cn_states))
 }
 
 
@@ -320,7 +316,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
               )
               cnState = local_cn_states[found_CNVs[i,4]]
               if (chrom %in% c("chrX", "chrY")) {
-                allowedSamples <- which(genderOfSamples = genderOfSamples[sam_no])
+                allowedSamples <- which(genderOfSamples == genderOfSamples[sam_no])
               } else {
                 allowedSamples = 1:ncol(toyCoverageGermlineCohort)
               }
@@ -526,11 +522,13 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   fileToOut <- paste0(folder_name, sample_name, paste0("/", sample_name, "_cnvs.tsv"))
   fileConn<-file(fileToOut)
   writeLines(c(
+    paste0("##ANALYSISTYPE=CLINCNV_GERMLINE_SINGLE"), 
     paste0("##", clincnvVersion), 
-    paste("##Analysis finished on ", Sys.time()),
+    paste("##Analysis finished on:", Sys.time()),
     paste("##gender of sample:", genderOfSamples[sam_no], collapse = " "),
-    paste("##number of iterations:", iterations, ", quality used at final iteration:", threshold, collapse = " "), 
-    paste("##was it outlier after clustering?", outliersByClustering[sam_no], collapse = " "),
+    paste("##number of iterations:", iterations, collapse = " "), 
+    paste("##quality used at final iteration:", threshold, collapse = " "), 
+    paste("##was it outlier after clustering:", outliersByClustering[sam_no], collapse = " "),
     paste("##fraction of outliers:", round(median(vectorWithNumberOfOutliers), digits=3), collapse = " ")), fileConn)
   close(fileConn)
   found_CNVs_total[,7] = (format(as.numeric(found_CNVs_total[,7]), nsmall=3))
@@ -538,5 +536,4 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
 }
 
-stopCluster(cl)
 

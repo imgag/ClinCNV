@@ -13,11 +13,12 @@ This software is distributed under [MIT licence](./LICENSE).
 
 ClinCNV is supposed to detect CNVs in germline and somatic context (no mosaicism for now, but it can easily be implemented on request) in NGS data (targeted and whole-genome). We work in cohorts, so it makes sense to try ClinCNV if you have more than 10 samples (recommended amount - 40 since we estimate variances from the data). By "cohort" we mean samples sequenced with the same enrichment kit with approximately the same depth (ie 1x WGS and 30x WGS better be analysed in separate runs of ClinCNV). Of course it is better if your samples were sequenced within the same sequencing facility. Currently we work with hg19 only. For hg38 or mouse genome or any other diploid organism you have to replace *cytobands.txt* with the corresponding file. ClinCNV do not work with small panels (hundreds of regions) since GC-correction can not be performed accurately for samples sequenced with such panels.
 
-NOTE: version of ClinCNV we are talking about is located in the folder `somatic`. Folder `PCAWG` was used for CNVs detection in PanCancer Analysis of Whole Genomes cohort and is *research* only version. It can be useful if you want to analyse several thousands of whole genomes, but better contact us in this case.
+NOTE: Folder `PCAWG` was used for CNVs detection in PanCancer Analysis of Whole Genomes cohort and is *research* only version. It is located here for historical reasons. Feel free to remove it.
 
 ## Pre-requisites
 
-We expect you to install ClinCNV on Linux or MacOS platforms. We expect you to install `R` (as new version as possible, we used ClinCNV with `R 3.2.3`, but you may experience problems installing libraries using the old version) and the following libraries: 
+We expect you to install ClinCNV on Linux or MacOS platforms. Copy all the files using `git clone https://github.com/imgag/ClinCNV.git`. We expect you to install `R` (as new version as possible, we used ClinCNV with `R 3.2.3`, but you may experience problems installing libraries using the old version) and the following libraries: 
+
 ```
 install.packages("optparse")
 install.packages("robustbase")
@@ -25,13 +26,30 @@ install.packages("MASS")
 install.packages("data.table")
 install.packages("foreach")
 install.packages("doParallel")
-install.packages("msm")
+install.packages("mclust")
+install.packages("R.utils")
+install.packages("RColorBrewer")
+install.packages("party")
 ```
+
+**Test run:**
+```
+fold=/folder/with/the/cloned/ClinCNV
+mkdir $fold"/results"
+Rscript $fold"/clinCNV.R" --bed $fold"/samples/bed_file.bed" --normal $fold"/samples/coverages_normal.cov" --out $fold"/results"
+```
+
+If `ClinCNV` fails with the test run, set `chmod 755` to the output folder.
+
+You will find result in `$fold/ClinCNV/result/` folder.
+
 For now we do not provide our own tool for pre-processing of the data. We recommend you to use *ngs-bits* (https://github.com/imgag/ngs-bits), however, as soon as your data match the format expected by ClinCNV you may proceed with any tool of choice (eg, *samtools*).
 
 You should also have `.bed` file with the coordinates of targeted regions and reference genome in `.fasta` format for annotation of `.bed` file with *ngs-bits*.
 
 ## Quick launch
+
+More informative manuals are located in the `doc` folder.
 
 You can try to start ClinCNV as follows:
 

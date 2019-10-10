@@ -2,11 +2,7 @@ library(RColorBrewer)
 
 
 prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamples, bedFileForClusterOff=NULL, tmpNormalOff=NULL, tumorOff=NULL) {
-  print("START cluster allocation.")
-  no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
-  cl<-makeCluster(no_cores, type="FORK")
-  registerDoParallel(cl)
-  print("END cluster allocation.")
+
   
   ### PROCESSING OF SOMATIC VARIANTS
   setwd(opt$folderWithScript)
@@ -171,6 +167,9 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
   
   
   complexTumor = T
+  if (!is.null(opt$notComplexTumor)) {
+    complexTumor = F
+  }
   if (complexTumor) {
     purityDoubleCopyNumberEvent = seq(from=max(2 * opt$minimumPurity, 20), to=100.1, by=opt$purityStep) / 100
     puritySecondCopyNumberEvent = seq(from=opt$minimumPurity, to=100.1, by=opt$purityStep) / 100
@@ -265,7 +264,6 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
     normalNames = c()
   }
   
-  stopCluster(cl)
   somaticCalling(matrixOfLogFold)
   
 }

@@ -1,10 +1,7 @@
 
 somaticCalling <- function(matrixOfLogFold) {
   for (sam_no in 1:ncol(matrixOfLogFold)) {
-    print("START cluster allocation.")
-    cl<-makeCluster(no_cores, type="FORK",outfile=paste0(opt$out, "/output.txt"))
-    registerDoParallel(cl)
-    print("END cluster allocation.")
+
     clusterExport(cl,c('maxSubArraySum', 'fillInPList', 'likelihoodOfSNV','return_likelik', 'vect_of_norm_likeliks', 'vect_of_t_likeliks'))
     sample_name <- colnames(matrixOfLogFold)[sam_no]
     overdispersionNormal = NULL
@@ -27,6 +24,7 @@ somaticCalling <- function(matrixOfLogFold) {
         next
       }
     }
+
     # To speed up reiteration, we do not want match between BAF file and bed file a lot of times
     if (frameworkDataTypes == "covdepthBAF") {
       closestBedRegions <- c()
@@ -638,8 +636,8 @@ somaticCalling <- function(matrixOfLogFold) {
             
             
             if (nrow(found_CNVs) > 0) {
-              medianLikelihoods <- -1 * sapply(1:nrow(found_CNVs), function(i) {median(toyMatrixOfLikeliks[found_CNVs[i,2]:found_CNVs[i,3], found_CNVs[i,4]] - 
-                                                                                         toyMatrixOfLikeliks[found_CNVs[i,2]:found_CNVs[i,3], initial_state])})
+              medianLikelihoods <- round(-1 * sapply(1:nrow(found_CNVs), function(i) {median(toyMatrixOfLikeliks[found_CNVs[i,2]:found_CNVs[i,3], found_CNVs[i,4]] - 
+                                                                                               toyMatrixOfLikeliks[found_CNVs[i,2]:found_CNVs[i,3], initial_state])}), 3)
               cnvsToWriteOut <- plotFoundCNVsNew(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, output_of_plots, chrom, 
                                                  local_cn_states, local_copy_numbers_used_major, local_copy_numbers_used_minor, local_purities, 
                                                  local_copy_numbers_used_major_second, local_copy_numbers_used_minor_second, local_purities_second,
@@ -731,6 +729,7 @@ somaticCalling <- function(matrixOfLogFold) {
           resultBestCombination = 0
           minResult = 10**100
           for (m in 2:maxNumOfClones) {
+            print(paste("Investigating combinations of", m, "clones"))
             combinationsOfPurities <- combn(localPurityStates, m)
             #indicesOfPuritiesWithMax = apply(combinationsOfPurities, 2, function(x) {sum(which(x == hundredPercentPurity))})
             #combinationsOfPurities = combinationsOfPurities[,which(indicesOfPuritiesWithMax > 0),drop=F]
@@ -791,6 +790,7 @@ somaticCalling <- function(matrixOfLogFold) {
       BAFsignature = matrix(NA, nrow=nrow(found_CNVs_total), ncol=3)
       snvUpperAndBottom = matrix(NA, nrow=nrow(found_CNVs_total), ncol=2)
       overallPvalues = matrix(NA, nrow=nrow(found_CNVs_total), ncol=1)
+      QC_value = "NA"
       if (nrow(found_CNVs_total) > 0){
         for (i in 1:nrow(found_CNVs_total)) {
           defaultCN = 2
@@ -878,6 +878,11 @@ somaticCalling <- function(matrixOfLogFold) {
           overallPvalues[i] = pchisq((sum(log(min(1, pvalsSeparateTests + 10**-10)))*-2), df=length(pvalsSeparateTests)*2, lower.tail=F)
         }
         overallPvalues = p.adjust(overallPvalues, method="fdr")
+        if (length(which(found_CNVs_total[,4] != found_CNVs_total[,5])) > 0) {
+          QC_value = 2 * length(which(as.numeric(BAFsignature[which(found_CNVs_total[,5] != found_CNVs_total[,4]),3]) > 0.5)) / length(which(found_CNVs_total[,4] != found_CNVs_total[,5]))
+        } else {
+          QC_value = "NA"
+        }
         BAFsignature[,3] = p.adjust(as.numeric(BAFsignature[,3]), method="fdr")
         BAFsignature[,3] = format(round(as.numeric(BAFsignature[,3]), 4), scientific = F)
         colnamesForFutureMatrix <- colnames(found_CNVs_total)
@@ -898,7 +903,8 @@ somaticCalling <- function(matrixOfLogFold) {
       fileToOut <- paste0(folder_name, sample_name, paste0("/CNAs_", sample_name, ".txt"))
       fileConn<-file(fileToOut)
       ploidyEst = round(2 + (2 * 2 ** median(matrixOfLogFold[which(!bedFileForCluster[,1] %in% c("chrX", "chrY")),sam_no]) - 2) / ifelse(max(local_purities) == 0, 1, max(local_purities)), 4)
-      writeLines(c(paste0("##", clincnvVersion), paste0("##Analysis finished on ", Sys.time()),  paste("##"," QC ", 0, ", gender of sample:", genderOfSamples[germline_sample_no], "ploidy: ", ploidyEst, "clonality by BAF (if != 1):", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)
+      estimatedFDR = ifelse(QC_value == "NA", "NA", round(QC_value, 5))
+      writeLines(c(paste0("##ANALYSISTYPE=CLINCNV_TUMOR_NORMAL_PAIR"), paste0( "##", clincnvVersion), paste0("##Analysis finished on: ", Sys.time()),  paste0("##estimated fdr: ", estimatedFDR), paste0("##gender of sample: ", genderOfSamples[germline_sample_no]), paste0("##ploidy: ", ploidyEst), paste0("##clonality by BAF (if != 1): ", paste(round(unique(local_purities), digits=3), collapse=";"), collapse = " ")), fileConn)     
       close(fileConn)
       
       if(opt$debug) {
@@ -918,7 +924,6 @@ somaticCalling <- function(matrixOfLogFold) {
         write.table(areasFreeOfCNVs, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
       }
     }
-    stopCluster(cl)
   }
 }
 

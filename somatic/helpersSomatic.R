@@ -859,7 +859,7 @@ plotFoundCNVsNew <- function(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, o
       CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], 
                            local_copy_numbers_used_major[found_CNVs[s,4]], local_copy_numbers_used_minor[found_CNVs[s,4]],
                            purities[found_CNVs[s,4]],
-                           vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), round(medianLikelihoods[s], 5),
+                           vector_of_states[found_CNVs[s,4]], round(-1 * found_CNVs[s,1],0), round(medianLikelihoods[s], 3),
                            found_CNVs[s,3] - found_CNVs[s,2] + 1, 
                            local_copy_numbers_used_major_second[found_CNVs[s,4]], 
                            local_copy_numbers_used_minor_second[found_CNVs[s,4]], 
@@ -1008,29 +1008,11 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
     
   }
   
-  # clusteredResult <- densityMclust(smoothedLogFold[which(smoothedLogFold > log2(3/8))], model="E")
-  # 
-  # weightsOfClusters = clusteredResult$parameters$pro
-  # meansOfClusters = clusteredResult$parameters$mean
-  # 
-  # if (length(weightsOfClusters) > 0)
-  #   for (i in 1:length(weightsOfClusters)) {
-  #     currentLocation = meansOfClusters[i]
-  #     diffs = abs(meansOfClusters - currentLocation)
-  #     meansOfClusters[i] = (clusteredResult$parameters$mean[which(diffs < 0.035)] * clusteredResult$parameters$pro[which(diffs < 0.035)]) / sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
-  #     weightsOfClusters[i] = sum(clusteredResult$parameters$pro[which(diffs < 0.035)])
-  #   }
-  # 
-  # bigClusters <- which(weightsOfClusters > 0.25)
-  # if (length(bigClusters) == 0) {
-  #   shiftOfCoverage <- median(globalLogFold[allowedChromosomesAutosomesOnly])
-  #   weightsOfClusters = 1
-  # } else {
-  #   shiftOfCoverage = meansOfClusters[bigClusters]
-  #   weightsOfClusters = weightsOfClusters[bigClusters]
-  # }
-  # weightsOfClusters = weightsOfClusters[order(shiftOfCoverage)]
-  # shiftOfCoverage = shiftOfCoverage[order(shiftOfCoverage)]
+
+  whichMediansAreNotNA = which(!is.na(array_of_medians))
+  chrRegion = chrRegion[whichMediansAreNotNA]
+  array_of_medians = array_of_medians[whichMediansAreNotNA]
+  weightOfMedians = weightOfMedians[whichMediansAreNotNA]
   
   print(chrRegion)
   print(array_of_medians)
