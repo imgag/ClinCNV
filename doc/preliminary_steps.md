@@ -123,7 +123,7 @@ and the file extension should be (confusingly) `.tsv`.
 
 We use `GSvar` format for keeping records of variants, however, most of the researchers use `vcf`. The extraction of variants from `vcf` is a bit longer.
 
-The script that prepares BAF from gzipped `vcf` is located in `helper_scripts` folder and is called `baf_extractor.py`. To run it and to get BAF file for normal sample you should use the command:
+The script that prepares BAF from `vcf` or gzipped `vcf` is located in `helper_scripts` folder and is called `baf_extractor.py`. Your `vcf` should containd `DP` field, `GT` and `AO` or `AF`. If the number of reads (or percentage) is coded differently, you should modify `baf_extractor.py` manually (just change the names of fields). To run it and to get BAF file for normal sample you should use the command:
 
 ```
 VCF=PATH_TO_YOUR_VCF

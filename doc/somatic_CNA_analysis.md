@@ -147,13 +147,7 @@ At the chromosome level a complex case may look like:
 
 ![IGV track of copy number][IGV_tracks_chrom]
 
-Note - at the p-arm (left) B-allele frequency changed from 0.5 to almost 0/1, but the coverage increased. If a "classic" duplication happens, this region has to be duplicated around 10 times (BAF balance will move from 0.5 to ~0.1-0.9), and we don't see such a huge increase in coverage. Thus, this coverage/BAF pattern may indicate loss-of-heterozygosity event followed by a low-copy duplication. `ClinCNV` determines this event as 
-
-#chr	|start|	end|	tumor_CN_change|	tumor_clonality|	CN_change|	loglikelihood|	number_of_regions|	state
-:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
-chr7	|688268|	55208953|	3|	0.8|	2.8|	2646|	642|	LOHDup
-
-More on this table and potentially detectable events below.
+Note - at the p-arm (left) B-allele frequency changed from 0.5 to almost 0/1, but the coverage increased. If a "classic" duplication happens, this region has to be duplicated around 10 times (BAF balance will move from 0.5 to ~0.1-0.9), and we don't see such a huge increase in coverage. Thus, this coverage/BAF pattern may indicate loss-of-heterozygosity event followed by a low-copy duplication.
 
 
 ### Sub-clonal structure of samples
@@ -285,7 +279,14 @@ _"BAF_qval_fdr"_ is a q-value for BAFs within the variant. Is expected to be low
 _"Overall_qvalue"_ is q-value obtained from merged p-values from coverage and BAFs.
 
 
+
+
+
+
+
 ## I do not have time! I have hundreds of samples!
+
+That's understandable. Then you need to run a script to automatically select good samples.
 
 
 

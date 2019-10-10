@@ -43,6 +43,12 @@ For high-coverage (>10X) WGS you should skip step 3 and pay special attention to
 
 For low-coverage WGS (<10X) we would recommend to use window size at least 5KB and minimal size of CNV as 3.
 
+## Mosaic CNVs calling
+
+Add `--mosaicism` option to your command line. Mosaic CNVs can take values from 1.1 to 2.9 with the step of 0.05.
+
+Several times this mode was used for CNAs calling in tumor samples under the absence of matching normal. It can be done only if CNAs affect less than a half of your sample and still will be less accurate and much less informative than the paired calling. To do the same trick, you need to manually chage `germlineSolver.R` file - there is a line starting with  `cn_states_mosaicism <- seq(from=`. Modify it accordingly (from should be the minimal copy-number you want to detect, to is the maximum, step is the step of discrete grid). Same can be done for looking for aneuploidies in prenatal testing settings - we've never tested that. You also may change the value `fineForMosaicism = 0.05` to something smaller. This fine downweights all the mosaic CNVs and thus the caller prefers integer copy-numbers, but if you want something different - go ahead. 
+ 
 # How to interpret results
 
 Your output files will be saved in `/your/folder/normal` directory - `ClinCNV` will make a separate folder per sample and put resulting files there. 
