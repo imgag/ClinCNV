@@ -32,6 +32,12 @@ install.packages("RColorBrewer")
 install.packages("party")
 ```
 
+**Test run:**
+```
+fold=/folder/with/the/cloned/ClinCNV
+Rscript $fold"/clinCNV.R" --bed $fold"/samples/bed_file.bed" --normal $fold"/samples/coverages_normal.cov"
+```
+
 For now we do not provide our own tool for pre-processing of the data. We recommend you to use *ngs-bits* (https://github.com/imgag/ngs-bits), however, as soon as your data match the format expected by ClinCNV you may proceed with any tool of choice (eg, *samtools*).
 
 You should also have `.bed` file with the coordinates of targeted regions and reference genome in `.fasta` format for annotation of `.bed` file with *ngs-bits*.

@@ -93,10 +93,6 @@ Or deeper at a single event level:
 
 You will get tab delimited files with 2 header lines (starting with hashtag), results' table column names and the results table itself.
 
-_First line_ in resulting `.tsv` file shows the number of iterations. If the number of detected CNVs exceeds values specified with the flag `--maxNumGermCNVs`, your sample is re-analysed with stricter thresholds. The number here denotes number of re-runs.
-
-_Second line_ - number of outliers in autosomes. It is designed in a way that 5% of dots have to be "outliers" (their Z-score exceed the corresponding quantiles of normal distributions) in a diploid sample. If you see a bigger number (such as 0.1 or bigger), that means that either your sample is largely affected by CNVs (e.g. there is aneuploidy or mutliple small CNVs) or the tool determined variances (or locations) wrongly or your sample is too noisy comparing to the cohort (thus, _the sample itself_ is an outlier and has to be excluded from the analysis). Value much below 5% may indicate same problems with parameters' estimation, but now variances were overestimated. It may lead to low sensitivity of the tool.
-
 ![Table with results][table_of_results]
 
 The first 3 lines are technical. 4th line shows the inferred gender, 5th line - how many interations of quality score increasing passed since the number of CNVs in the sample became acceptable, quality used is the quality score used, was outlier in clustering? - shows if this sample was an outlier after batch effect clustering.
