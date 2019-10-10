@@ -126,4 +126,4 @@ The last line -- fraction of outliers -- shows how many coverage data points had
 [IGV_track]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks.png "IGV tracks for germline sample"
 [IGV_track_chr]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks_chrom_level.png "IGV tracks for germline sample (chromosome level)"
 [IGV_track_cnv]: https://github.com/imgag/ClinCNV/raw/master/doc/images/germline_tracks_cnv_level.png "IGV tracks for germline sample (one CNV level)"
-[table_of_results]: ./images/normal_calling.png"Table with results (simulated data)"
+[table_of_results]: ./images/normal_calling.png "Table with results (simulated data)"
