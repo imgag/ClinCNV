@@ -116,7 +116,7 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
   uniques_gcs <- unique(gcs)
   uniquesGcsToExclude = c()
   for (i in 1:length(uniques_gcs)) {
-    if (length(which(gcs == uniques_gcs[i])) < 100) {
+    if (length(which(gcs == uniques_gcs[i])) < 20) {
       uniquesGcsToExclude = c(uniquesGcsToExclude, i)
     }
   }
@@ -131,7 +131,7 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
       curr_gc = uniques_gcs[i]
       vector_of_gc <- which(gcs == curr_gc)
       vector_of_gcs_in_allowed_chroms = intersect(vector_of_gc, allowedChromosomesAutosomesOnly)
-      if (length(vector_of_gcs_in_allowed_chroms) >= 50) {
+      if (length(vector_of_gcs_in_allowed_chroms) >= 20) {
         gc_norm_factor <- as.vector(apply(coverages[vector_of_gcs_in_allowed_chroms,], 2, median))
       } else {
         gc_norm_factor = as.vector(apply(coverages[vector_of_gcs_in_allowed_chroms,], 2, lehmanHodges))

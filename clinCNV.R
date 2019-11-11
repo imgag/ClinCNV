@@ -253,7 +253,7 @@ numberOfElemsInEachChromosome = sapply(1:length(presentedChromsOn), function(i) 
 
 for (i in 1:20) {
   tableOfValues <- table(round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i)
-  if(sum(tableOfValues[which(tableOfValues > 100)]) / sum(tableOfValues) > 0.95) break 
+  if(sum(tableOfValues[which(tableOfValues > 20)]) / sum(tableOfValues) > 0.95) break 
 }
 bedFile[,4] <- round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i
 whichBedIsNA <- which(is.na(bedFile[,4]) | bedFile[,3] - bedFile[,2] < 50 | (!bedFile[,1] %in% presentedChromsOn[numberOfElemsInEachChromosome]))
@@ -473,6 +473,7 @@ if (max(bedFile[,3] - bedFile[,2]) / min(bedFile[,3] - bedFile[,2]) > 16) {
 
 lst <- gc_and_sample_size_normalise(bedFile, normal)
 normal <- lst[[1]]
+bedFile <- lst[[2]]
 writeOutLevelOfNoiseVersusCoverage(avgDepthNormalOn, normal, bedFile, paste0(opt$out, "/ontargetNormal.summary.xls"))
 if (framework == "somatic") {
   if (frameworkDataTypes == "covdepthBAF") {
@@ -485,8 +486,6 @@ if (framework == "somatic") {
   }
   tumor <- lst[[1]]
   writeOutLevelOfNoiseVersusCoverage(avgDepthTumorOn, tumor, bedFile, paste0(opt$out, "/ontargetTumor.summary.xls"))
-  bedFile <- lst[[2]]
-} else {
   bedFile <- lst[[2]]
 }
 

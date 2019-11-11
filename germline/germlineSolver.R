@@ -293,7 +293,6 @@ for (sam_no in 1:ncol(coverage.normalised)) {
               standDevOfRolling = Qn(rollingThrowCoverage)
               locationOfRolling = median(rollingThrowCoverage)
               if (max(abs(rollingThrowCoverage - 1)) > max(3 * standDevOfRolling, 0.05) & !chrom %in% c("chrX", "chrY")) {
-                print(paste("Potential mosaicism at chromosome", chrom, ", arm: ", k, "(this is normal if you have not filtered polymorphic regions before calling)"))
                 if (opt$mosaicism) {
                   presenceOfMosaicVariants = T
                   if (!armFinalized)
