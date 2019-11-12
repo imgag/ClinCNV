@@ -503,9 +503,9 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
     bedFileOfftarget <- lst[[2]]
     writeOutLevelOfNoiseVersusCoverage(avgDepthTumorOff, tumorOff, bedFileOfftarget, paste0(opt$out, "/offtargetTumor.summary.xls"))
   }
+  bedFileOfftarget <- lst[[2]]
+  writeOutLevelOfNoiseVersusCoverage(avgDepthNormalOff, normalOff, bedFileOfftarget, paste0(opt$out, "/offtargetNormal.summary.xls"))
 }
-bedFileOfftarget <- lst[[2]]
-writeOutLevelOfNoiseVersusCoverage(avgDepthNormalOff, normalOff, bedFileOfftarget, paste0(opt$out, "/offtargetNormal.summary.xls"))
 
 print(paste("Amount of regions after GC-extreme filtering", round(100 * nrow(normal) / numberOfRowsBeforeAllTheFiltrationNormal, digits = 3) ) )
 
