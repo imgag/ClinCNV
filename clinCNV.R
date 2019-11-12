@@ -163,7 +163,6 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
-
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -423,7 +422,8 @@ if (!is.null(opt$tumorSample)) {
   stopifnot(opt$tumorSample %in% pairs[coordOfNormalInPairs,1])
 }
 
-lstOfChromBorders <- getCytobands("cytobands.txt")
+removeCentromeres = T
+lstOfChromBorders <- getCytobands("cytobands.txt", removeCentromeres)
 left_borders <- lstOfChromBorders[[1]]
 right_borders <- lstOfChromBorders[[2]]
 ends_of_chroms <- lstOfChromBorders[[3]]

@@ -532,6 +532,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   close(fileConn)
   found_CNVs_total[,7] = (format(as.numeric(found_CNVs_total[,7]), nsmall=3))
   found_CNVs_total[,8] = (format(as.numeric(found_CNVs_total[,8]), nsmall=3))
+  found_CNVs_total[which(is.na(found_CNVs_total[,9]) | found_CNVs_total[,9] == "na"),9] = "" 
   write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
 }
 

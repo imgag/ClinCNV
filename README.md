@@ -15,6 +15,8 @@ ClinCNV detects CNVs in germline and somatic context in NGS data (targeted and w
 
 NOTE: Folder `PCAWG` was used for CNVs detection in PanCancer Analysis of Whole Genomes cohort and is *research* only version. It is located here for historical reasons. Feel free to remove it.
 
+**bioRxiv**: https://www.biorxiv.org/content/10.1101/837971v1 (calling of copy-number alterations in normal-tumor pairs).
+
 ## Pre-requisites
 
 We expect you to install ClinCNV on Linux or MacOS platforms. Copy all the files using `git clone https://github.com/imgag/ClinCNV.git`. We expect you to install `R` (as new version as possible, we used ClinCNV with `R 3.2.3`, but you may experience problems installing libraries using the old version) and the following libraries: 

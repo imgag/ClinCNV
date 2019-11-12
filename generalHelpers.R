@@ -61,7 +61,7 @@ return_t_likelik <- function(x) {
   return(vect_of_t_likeliks[x])
 }
 
-getCytobands <- function(fileName) {
+getCytobands <- function(fileName, removeCentromeres) {
   cytobands <- read.table(fileName,stringsAsFactors = F, header = F, sep="\t", row.names=NULL)
   left_borders <- vector(mode="list", length=nrow(cytobands)/2)
   right_borders <- vector(mode="list", length=nrow(cytobands)/2)
@@ -72,8 +72,13 @@ getCytobands <- function(fileName) {
   names(right_borders) = as.vector(t(cytobands[,1]))[even_numbers]
   names(ends_of_chroms) = as.vector(t(cytobands[,1]))[even_numbers]
   for (i in 1:length(odd_numbers)) {
-    left_borders[[i]] = cytobands[odd_numbers[i], 2]
-    right_borders[[i]] = cytobands[even_numbers[i], 3]
+    if (removeCentromeres) {
+      left_borders[[i]] = round((cytobands[odd_numbers[i], 2] + cytobands[even_numbers[i], 3]) / 2) - 1
+      right_borders[[i]] = round((cytobands[odd_numbers[i], 2] + cytobands[even_numbers[i], 3]) / 2) + 1
+    } else {
+      left_borders[[i]] = cytobands[odd_numbers[i], 2]
+      right_borders[[i]] = cytobands[even_numbers[i], 3]
+    }
     ends_of_chroms[[i]] = cytobands[even_numbers[i], 5]
   }
   return(list(left_borders, right_borders, ends_of_chroms))
