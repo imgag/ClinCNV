@@ -162,7 +162,6 @@ print(paste("We run script located in folder" , opt$folderWithScript, ". All the
 
 
 
-
 if (is.null(opt$normal) | is.null(opt$bed)) {
   print("You need to specify file with normal coverages and bed file path at least. Here is the help:")
   print_help(opt_parser)
@@ -473,8 +472,6 @@ if (max(bedFile[,3] - bedFile[,2]) / min(bedFile[,3] - bedFile[,2]) > 16) {
 
 lst <- gc_and_sample_size_normalise(bedFile, normal)
 normal <- lst[[1]]
-bedFile <- lst[[2]]
-writeOutLevelOfNoiseVersusCoverage(avgDepthNormalOn, normal, bedFile, paste0(opt$out, "/ontargetNormal.summary.xls"))
 if (framework == "somatic") {
   if (frameworkDataTypes == "covdepthBAF") {
     if (lengthBasedNorm)
@@ -485,17 +482,17 @@ if (framework == "somatic") {
     lst <- gc_and_sample_size_normalise(bedFile, tumor)
   }
   tumor <- lst[[1]]
-  writeOutLevelOfNoiseVersusCoverage(avgDepthTumorOn, tumor, bedFile, paste0(opt$out, "/ontargetTumor.summary.xls"))
   bedFile <- lst[[2]]
+  writeOutLevelOfNoiseVersusCoverage(avgDepthTumorOn, tumor, bedFile, paste0(opt$out, "/ontargetTumor.summary.xls"))
 }
-
+bedFile <- lst[[2]]
+writeOutLevelOfNoiseVersusCoverage(avgDepthNormalOn, normal, bedFile, paste0(opt$out, "/ontargetNormal.summary.xls"))
 
 
 ### OFF TARGET GC NORMALIZATION
 if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   lst <- gc_and_sample_size_normalise(bedFileOfftarget, normalOff)
   normalOff <- lst[[1]]
-  writeOutLevelOfNoiseVersusCoverage(avgDepthNormalOff, normalOff, bedFileOfftarget, paste0(opt$out, "/offtargetNormal.summary.xls"))
   if (frameworkOff == "offtarget") {
     if (frameworkDataTypes == "covdepthBAF") {
       lst <- gc_and_sample_size_normalise(bedFileOfftarget, tumorOff, allowedChroms=allowedChromsBaf)
@@ -503,10 +500,12 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
       lst <- gc_and_sample_size_normalise(bedFileOfftarget, tumorOff)
     }
     tumorOff <- lst[[1]]
+    bedFileOfftarget <- lst[[2]]
     writeOutLevelOfNoiseVersusCoverage(avgDepthTumorOff, tumorOff, bedFileOfftarget, paste0(opt$out, "/offtargetTumor.summary.xls"))
   }
-  bedFileOfftarget <- lst[[2]]
 }
+bedFileOfftarget <- lst[[2]]
+writeOutLevelOfNoiseVersusCoverage(avgDepthNormalOff, normalOff, bedFileOfftarget, paste0(opt$out, "/offtargetNormal.summary.xls"))
 
 print(paste("Amount of regions after GC-extreme filtering", round(100 * nrow(normal) / numberOfRowsBeforeAllTheFiltrationNormal, digits = 3) ) )
 
