@@ -130,7 +130,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     }
   }
   if (opt$mosaicism) {
-    fineForMosaicism = 0.05
+    fineForMosaicism = 1
     matrix_of_likeliks_for_FDR_mosaic[,which(cn_states_mosaicism %% 1 != 0)] = matrix_of_likeliks_for_FDR_mosaic[,which(cn_states_mosaicism %% 1 != 0)] + fineForMosaicism
   }
   matrix_of_likeliks <- matrix_of_likeliks_for_FDR
