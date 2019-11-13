@@ -28,8 +28,9 @@ def clean_file(file, output_file, fdr_threshold):
             while f.readline():
                 lines.append(f.readline())
         else:
-            while f.readline():
+            while True:
                 line = f.readline()
+                if not line: break
                 if float(fdr) < fdr_threshold:
                     lines.append(line)
                 else:
