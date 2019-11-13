@@ -740,7 +740,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
     } else if (chrom == "chrY") {
       if (length(which(genderOfSamples == "M")) <= 2) {
         whichSamplesUsed = which(genderOfSamples == "F")
-        medians = rep(1, nrow(coveragesToDealWithStandardized))
+        medians = rep(1, nrow(coveragesToDealWith))
         next
       }
       whichSamplesUsed = which(genderOfSamples == "M")
