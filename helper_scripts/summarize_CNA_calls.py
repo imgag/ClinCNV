@@ -25,8 +25,10 @@ def clean_file(file, output_file, fdr_threshold):
         print(fdr)
 
         if fdr == "NA" :
-            while f.readline():
-                lines.append(f.readline())
+            while True:
+                line = f.readline()
+                if not line: break
+                lines.append(line)
         else:
             while True:
                 line = f.readline()
