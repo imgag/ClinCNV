@@ -1,55 +1,70 @@
-__author__ = 'gdemidov'
+__author__ = "gdemidov"
 
 import gzip
 import sys
 from typing import Dict, List, Optional
 
+CHROMOSOME_COLUMN = 0
+POSITION_COLUMN = 1
+REFERENCE_BASES_COLUMN = 3
+ALLELIC_BASES_COLUMN = 4
+QUALITY_COLUMN = 5
+SAMPLE_FIELDS_COLUMN = 8
+SAMPLES_START_COLUMN = 9
 
-def get_sample_data(fields: List[str], sample: str) -> Dict[str, str]:
-    return dict(zip(fields, sample.strip().split(':')))
+GENOTYPE_FIELD = "GT"
+DEPTH_FIELD = "DP"
+OTHER_DEPTH_FIELD = "AO"
+ALLELE_FREQUENCY_FIELD = "AF"
 
 
-def vcf_parse_one_line(line: str, minimum_quality: float) -> Optional[List]:
+def parse_sample_data(fields: List[str], sample: str) -> Dict[str, str]:
+    return dict(zip(fields, sample.strip().split(":")))
+
+
+def parse_vcf_line(line: str, minimum_quality: float) -> Optional[List]:
     if line.startswith("#"):
         return None
 
-    sample_fields = line.split("\t")[8].split(":")
-    genotype_index = sample_fields.index("GT")
-    depth_index = sample_fields.index("DP")
-    try:
-        other_depth_index = sample_fields.index("AO")
-    except ValueError:
-        other_depth_index = -1
-    try:
-        frequency_index = sample_fields.index("AF")
-    except ValueError:
-        frequency_index = -1
-
     vcf_fields = line.split("\t")
-    chromosome = vcf_fields[0]
-    start = vcf_fields[1]
-    end = vcf_fields[1]
-    reference_variant = vcf_fields[3]
-    allelic_variant = vcf_fields[4].split(",")
-    if len(allelic_variant[0]) > 1 or len(reference_variant) > 1 or len(allelic_variant) > 2:
+    chromosome = vcf_fields[CHROMOSOME_COLUMN]
+    start = vcf_fields[POSITION_COLUMN]
+    end = vcf_fields[POSITION_COLUMN]
+
+    reference_variant = vcf_fields[REFERENCE_BASES_COLUMN]
+    if len(reference_variant) > 1:
         return None
-    quality = float(vcf_fields[5])
+
+    allelic_bases = vcf_fields[ALLELIC_BASES_COLUMN].split(",")
+    if len(allelic_bases) > 2 or len(allelic_bases[0]) > 1:  # why compare allelic_bases with 2?
+        return None
+    allelic_variant = allelic_bases[0]
+
+    quality = float(vcf_fields[QUALITY_COLUMN])
     if quality < minimum_quality:
         return None
-    baf_depth_dict = get_sample_data(sample_fields, vcf_fields[9])
-    _baf_depth = vcf_fields[9].strip().split(":")
-    if baf_depth[genotype_index] != "0/1":
+
+    sample_fields = vcf_fields[SAMPLE_FIELDS_COLUMN].split(":")
+
+    samples = vcf_fields[SAMPLES_START_COLUMN:]
+    baf_depth = parse_sample_data(sample_fields, samples[0])
+    if baf_depth[GENOTYPE_FIELD] != "0/1":
         return None
-    depth = baf_depth[depth_index]
-    if frequency_index > 0:
-        freq = baf_depth[frequency_index]
-    elif depth_index > 0:
-        freq = float(baf_depth[other_depth_index]) / int(depth)
+
+    depth = int(baf_depth[DEPTH_FIELD])
+    if depth <= 1:
+        return None
+
+    if ALLELE_FREQUENCY_FIELD in baf_depth:
+        frequency = baf_depth[ALLELE_FREQUENCY_FIELD]
+    elif OTHER_DEPTH_FIELD in baf_depth:
+        frequency = float(baf_depth[OTHER_DEPTH_FIELD]) / depth
     else:
         sys.exit("No AO or AF fields in VCF format column. Quit.")
-    if int(depth) > 1:
-        return [chromosome, start, end, reference_variant, allelic_variant[0], chromosome + "_" + start,
-                freq, depth]
+
+    return [
+        chromosome, start, end, reference_variant, allelic_variant, chromosome + "_" + start, frequency, depth
+    ]
 
 
 def parse_vcf(input_file_name: str, output_file_name: str, minimum_quality: float) -> None:
@@ -61,7 +76,7 @@ def parse_vcf(input_file_name: str, output_file_name: str, minimum_quality: floa
     with open(output_file_name, "w") as output_file:
         output_file.write(header)
         for line in input_file:
-            parsed_line = vcf_parse_one_line(line, minimum_quality)
+            parsed_line = parse_vcf_line(line, minimum_quality)
             if parsed_line:
                 output_file.write("\t".join(map(str, parsed_line)) + "\n")
 
