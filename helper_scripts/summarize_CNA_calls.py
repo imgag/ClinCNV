@@ -38,7 +38,7 @@ def clean_file(file, output_file, fdr_threshold, sample_name):
                 if int(splitted_line[5]) == 0 and not splitted_line[0].strip() == "chrY":
                     length_of_cnv = int(splitted_line[2]) - int(splitted_line[1])
                     if length_of_cnv > 10**7:
-                        print("HOMOZYGOUS DELETION - QUITE LONG!!!!")
+                        homozygous_deletion_recall.append([length_of_cnv, splitted_line[0], splitted_line[1], splitted_line[2]])
                 if float(fdr) < fdr_threshold:
                     lines.append(line)
                 else:
@@ -58,6 +58,13 @@ def clean_file(file, output_file, fdr_threshold, sample_name):
                                 lines.append(line)
                         else:
                             lines.append(line)
+
+    if len(homozygous_deletion_recall) > 0:
+        longest_cnvs = sorted(homozygous_deletion_recall, reverse=True)[0]
+        print(sorted(homozygous_deletion_recall))
+        print("Length of the largest homozygous variant: ", longest_cnvs[0] / 10**6, " MBs")
+        print("You may want to recall your samples with")
+        print("--guideBaseline " + longest_cnvs[1] + ":" + longest_cnvs[2] + "-" + longest_cnvs[3] + " --reanalyseCohort --tumorSample " + sample_name.split("-")[0] + ' --normalSample ' + sample_name.split("-")[1])
     if output_of_sample:
         with open(output_file, "w") as f:
             for line in lines:
