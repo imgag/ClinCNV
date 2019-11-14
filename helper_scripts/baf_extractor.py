@@ -2,22 +2,26 @@ __author__ = 'gdemidov'
 
 import gzip
 import sys
-from typing import List, Optional
+from typing import Dict, List, Optional
+
+
+def get_sample_data(fields: List[str], sample: str) -> Dict[str, str]:
+    return dict(zip(fields, sample.strip().split(':')))
 
 
 def vcf_parse_one_line(line: str, minimum_quality: float) -> Optional[List]:
     if line.startswith("#"):
         return None
 
-    sample_data_types = line.split("\t")[8].split(":")
-    genotype_index = sample_data_types.index("GT")
-    depth_index = sample_data_types.index("DP")
+    sample_fields = line.split("\t")[8].split(":")
+    genotype_index = sample_fields.index("GT")
+    depth_index = sample_fields.index("DP")
     try:
-        other_depth_index = sample_data_types.index("AO")
+        other_depth_index = sample_fields.index("AO")
     except ValueError:
         other_depth_index = -1
     try:
-        frequency_index = sample_data_types.index("AF")
+        frequency_index = sample_fields.index("AF")
     except ValueError:
         frequency_index = -1
 
@@ -32,7 +36,8 @@ def vcf_parse_one_line(line: str, minimum_quality: float) -> Optional[List]:
     quality = float(vcf_fields[5])
     if quality < minimum_quality:
         return None
-    baf_depth = vcf_fields[9].strip().split(":")
+    baf_depth_dict = get_sample_data(sample_fields, vcf_fields[9])
+    _baf_depth = vcf_fields[9].strip().split(":")
     if baf_depth[genotype_index] != "0/1":
         return None
     depth = baf_depth[depth_index]
