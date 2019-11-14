@@ -2,7 +2,8 @@ __author__ = "gdemidov"
 
 import gzip
 import sys
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Callable, Dict, IO, List, Optional
 
 CHROMOSOME_COLUMN = 0
 POSITION_COLUMN = 1
@@ -67,35 +68,36 @@ def parse_vcf_line(line: str, minimum_quality: float) -> Optional[List]:
     ]
 
 
-def write_filtered_lines(input_file, output_file, minimum_quality):
+def write_filtered_lines(input_file: IO[str], output_file: IO[str], minimum_quality: float) -> None:
     for line in input_file:
         parsed_line = parse_vcf_line(line, minimum_quality)
         if parsed_line:
             output_file.write("\t".join(map(str, parsed_line)) + "\n")
 
 
-def write_header(output_file):
+def write_header(output_file: IO[str]) -> None:
     output_file.write("#chr\tstart\tend\tref\tobs\tid\tfreq\tdepth\n")
 
 
-def get_file_reader(input_file_name):
-    if input_file_name.endswith(".gz"):
+def get_file_reader(input_path: Path) -> Callable[[str], IO[str]]:
+    suffix = input_path.suffix.lower()
+    if suffix == ".gz":
         return gzip.open
-    if input_file_name.endswith((".vcf", ".VCF")):
+    if suffix == ".vcf":
         return open
-    raise Exception('Unknown file format', input_file_name)
+    raise Exception('Unknown file format', suffix)
 
 
-def parse_vcf(input_file_name: str, output_file_name: str, minimum_quality: float) -> None:
-    file_reader = get_file_reader(input_file_name)
-    with file_reader(input_file_name) as input_file, open(output_file_name, "w") as output_file:
+def parse_vcf(input_path: Path, output_path: Path, minimum_quality: float) -> None:
+    file_reader = get_file_reader(input_path)
+    with file_reader(str(input_path)) as input_file, open(str(output_path), "w") as output_file:
         write_header(output_file)
         write_filtered_lines(input_file, output_file, minimum_quality)
 
 
 def main() -> None:
-    input_file_name = sys.argv[1]
-    output_file_name = sys.argv[2]
+    input_file_name = Path(sys.argv[1])
+    output_file_name = Path(sys.argv[2])
     minimum_quality = float(sys.argv[3])
     parse_vcf(input_file_name, output_file_name, minimum_quality)
 
