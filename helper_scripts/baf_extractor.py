@@ -29,7 +29,7 @@ def parse_vcf_line(line: str, minimum_quality: float) -> Optional[List]:
     vcf_fields = line.split("\t")
     chromosome = vcf_fields[CHROMOSOME_COLUMN]
     start = vcf_fields[POSITION_COLUMN]
-    end = vcf_fields[POSITION_COLUMN]
+    end = vcf_fields[POSITION_COLUMN]  # is this right?
 
     reference_variant = vcf_fields[REFERENCE_BASES_COLUMN]
     if len(reference_variant) > 1:
@@ -67,18 +67,30 @@ def parse_vcf_line(line: str, minimum_quality: float) -> Optional[List]:
     ]
 
 
-def parse_vcf(input_file_name: str, output_file_name: str, minimum_quality: float) -> None:
+def write_filtered_lines(input_file, output_file, minimum_quality):
+    for line in input_file:
+        parsed_line = parse_vcf_line(line, minimum_quality)
+        if parsed_line:
+            output_file.write("\t".join(map(str, parsed_line)) + "\n")
+
+
+def write_header(output_file):
+    output_file.write("#chr\tstart\tend\tref\tobs\tid\tfreq\tdepth\n")
+
+
+def get_file_reader(input_file_name):
     if input_file_name.endswith(".gz"):
-        input_file = gzip.open(input_file_name)
-    elif input_file_name.endswith((".vcf", ".VCF")):
-        input_file = open(input_file_name)
-    header = "#chr\tstart\tend\tref\tobs\tid\tfreq\tdepth\n"
-    with open(output_file_name, "w") as output_file:
-        output_file.write(header)
-        for line in input_file:
-            parsed_line = parse_vcf_line(line, minimum_quality)
-            if parsed_line:
-                output_file.write("\t".join(map(str, parsed_line)) + "\n")
+        return gzip.open
+    if input_file_name.endswith((".vcf", ".VCF")):
+        return open
+    raise Exception('Unknown file format', input_file_name)
+
+
+def parse_vcf(input_file_name: str, output_file_name: str, minimum_quality: float) -> None:
+    file_reader = get_file_reader(input_file_name)
+    with file_reader(input_file_name) as input_file, open(output_file_name, "w") as output_file:
+        write_header(output_file)
+        write_filtered_lines(input_file, output_file, minimum_quality)
 
 
 def main() -> None:
