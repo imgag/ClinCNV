@@ -5,6 +5,8 @@ A tool for large-scale CNV and CNA detection.
 
 Authors: G. Demidov, S. Ossowski.
 
+**Thanks to the contributors!** (will prepare a full list later)
+
 Any issues should be reported to: *german dot demidov at medizin dot uni-tuebingen dot de *.
 
 This software is distributed under [MIT licence](./LICENSE).

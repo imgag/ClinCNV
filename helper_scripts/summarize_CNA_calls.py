@@ -13,10 +13,11 @@ def parse_CNAs(file):
         clonality = (f.readline().split(":")[-1]).strip()
     return(fdr, ploidy, clonality)
 
-def clean_file(file, output_file, fdr_threshold):
+def clean_file(file, output_file, fdr_threshold, sample_name):
     neutral = []
     lines = []
     output_of_sample = True
+    homozygous_deletion_recall = []
     with open(file) as f:
         for i in range(8):
             lines.append(f.readline())
@@ -33,17 +34,17 @@ def clean_file(file, output_file, fdr_threshold):
             while True:
                 line = f.readline()
                 if not line: break
+                splitted_line = line.split("\t")
+                if int(splitted_line[5]) == 0 and not splitted_line[0].strip() == "chrY":
+                    length_of_cnv = int(splitted_line[2]) - int(splitted_line[1])
+                    if length_of_cnv > 10**7:
+                        print("HOMOZYGOUS DELETION - QUITE LONG!!!!")
                 if float(fdr) < fdr_threshold:
                     lines.append(line)
                 else:
-                    splitted_line = line.split("\t")
                     if len(splitted_line) > 1:
                         allele_balance = splitted_line[5] == splitted_line[6]
                         secondary_allele_balance = splitted_line[12] == splitted_line[13]
-                        if int(splitted_line[5]) == 0 and not splitted_line[0].strip() == "chrY":
-                            length_of_cnv = int(splitted_line[2]) - int(splitted_line[1])
-                            if length_of_cnv > 10**7:
-                                print("HOMOZYGOUS DELETION - QUITE LONG!!!!")
                         if not allele_balance or not secondary_allele_balance:
                             if not splitted_line[-2].strip() == "NA":
                                 BAF_qval = float(splitted_line[-2])
@@ -100,7 +101,7 @@ def main():
                     fdr_list.append(fdr)
                     ploidy_list.append(ploidy)
                     clonality_list.append(clonality)
-                    neutral_regions = clean_file(r + "/" + file, out_directory + file, fdr_threshold)
+                    neutral_regions = clean_file(r + "/" + file, out_directory + file, fdr_threshold, sample_name)
                     neutral_lines[sample_name].extend(neutral_regions)
             if file.startswith("CNneutral"):
                 sample_name = file[10:-4]
