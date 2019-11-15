@@ -1,6 +1,7 @@
-import sys
 import os
+import sys
 from collections import defaultdict
+from pathlib import Path
 
 DEFAULT_FDR_THRESHOLD = 0.05
 DEFAULT_QC_FAILED_THRESHOLD = 1.0
@@ -84,8 +85,8 @@ def clean_file(file, output_file, fdr_threshold, sample_name):
     return neutral
 
 
-def process_directory(in_directory, out_directory, fdr_threshold, qc_failed_threshold):
-    path = in_directory
+def process_directory(
+        in_directory: Path, out_directory: Path, fdr_threshold: float, qc_failed_threshold: float) -> None:
     names_list = []
     fdr_list = []
     ploidy_list = []
@@ -94,7 +95,7 @@ def process_directory(in_directory, out_directory, fdr_threshold, qc_failed_thre
     # HERE YOU CAN PUT A LIST OF STRINGS WITH SAMPLE THAT DID NOT PASS YOUR QC FOR OTHER REASONS
     list_of_qc_failed_samples = []
     header = ""
-    for r, d, f in os.walk(path):
+    for r, _, f in os.walk(str(in_directory)):
         for file in f:
             if file.startswith("CNAs_"):
                 sample_name = file[5:-4]
@@ -108,7 +109,7 @@ def process_directory(in_directory, out_directory, fdr_threshold, qc_failed_thre
                     fdr_list.append(fdr)
                     ploidy_list.append(ploidy)
                     clonality_list.append(clonality)
-                    neutral_regions = clean_file(r + "/" + file, out_directory + file, fdr_threshold, sample_name)
+                    neutral_regions = clean_file(r + "/" + file, out_directory / file, fdr_threshold, sample_name)
                     neutral_lines[sample_name].extend(neutral_regions)
             if file.startswith("CNneutral"):
                 sample_name = file[10:-4]
@@ -118,18 +119,18 @@ def process_directory(in_directory, out_directory, fdr_threshold, qc_failed_thre
                         for line in f:
                             neutral_lines[sample_name].append(line.strip())
     for key in neutral_lines:
-        with open(out_directory + "/neutral_" + key + ".txt", "w") as f:
+        with open(str(out_directory / ("neutral_" + key + ".txt")), "w") as f:
             f.write(header + "\n")
             for elem in neutral_lines[key]:
                 f.write(elem + "\n")
-    with open(out_directory + "/" + "summarized_for_FDR.txt", "w") as f:
+    with open(str(out_directory / "summarized_for_FDR.txt"), "w") as f:
         for i, sample_n in enumerate(names_list):
             f.write("{}\t{}\t{}\t{}\n".format(sample_n, fdr_list[i], ploidy_list[i], clonality_list[i]))
 
 
 def main() -> None:
-    in_directory = sys.argv[1]
-    out_directory = sys.argv[2]
+    in_directory = Path(sys.argv[1])
+    out_directory = Path(sys.argv[2])
     fdr_threshold = float(sys.argv[3]) if len(sys.argv) > 3 else DEFAULT_FDR_THRESHOLD
     qc_failed_threshold = float(sys.argv[4]) if len(sys.argv) > 4 else DEFAULT_QC_FAILED_THRESHOLD
     print("FDR threshold:", fdr_threshold)
