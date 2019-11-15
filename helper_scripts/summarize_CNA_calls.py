@@ -2,12 +2,26 @@ import os
 import sys
 from collections import defaultdict
 from pathlib import Path
+from typing import NamedTuple, List
 
 DEFAULT_FDR_THRESHOLD = 0.05
 DEFAULT_QC_FAILED_THRESHOLD = 1.0
 
 
-def parse_CNAs(file):
+SampleInfo = NamedTuple("SampleInfo", [
+    ("fdr", str),
+    ("ploidy", str),
+    ("clonality", str),
+])
+
+
+Sample = NamedTuple("Sample", [
+    ("name", str),
+    ("info", SampleInfo),
+])
+
+
+def parse_CNAs(file: str) -> SampleInfo:
     with open(file) as f:
         f.readline()
         f.readline()
@@ -16,7 +30,7 @@ def parse_CNAs(file):
         f.readline()
         ploidy = (f.readline().split(":")[-1]).strip()
         clonality = (f.readline().split(":")[-1]).strip()
-    return fdr, ploidy, clonality
+    return SampleInfo(fdr, ploidy, clonality)
 
 
 def clean_file(file, output_file, fdr_threshold, sample_name):
@@ -85,12 +99,15 @@ def clean_file(file, output_file, fdr_threshold, sample_name):
     return neutral
 
 
+def write_summarized_for_fdr(out_directory: Path, samples: List[Sample]):
+    with open(str(out_directory / "summarized_for_FDR.txt"), "w") as f:
+        for sample in samples:
+            f.write("{s.name}\t{s.info.fdr}\t{s.info.ploidy}\t{s.info.clonality}\n".format(s=sample))
+
+
 def process_directory(
         in_directory: Path, out_directory: Path, fdr_threshold: float, qc_failed_threshold: float) -> None:
-    names_list = []
-    fdr_list = []
-    ploidy_list = []
-    clonality_list = []
+    samples = []
     neutral_lines = defaultdict(list)
     # HERE YOU CAN PUT A LIST OF STRINGS WITH SAMPLE THAT DID NOT PASS YOUR QC FOR OTHER REASONS
     list_of_qc_failed_samples = []
@@ -100,15 +117,12 @@ def process_directory(
             if file.startswith("CNAs_"):
                 sample_name = file[5:-4]
                 if not sample_name in list_of_qc_failed_samples:
-                    fdr, ploidy, clonality = parse_CNAs(r + "/" + file)
-                    if not fdr == "NA":
-                        if float(fdr) > qc_failed_threshold:
+                    sample_info = parse_CNAs(r + "/" + file)
+                    if sample_info.fdr != "NA":
+                        if float(sample_info.fdr) > qc_failed_threshold:
                             break
-                    names_list.append(sample_name)
+                    samples.append(Sample(sample_name, sample_info))
                     print(sample_name)
-                    fdr_list.append(fdr)
-                    ploidy_list.append(ploidy)
-                    clonality_list.append(clonality)
                     neutral_regions = clean_file(r + "/" + file, out_directory / file, fdr_threshold, sample_name)
                     neutral_lines[sample_name].extend(neutral_regions)
             if file.startswith("CNneutral"):
@@ -123,9 +137,7 @@ def process_directory(
             f.write(header + "\n")
             for elem in neutral_lines[key]:
                 f.write(elem + "\n")
-    with open(str(out_directory / "summarized_for_FDR.txt"), "w") as f:
-        for i, sample_n in enumerate(names_list):
-            f.write("{}\t{}\t{}\t{}\n".format(sample_n, fdr_list[i], ploidy_list[i], clonality_list[i]))
+    write_summarized_for_fdr(out_directory, samples)
 
 
 def main() -> None:
