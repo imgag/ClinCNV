@@ -2,6 +2,9 @@ import sys
 import os
 from collections import defaultdict
 
+DEFAULT_FDR_THRESHOLD = 0.05
+DEFAULT_QC_FAILED_THRESHOLD = 1.0
+
 
 def parse_CNAs(file):
     with open(file) as f:
@@ -81,18 +84,7 @@ def clean_file(file, output_file, fdr_threshold, sample_name):
     return neutral
 
 
-def main():
-    in_directory = sys.argv[1]
-    out_directory = sys.argv[2]
-    if len(sys.argv) > 3:
-        fdr_threshold = float(sys.argv[3])
-    else:
-        fdr_threshold = 0.05
-    if len(sys.argv) > 4:
-        QC_failed_threshold = float(sys.argv[4])
-    else:
-        QC_failed_threshold = 1.0
-    print("FDR threshold: " + str(fdr_threshold))
+def process_directory(in_directory, out_directory, fdr_threshold, qc_failed_threshold):
     path = in_directory
     names_list = []
     fdr_list = []
@@ -109,7 +101,7 @@ def main():
                 if not sample_name in list_of_qc_failed_samples:
                     fdr, ploidy, clonality = parse_CNAs(r + "/" + file)
                     if not fdr == "NA":
-                        if float(fdr) > QC_failed_threshold:
+                        if float(fdr) > qc_failed_threshold:
                             break
                     names_list.append(sample_name)
                     print(sample_name)
@@ -125,16 +117,23 @@ def main():
                         header = f.readline().strip()
                         for line in f:
                             neutral_lines[sample_name].append(line.strip())
-
     for key in neutral_lines:
         with open(out_directory + "/neutral_" + key + ".txt", "w") as f:
             f.write(header + "\n")
             for elem in neutral_lines[key]:
                 f.write(elem + "\n")
-
     with open(out_directory + "/" + "summarized_for_FDR.txt", "w") as f:
         for i, sample_n in enumerate(names_list):
             f.write("{}\t{}\t{}\t{}\n".format(sample_n, fdr_list[i], ploidy_list[i], clonality_list[i]))
+
+
+def main() -> None:
+    in_directory = sys.argv[1]
+    out_directory = sys.argv[2]
+    fdr_threshold = float(sys.argv[3]) if len(sys.argv) > 3 else DEFAULT_FDR_THRESHOLD
+    qc_failed_threshold = float(sys.argv[4]) if len(sys.argv) > 4 else DEFAULT_QC_FAILED_THRESHOLD
+    print("FDR threshold:", fdr_threshold)
+    process_directory(in_directory, out_directory, fdr_threshold, qc_failed_threshold)
 
 
 if __name__ == "__main__":
