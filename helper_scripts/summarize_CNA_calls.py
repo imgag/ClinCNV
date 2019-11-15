@@ -2,6 +2,7 @@ import sys
 import os
 from collections import defaultdict
 
+
 def parse_CNAs(file):
     with open(file) as f:
         f.readline()
@@ -11,7 +12,8 @@ def parse_CNAs(file):
         f.readline()
         ploidy = (f.readline().split(":")[-1]).strip()
         clonality = (f.readline().split(":")[-1]).strip()
-    return(fdr, ploidy, clonality)
+    return fdr, ploidy, clonality
+
 
 def clean_file(file, output_file, fdr_threshold, sample_name):
     neutral = []
@@ -25,20 +27,24 @@ def clean_file(file, output_file, fdr_threshold, sample_name):
         fdr = (lines[3].split(":")[-1]).strip()
         print(fdr)
 
-        if fdr == "NA" :
+        if fdr == "NA":
             while True:
                 line = f.readline()
-                if not line: break
+                if not line:
+                    break
                 lines.append(line)
         else:
             while True:
                 line = f.readline()
-                if not line: break
+                if not line:
+                    break
                 splitted_line = line.split("\t")
                 if int(splitted_line[5]) == 0 and not splitted_line[0].strip() == "chrY":
                     length_of_cnv = int(splitted_line[2]) - int(splitted_line[1])
                     if length_of_cnv > 10**7:
-                        homozygous_deletion_recall.append([length_of_cnv, splitted_line[0], splitted_line[1], splitted_line[2]])
+                        homozygous_deletion_recall.append(
+                            [length_of_cnv, splitted_line[0], splitted_line[1], splitted_line[2]]
+                        )
                 if float(fdr) < fdr_threshold:
                     lines.append(line)
                 else:
@@ -52,8 +58,9 @@ def clean_file(file, output_file, fdr_threshold, sample_name):
                                     lines.append(line)
                                 else:
                                     splitted_line = line.split("\t")
-                                    neutral.append("\t".join([splitted_line[0], splitted_line[1], splitted_line[2], "2",
-                                                              splitted_line[11]]))
+                                    neutral.append("\t".join([
+                                        splitted_line[0], splitted_line[1], splitted_line[2], "2", splitted_line[11]
+                                    ]))
                             else:
                                 lines.append(line)
                         else:
@@ -64,14 +71,14 @@ def clean_file(file, output_file, fdr_threshold, sample_name):
         print(sorted(homozygous_deletion_recall))
         print("Length of the largest homozygous variant: ", longest_cnvs[0] / 10**6, " MBs")
         print("You may want to recall your samples with")
-        print("--guideBaseline " + longest_cnvs[1] + ":" + longest_cnvs[2] + "-" + longest_cnvs[3] + " --reanalyseCohort --tumorSample " + sample_name.split("-")[0] + ' --normalSample ' + sample_name.split("-")[1])
+        print("--guideBaseline {}:{}-{} --reanalyseCohort --tumorSample {} --normalSample {}".format(
+            longest_cnvs[1], longest_cnvs[2], longest_cnvs[3], sample_name.split("-")[0], sample_name.split("-")[1]
+        ))
     if output_of_sample:
         with open(output_file, "w") as f:
             for line in lines:
                 f.write(line)
-    return(neutral)
-
-
+    return neutral
 
 
 def main():
@@ -92,7 +99,8 @@ def main():
     ploidy_list = []
     clonality_list = []
     neutral_lines = defaultdict(list)
-    list_of_qc_failed_samples = [] # HERE YOU CAN PUT A LIST OF STRINGS WITH SAMPLE THAT DID NOT PASS YOUR QC FOR OTHER REASONS
+    # HERE YOU CAN PUT A LIST OF STRINGS WITH SAMPLE THAT DID NOT PASS YOUR QC FOR OTHER REASONS
+    list_of_qc_failed_samples = []
     header = ""
     for r, d, f in os.walk(path):
         for file in f:
@@ -124,12 +132,10 @@ def main():
             for elem in neutral_lines[key]:
                 f.write(elem + "\n")
 
-
     with open(out_directory + "/" + "summarized_for_FDR.txt", "w") as f:
         for i, sample_n in enumerate(names_list):
-            f.write(sample_n + "\t" + str(fdr_list[i]) + "\t" + str(ploidy_list[i]) + "\t" + str(clonality_list[i]) + "\n")
+            f.write("{}\t{}\t{}\t{}\n".format(sample_n, fdr_list[i], ploidy_list[i], clonality_list[i]))
 
 
-
-
-main()
+if __name__ == "__main__":
+    main()
