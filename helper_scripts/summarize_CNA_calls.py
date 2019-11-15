@@ -4,6 +4,9 @@ from collections import defaultdict
 from pathlib import Path
 from typing import NamedTuple, List
 
+# HERE YOU CAN PUT A LIST OF STRINGS WITH SAMPLE THAT DID NOT PASS YOUR QC FOR OTHER REASONS
+QC_FAILED_SAMPLES = []
+
 DEFAULT_FDR_THRESHOLD = 0.05
 DEFAULT_QC_FAILED_THRESHOLD = 1.0
 
@@ -109,14 +112,12 @@ def process_directory(
         in_directory: Path, out_directory: Path, fdr_threshold: float, qc_failed_threshold: float) -> None:
     samples = []
     neutral_lines = defaultdict(list)
-    # HERE YOU CAN PUT A LIST OF STRINGS WITH SAMPLE THAT DID NOT PASS YOUR QC FOR OTHER REASONS
-    list_of_qc_failed_samples = []
     header = ""
     for r, _, f in os.walk(str(in_directory)):
         for file in f:
             if file.startswith("CNAs_"):
                 sample_name = file[5:-4]
-                if not sample_name in list_of_qc_failed_samples:
+                if sample_name not in QC_FAILED_SAMPLES:
                     sample_info = parse_CNAs(r + "/" + file)
                     if sample_info.fdr != "NA":
                         if float(sample_info.fdr) > qc_failed_threshold:
@@ -127,7 +128,7 @@ def process_directory(
                     neutral_lines[sample_name].extend(neutral_regions)
             if file.startswith("CNneutral"):
                 sample_name = file[10:-4]
-                if not sample_name in list_of_qc_failed_samples:
+                if sample_name not in QC_FAILED_SAMPLES:
                     with open(r + "/" + file) as f:
                         header = f.readline().strip()
                         for line in f:
