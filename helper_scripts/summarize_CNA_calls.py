@@ -115,10 +115,10 @@ def write_neutral_files(directory: Path, neutral_lines: Dict[str, List[str]], he
         write_neutral_file(output_path, header, lines)
 
 
-def write_summarized_for_fdr(out_directory: Path, samples: List[Sample]):
-    with open(str(out_directory / "summarized_for_FDR.txt"), "w") as f:
-        for sample in samples:
-            f.write("{s.name}\t{s.info.fdr}\t{s.info.ploidy}\t{s.info.clonality}\n".format(s=sample))
+def write_summarized_for_fdr(path: Path, samples: List[Sample]):
+    with open(str(path), "w") as f:
+        for s in samples:
+            print(s.name, s.info.fdr, s.info.ploidy, s.info.clonality, sep='\t', file=f)
 
 
 def get_all_files(directory: Path) -> Iterable[Path]:
@@ -142,8 +142,10 @@ def process_directory(
                         break
                 samples.append(Sample(sample_name, sample_info))
                 print(sample_name)
+
                 neutral_regions = clean_file(file_path, out_directory / file_path.name, fdr_threshold, sample_name)
                 neutral_lines[sample_name].extend(neutral_regions)
+
         if file_path.name.startswith("CNneutral"):
             sample_name = file_path.name[10:-4]
             if sample_name not in QC_FAILED_SAMPLES:
@@ -153,7 +155,7 @@ def process_directory(
                         neutral_lines[sample_name].append(line.strip())
 
     write_neutral_files(out_directory, neutral_lines, header)
-    write_summarized_for_fdr(out_directory, samples)
+    write_summarized_for_fdr(out_directory / "summarized_for_FDR.txt", samples)
 
 
 def main() -> None:
