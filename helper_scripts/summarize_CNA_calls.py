@@ -2,7 +2,7 @@ import os
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import NamedTuple, List, Iterable
+from typing import NamedTuple, List, Iterable, Dict
 
 # HERE YOU CAN PUT A LIST OF STRINGS WITH SAMPLE THAT DID NOT PASS YOUR QC FOR OTHER REASONS
 QC_FAILED_SAMPLES = []
@@ -102,6 +102,19 @@ def clean_file(file, output_file, fdr_threshold, sample_name):
     return neutral
 
 
+def write_neutral_file(output_path: Path, header: str, lines: List[str]) -> None:
+    with open(str(output_path), "w") as output:
+        print(header, file=output)
+        for line in lines:
+            print(line, file=output)
+
+
+def write_neutral_files(directory: Path, neutral_lines: Dict[str, List[str]], header: str) -> None:
+    for sample_name, lines in neutral_lines.items():
+        output_path = directory / ("neutral_" + sample_name + ".txt")
+        write_neutral_file(output_path, header, lines)
+
+
 def write_summarized_for_fdr(out_directory: Path, samples: List[Sample]):
     with open(str(out_directory / "summarized_for_FDR.txt"), "w") as f:
         for sample in samples:
@@ -138,11 +151,8 @@ def process_directory(
                     header = neutral_file.readline().strip()
                     for line in neutral_file:
                         neutral_lines[sample_name].append(line.strip())
-    for key in neutral_lines:
-        with open(str(out_directory / ("neutral_" + key + ".txt")), "w") as neutral_output_file:
-            neutral_output_file.write(header + "\n")
-            for elem in neutral_lines[key]:
-                neutral_output_file.write(elem + "\n")
+
+    write_neutral_files(out_directory, neutral_lines, header)
     write_summarized_for_fdr(out_directory, samples)
 
 
