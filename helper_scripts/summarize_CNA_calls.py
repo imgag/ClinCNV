@@ -2,7 +2,7 @@ import os
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import NamedTuple, List, Iterable, Dict
+from typing import Dict, Iterable, List, NamedTuple
 
 # HERE YOU CAN PUT A LIST OF STRINGS WITH SAMPLE THAT DID NOT PASS YOUR QC FOR OTHER REASONS
 QC_FAILED_SAMPLES = []
@@ -103,7 +103,7 @@ def clean_file(file, output_file, fdr_threshold, sample_name):
 
 
 def write_neutral_file(output_path: Path, header: str, lines: List[str]) -> None:
-    with open(str(output_path), "w") as output:
+    with output_path.open("w") as output:
         print(header, file=output)
         for line in lines:
             print(line, file=output)
@@ -116,7 +116,7 @@ def write_neutral_files(directory: Path, neutral_lines: Dict[str, List[str]], he
 
 
 def write_summarized_for_fdr(path: Path, samples: List[Sample]):
-    with open(str(path), "w") as f:
+    with path.open("w") as f:
         for s in samples:
             print(s.name, s.info.fdr, s.info.ploidy, s.info.clonality, sep='\t', file=f)
 
@@ -149,7 +149,7 @@ def process_directory(
         if file_path.name.startswith("CNneutral"):
             sample_name = file_path.name[10:-4]
             if sample_name not in QC_FAILED_SAMPLES:
-                with open(str(file_path)) as neutral_file:
+                with file_path.open() as neutral_file:
                     header = neutral_file.readline().strip()
                     for line in neutral_file:
                         neutral_lines[sample_name].append(line.strip())
