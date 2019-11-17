@@ -139,7 +139,7 @@ def process_directory(
                 sample_info = parse_CNAs(str(file_path))
                 if sample_info.fdr != "NA":
                     if float(sample_info.fdr) > qc_failed_threshold:
-                        break
+                        continue
                 samples.append(Sample(sample_name, sample_info))
                 print(sample_name)
 
