@@ -1,8 +1,9 @@
 import os
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Iterable, List, NamedTuple
+from typing import Dict, Iterable, List, NamedTuple, Optional
 
 # HERE YOU CAN PUT A LIST OF STRINGS WITH SAMPLE THAT DID NOT PASS YOUR QC FOR OTHER REASONS
 QC_FAILED_SAMPLES = []
@@ -10,6 +11,10 @@ QC_FAILED_SAMPLES = []
 DEFAULT_FDR_THRESHOLD = 0.05
 DEFAULT_QC_FAILED_THRESHOLD = 1.0
 
+ABNORMALITIES_FILE_PREFIX = 'CNAs_'
+NEUTRAL_FILE_PREFIX = 'CNneutral_'
+
+SAMPLE_NAME_REGEX = re.compile(r'(?:{}|{})(.+)'.format(ABNORMALITIES_FILE_PREFIX, NEUTRAL_FILE_PREFIX))
 
 SampleInfo = NamedTuple("SampleInfo", [
     ("fdr", str),
@@ -24,8 +29,12 @@ Sample = NamedTuple("Sample", [
 ])
 
 
-def parse_CNAs(file: str) -> SampleInfo:
-    with open(file) as f:
+def get_sample_name(path: Path) -> Optional[str]:
+    return SAMPLE_NAME_REGEX.match(path.stem).group(1)
+
+
+def parse_CNAs(path: Path) -> SampleInfo:
+    with path.open() as f:
         f.readline()
         f.readline()
         f.readline()
@@ -133,26 +142,25 @@ def process_directory(
     neutral_lines = defaultdict(list)
     header = ""
     for file_path in get_all_files(in_directory):
-        if file_path.name.startswith("CNAs_"):
-            sample_name = file_path.name[5:-4]
-            if sample_name not in QC_FAILED_SAMPLES:
-                sample_info = parse_CNAs(str(file_path))
-                if sample_info.fdr != "NA":
-                    if float(sample_info.fdr) > qc_failed_threshold:
-                        continue
-                samples.append(Sample(sample_name, sample_info))
-                print(sample_name)
+        sample_name = get_sample_name(file_path)
+        if not sample_name or sample_name in QC_FAILED_SAMPLES:
+            continue
 
-                neutral_regions = clean_file(file_path, out_directory / file_path.name, fdr_threshold, sample_name)
-                neutral_lines[sample_name].extend(neutral_regions)
+        if file_path.name.startswith(ABNORMALITIES_FILE_PREFIX):
+            sample_info = parse_CNAs(file_path)
+            if sample_info.fdr != "NA" and float(sample_info.fdr) > qc_failed_threshold:
+                continue
+            samples.append(Sample(sample_name, sample_info))
+            print(sample_name)
 
-        if file_path.name.startswith("CNneutral"):
-            sample_name = file_path.name[10:-4]
-            if sample_name not in QC_FAILED_SAMPLES:
-                with file_path.open() as neutral_file:
-                    header = neutral_file.readline().strip()
-                    for line in neutral_file:
-                        neutral_lines[sample_name].append(line.strip())
+            neutral_regions = clean_file(file_path, out_directory / file_path.name, fdr_threshold, sample_name)
+            neutral_lines[sample_name].extend(neutral_regions)
+
+        if file_path.name.startswith(NEUTRAL_FILE_PREFIX):
+            with file_path.open() as neutral_file:
+                header = neutral_file.readline().strip()
+                for line in neutral_file:
+                    neutral_lines[sample_name].append(line.strip())
 
     write_neutral_files(out_directory, neutral_lines, header)
     write_summarized_for_fdr(out_directory / "summarized_for_FDR.txt", samples)
