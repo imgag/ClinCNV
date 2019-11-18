@@ -45,69 +45,55 @@ def parse_CNAs(path: Path) -> SampleInfo:
     return SampleInfo(fdr, ploidy, clonality)
 
 
-def clean_file(file, output_file, fdr_threshold, sample_name):
+def clean_file(path: Path, output_path: Path, fdr_threshold: float, sample_name: str) -> List[str]:
     neutral = []
     lines = []
     output_of_sample = True
     homozygous_deletion_recall = []
-    with open(file) as f:
+    with path.open() as input_file:
         for i in range(8):
-            lines.append(f.readline())
+            lines.append(input_file.readline())
 
-        fdr = (lines[3].split(":")[-1]).strip()
+        fdr = lines[3].rpartition(":")[-1].strip()
         print(fdr)
 
         if fdr == "NA":
-            while True:
-                line = f.readline()
-                if not line:
-                    break
-                lines.append(line)
+            lines.extend(input_file.readlines())
         else:
-            while True:
-                line = f.readline()
-                if not line:
-                    break
-                splitted_line = line.split("\t")
-                if int(splitted_line[5]) == 0 and not splitted_line[0].strip() == "chrY":
-                    length_of_cnv = int(splitted_line[2]) - int(splitted_line[1])
-                    if length_of_cnv > 10**7:
-                        homozygous_deletion_recall.append(
-                            [length_of_cnv, splitted_line[0], splitted_line[1], splitted_line[2]]
-                        )
+            for line in input_file:
+                fields = line.split("\t")
+                length_of_cnv = int(fields[2]) - int(fields[1])
+                if int(fields[5]) == 0 and fields[0].strip() != "chrY" and length_of_cnv > 10**7:
+                    homozygous_deletion_recall.append([length_of_cnv, fields[0], fields[1], fields[2]])
+
                 if float(fdr) < fdr_threshold:
                     lines.append(line)
-                else:
-                    if len(splitted_line) > 1:
-                        allele_balance = splitted_line[5] == splitted_line[6]
-                        secondary_allele_balance = splitted_line[12] == splitted_line[13]
-                        if not allele_balance or not secondary_allele_balance:
-                            if not splitted_line[-2].strip() == "NA":
-                                BAF_qval = float(splitted_line[-2])
-                                if BAF_qval < 0.05:
-                                    lines.append(line)
-                                else:
-                                    splitted_line = line.split("\t")
-                                    neutral.append("\t".join([
-                                        splitted_line[0], splitted_line[1], splitted_line[2], "2", splitted_line[11]
-                                    ]))
-                            else:
-                                lines.append(line)
-                        else:
-                            lines.append(line)
+                    continue
 
-    if len(homozygous_deletion_recall) > 0:
-        longest_cnvs = sorted(homozygous_deletion_recall, reverse=True)[0]
+                if len(fields) == 1:
+                    continue
+
+                allele_balance = fields[5] == fields[6]
+                secondary_allele_balance = fields[12] == fields[13]
+                if allele_balance and secondary_allele_balance or fields[-2].strip() == "NA" or float(fields[-2]) < 0.05:
+                    lines.append(line)
+                    continue
+
+                fields = line.split("\t")
+                neutral.append("\t".join([fields[0], fields[1], fields[2], "2", fields[11]]))
+
+    if homozygous_deletion_recall:
+        longest_cnvs = max(homozygous_deletion_recall)
         print(sorted(homozygous_deletion_recall))
-        print("Length of the largest homozygous variant: ", longest_cnvs[0] / 10**6, " MBs")
+        print("Length of the largest homozygous variant:", longest_cnvs[0] / 10**6, "MBs")
         print("You may want to recall your samples with")
         print("--guideBaseline {}:{}-{} --reanalyseCohort --tumorSample {} --normalSample {}".format(
             longest_cnvs[1], longest_cnvs[2], longest_cnvs[3], sample_name.split("-")[0], sample_name.split("-")[1]
         ))
     if output_of_sample:
-        with open(output_file, "w") as f:
+        with output_path.open("w") as output_file:
             for line in lines:
-                f.write(line)
+                output_file.write(line)
     return neutral
 
 
