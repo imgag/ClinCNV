@@ -3,7 +3,7 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Iterable, List, NamedTuple, Optional
+from typing import Dict, Iterable, List, NamedTuple, Optional, IO
 
 # HERE YOU CAN PUT A LIST OF STRINGS WITH SAMPLE THAT DID NOT PASS YOUR QC FOR OTHER REASONS
 QC_FAILED_SAMPLES = []
@@ -16,7 +16,24 @@ NEUTRAL_FILE_PREFIX = 'CNneutral_'
 
 SAMPLE_NAME_REGEX = re.compile(r'(?:{}|{})(.+)'.format(ABNORMALITIES_FILE_PREFIX, NEUTRAL_FILE_PREFIX))
 
-SampleInfo = NamedTuple("SampleInfo", [
+CNA_HEADER_SIZE = 8
+CNA_HEADER_FDR_LINE = 3
+CNA_HEADER_PLOIDY_LINE = 5
+CNA_HEADER_CLONALITY_LINE = 6
+
+CNA_CHROMOSOME_FIELD = 0
+CNA_START_FIELD = 1
+CNA_END_FIELD = 2
+CNA_MAJOR_CN_ALLELE_FIELD = 5
+CNA_MINOR_CN_ALLELE_FIELD = 6
+CNA_NUMBER_OF_REGIONS_FIELD = 11
+CNA_MAJOR_CN_ALLELE2_FIELD = 12
+CNA_MINOR_CN_ALLELE2_FIELD = 13
+CNA_BAF_QVAL_FDR_FIELD = 22
+
+
+CNAHeaderInfo = NamedTuple("CNAHeaderInfo", [
+    ("header", List[str]),
     ("fdr", str),
     ("ploidy", str),
     ("clonality", str),
@@ -25,7 +42,7 @@ SampleInfo = NamedTuple("SampleInfo", [
 
 Sample = NamedTuple("Sample", [
     ("name", str),
-    ("info", SampleInfo),
+    ("info", CNAHeaderInfo),
 ])
 
 
@@ -33,62 +50,66 @@ def get_sample_name(path: Path) -> Optional[str]:
     return SAMPLE_NAME_REGEX.match(path.stem).group(1)
 
 
-def parse_CNAs(path: Path) -> SampleInfo:
-    with path.open() as f:
-        f.readline()
-        f.readline()
-        f.readline()
-        fdr = (f.readline().split(":")[-1]).strip()
-        f.readline()
-        ploidy = (f.readline().split(":")[-1]).strip()
-        clonality = (f.readline().split(":")[-1]).strip()
-    return SampleInfo(fdr, ploidy, clonality)
+def get_header_value(line: str) -> str:
+    return line.rpartition(":")[-1].strip()
 
 
-def clean_file(path: Path, output_path: Path, fdr_threshold: float, sample_name: str) -> List[str]:
+def parse_CNAs_header(file: IO[str]) -> CNAHeaderInfo:
+    header = [next(file) for _ in range(CNA_HEADER_SIZE)]
+    fdr = get_header_value(header[CNA_HEADER_FDR_LINE])
+    ploidy = get_header_value(header[CNA_HEADER_PLOIDY_LINE])
+    clonality = get_header_value(header[CNA_HEADER_CLONALITY_LINE])
+    return CNAHeaderInfo(header, fdr, ploidy, clonality)
+
+
+def clean_file(file: IO[str], output_path: Path, fdr_threshold: float, sample: Sample) -> List[str]:
     neutral = []
-    lines = []
+    lines = list(sample.info.header)
     output_of_sample = True
     homozygous_deletion_recall = []
-    with path.open() as input_file:
-        for i in range(8):
-            lines.append(input_file.readline())
 
-        fdr = lines[3].rpartition(":")[-1].strip()
-        print(fdr)
+    print(sample.info.fdr)
+    if sample.info.fdr == "NA":
+        lines.extend(file.readlines())
+    else:
+        for line in file:
+            fields = line.split("\t")
+            start = int(fields[CNA_START_FIELD])
+            end = int(fields[CNA_END_FIELD])
+            length_of_cnv = end - start
+            chromosome = fields[CNA_CHROMOSOME_FIELD].strip()
+            major_cn_allele = fields[CNA_MAJOR_CN_ALLELE_FIELD].strip()
+            minor_cn_allele = fields[CNA_MINOR_CN_ALLELE_FIELD].strip()
+            major_cn_allele2 = fields[CNA_MAJOR_CN_ALLELE2_FIELD].strip()
+            minor_cn_allele2 = fields[CNA_MINOR_CN_ALLELE2_FIELD].strip()
+            BAF_qval_fdr = fields[CNA_BAF_QVAL_FDR_FIELD].strip()
 
-        if fdr == "NA":
-            lines.extend(input_file.readlines())
-        else:
-            for line in input_file:
-                fields = line.split("\t")
-                length_of_cnv = int(fields[2]) - int(fields[1])
-                if int(fields[5]) == 0 and fields[0].strip() != "chrY" and length_of_cnv > 10**7:
-                    homozygous_deletion_recall.append([length_of_cnv, fields[0], fields[1], fields[2]])
+            if major_cn_allele == "0" and chromosome != "chrY" and length_of_cnv > 10**7:
+                homozygous_deletion_recall.append([length_of_cnv, chromosome, start, end])
 
-                if float(fdr) < fdr_threshold:
-                    lines.append(line)
-                    continue
+            if float(sample.info.fdr) < fdr_threshold:
+                lines.append(line)
+                continue
 
-                if len(fields) == 1:
-                    continue
+            if len(fields) == 1:
+                continue
 
-                allele_balance = fields[5] == fields[6]
-                secondary_allele_balance = fields[12] == fields[13]
-                if allele_balance and secondary_allele_balance or fields[-2].strip() == "NA" or float(fields[-2]) < 0.05:
-                    lines.append(line)
-                    continue
+            allele_balance = major_cn_allele == minor_cn_allele
+            secondary_allele_balance = major_cn_allele2 == minor_cn_allele2
+            if allele_balance and secondary_allele_balance or BAF_qval_fdr == "NA" or float(BAF_qval_fdr) < 0.05:
+                lines.append(line)
+                continue
 
-                fields = line.split("\t")
-                neutral.append("\t".join([fields[0], fields[1], fields[2], "2", fields[11]]))
+            neutral.append("\t".join([chromosome, str(start), str(end), "2", fields[CNA_NUMBER_OF_REGIONS_FIELD]]))
 
     if homozygous_deletion_recall:
         longest_cnvs = max(homozygous_deletion_recall)
+        length, chromosome, start, end = longest_cnvs
         print(sorted(homozygous_deletion_recall))
-        print("Length of the largest homozygous variant:", longest_cnvs[0] / 10**6, "MBs")
+        print("Length of the largest homozygous variant:", length / 10**6, "MBs")
         print("You may want to recall your samples with")
         print("--guideBaseline {}:{}-{} --reanalyseCohort --tumorSample {} --normalSample {}".format(
-            longest_cnvs[1], longest_cnvs[2], longest_cnvs[3], sample_name.split("-")[0], sample_name.split("-")[1]
+            chromosome, start, end, *sample.name.split("-")
         ))
     if output_of_sample:
         with output_path.open("w") as output_file:
@@ -132,21 +153,23 @@ def process_directory(
         if not sample_name or sample_name in QC_FAILED_SAMPLES:
             continue
 
-        if file_path.name.startswith(ABNORMALITIES_FILE_PREFIX):
-            sample_info = parse_CNAs(file_path)
-            if sample_info.fdr != "NA" and float(sample_info.fdr) > qc_failed_threshold:
-                continue
-            samples.append(Sample(sample_name, sample_info))
-            print(sample_name)
+        with file_path.open() as file:
+            if file_path.name.startswith(ABNORMALITIES_FILE_PREFIX):
+                header_info = parse_CNAs_header(file)
+                if header_info.fdr != "NA" and float(header_info.fdr) > qc_failed_threshold:
+                    continue
+                sample = Sample(sample_name, header_info)
+                samples.append(sample)
+                print(sample_name)
 
-            neutral_regions = clean_file(file_path, out_directory / file_path.name, fdr_threshold, sample_name)
-            neutral_lines[sample_name].extend(neutral_regions)
+                neutral_regions = clean_file(file, out_directory / file_path.name, fdr_threshold, sample)
+                neutral_lines[sample_name].extend(neutral_regions)
 
-        if file_path.name.startswith(NEUTRAL_FILE_PREFIX):
-            with file_path.open() as neutral_file:
-                header = neutral_file.readline().strip()
-                for line in neutral_file:
-                    neutral_lines[sample_name].append(line.strip())
+            if file_path.name.startswith(NEUTRAL_FILE_PREFIX):
+                with file_path.open() as neutral_file:
+                    header = neutral_file.readline().strip()
+                    for line in neutral_file:
+                        neutral_lines[sample_name].append(line.strip())
 
     write_neutral_files(out_directory, neutral_lines, header)
     write_summarized_for_fdr(out_directory / "summarized_for_FDR.txt", samples)
