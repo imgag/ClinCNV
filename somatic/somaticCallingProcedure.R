@@ -2,7 +2,7 @@
 somaticCalling <- function(matrixOfLogFold) {
   for (sam_no in 1:ncol(matrixOfLogFold)) {
 
-    clusterExport(cl,c('maxSubArraySum', 'fillInPList', 'likelihoodOfSNV','return_likelik', 'vect_of_norm_likeliks', 'vect_of_t_likeliks'))
+    clusterExport(cl,c('maxSubArraySum', 'fillInPList', 'likelihoodOfSNV','return_likelik', 'vect_of_norm_likeliks', 'vect_of_t_likeliks'), envir=environment())
     sample_name <- colnames(matrixOfLogFold)[sam_no]
     overdispersionNormal = NULL
     sampleInOfftarget = F
