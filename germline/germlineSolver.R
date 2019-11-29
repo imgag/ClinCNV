@@ -207,12 +207,15 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           if (chrom == "chrX" & !is.na(startX)) {
             startOfChrom = startX
           }
+          if (chrom == "chrXP") {
+            chrom = "chrX"
+          }
           if (k == 1) {
-            which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) <= as.numeric(left_borders[[l]]) &  as.numeric(globalBed[,1]) >= startOfChrom)
-            which_to_allow_ontarget = which(bedFileFiltered[,1] == chrom & as.numeric(bedFileFiltered[,2]) <= as.numeric(left_borders[[l]]) &  as.numeric(bedFileFiltered[,1]) >= startOfChrom)
+            which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,3]) <= as.numeric(left_borders[[l]]) &  as.numeric(globalBed[,2]) >= startOfChrom)
+            which_to_allow_ontarget = which(bedFileFiltered[,1] == chrom & as.numeric(bedFileFiltered[,3]) <= as.numeric(left_borders[[l]]) &  as.numeric(bedFileFiltered[,2]) >= startOfChrom)
           } else {
-            which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) >= as.numeric(right_borders[[l]]) )
-            which_to_allow_ontarget = which(bedFileFiltered[,1] == chrom & as.numeric(bedFileFiltered[,2]) >= as.numeric(right_borders[[l]]) )
+            which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) >= as.numeric(right_borders[[l]]) & as.numeric(globalBed[,3]) <= ends_of_chroms[[l]])
+            which_to_allow_ontarget = which(bedFileFiltered[,1] == chrom & as.numeric(bedFileFiltered[,2]) >= as.numeric(right_borders[[l]]) & as.numeric(bedFileFiltered[,3]) <= ends_of_chroms[[l]] )
           }
           if (length(which_to_allow) <= 1) {
             armFinalized = T

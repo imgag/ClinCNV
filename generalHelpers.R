@@ -772,7 +772,7 @@ addParalogousRegions <- function(left_borders, right_borders, ends_of_chroms) {
   }
   coords=sort(coords)
   startX = coords[2]
-  ends_of_chroms[[chrom]] == coords[3]
+  ends_of_chroms[[chrom]] = coords[3]
   left_borders[[paste0(chrom, "P")]] = coords[2]
   right_borders[[paste0(chrom, "P")]] = coords[3]
   ends_of_chroms[[paste0(chrom, "P")]] = coords[4]
