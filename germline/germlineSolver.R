@@ -203,9 +203,13 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           output_of_plots <-  paste0(folder_name, sample_name)
           which_to_allow <- "NA"
           which_to_allow_ontarget <- "NA"
+          startOfChrom = 0
+          if (chrom == "chrX" & !is.na(startX)) {
+            startOfChrom = startX
+          }
           if (k == 1) {
-            which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) <= as.numeric(left_borders[[l]]) )
-            which_to_allow_ontarget = which(bedFileFiltered[,1] == chrom & as.numeric(bedFileFiltered[,2]) <= as.numeric(left_borders[[l]]) )
+            which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) <= as.numeric(left_borders[[l]]) &  as.numeric(globalBed[,1]) >= startOfChrom)
+            which_to_allow_ontarget = which(bedFileFiltered[,1] == chrom & as.numeric(bedFileFiltered[,2]) <= as.numeric(left_borders[[l]]) &  as.numeric(bedFileFiltered[,1]) >= startOfChrom)
           } else {
             which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) >= as.numeric(right_borders[[l]]) )
             which_to_allow_ontarget = which(bedFileFiltered[,1] == chrom & as.numeric(bedFileFiltered[,2]) >= as.numeric(right_borders[[l]]) )
@@ -532,6 +536,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   close(fileConn)
   found_CNVs_total[,7] = (format(as.numeric(found_CNVs_total[,7]), nsmall=3))
   found_CNVs_total[,8] = (format(as.numeric(found_CNVs_total[,8]), nsmall=3))
+  found_CNVs_total[which(found_CNVs_total[,1] == "chrXP"),1] = "chrX"
   found_CNVs_total[which(is.na(found_CNVs_total[,9]) | found_CNVs_total[,9] == "na"),9] = "" 
   write.table(found_CNVs_total, file = fileToOut, quote=F, row.names = F, sep="\t", append = T)
 }

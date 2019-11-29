@@ -758,3 +758,30 @@ writeOutLevelOfNoiseVersusCoverage <- function(avgDepth, gcNormalisedCov, bedFil
   tableForOutput <- cbind(namesOfOutputFile, noises, avgDepth)
   write.table(file = nameForOutputFile, tableForOutput, row.names = F, quote = F, sep="\t")
 }
+
+
+addParalogousRegions <- function(left_borders, right_borders, ends_of_chroms) {
+  paralogousX = opt$par
+  paralogousX = strsplit(paralogousX, ";")
+  coords = c()
+  for (parRegion in paralogousX[[1]]) {
+    splitted = strsplit(parRegion, ":")[[1]]
+    chrom = splitted[1]
+    splittedCoords = strsplit(splitted[2], "-")[[1]]
+    coords = c(coords, as.numeric(splittedCoords[1]), as.numeric(splittedCoords[2]))
+  }
+  coords=sort(coords)
+  startX = coords[2]
+  ends_of_chroms[[chrom]] == coords[3]
+  left_borders[[paste0(chrom, "P")]] = coords[2]
+  right_borders[[paste0(chrom, "P")]] = coords[3]
+  ends_of_chroms[[paste0(chrom, "P")]] = coords[4]
+  
+  answer = list()
+  answer[[1]] = startX
+  answer[[2]] = left_borders
+  answer[[3]] = right_borders
+  answer[[4]] = ends_of_chroms
+  
+  return(answer)
+}

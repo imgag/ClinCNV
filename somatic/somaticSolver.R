@@ -253,8 +253,8 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
   }
   
   allPotentialPurities <- unique(purities)
-  penaltyForHigherCN = 5
-  penaltyForHigherCNoneTile = 0.05
+  penaltyForHigherCN = opt$pnealtyHigherCopy
+  penaltyForHigherCNoneTile = opt$pnealtyHigherCopyOneSegment
   clonalityForChecking = opt$clonalityForChecking
   print(paste("Work on actual calling started.", Sys.time()))
   

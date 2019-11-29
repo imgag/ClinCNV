@@ -146,6 +146,16 @@ option_list = list(
   make_option("--notComplexTumor", action="store_true", default=F, 
               help="Sometimes some CNAs happen in the same region twice and leave the signature unrecognizable by simple models. Specify this flag if you don't want the 2nd CNAs to be recognized by ClinCNV."),  
   
+  make_option("--pnealtyHigherCopy", type="double", default=1, 
+              help="How big should be penalty for higher copy? This is penalty for each additional copy, one per CNV. (smaller values: more big copy-number allowed, lower clonal cancer cell fraction)"),  
+  
+  make_option("--pnealtyHigherCopyOneSegment", type="double", default=0.01, 
+              help="How big should be penalty for higher copy? This is penalty for each additional copy, one per region in CNV. (smaller values: more big copy-number allowed, lower clonal cancer cell fraction)"),  
+  
+  make_option("--par", type="character", default="NO", 
+              help="coordinates of chrX paralogous regions (format chrX:60001-2699520;chrX:154931044-155260560 )"),  
+  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
@@ -153,6 +163,7 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
+
 
 
 
@@ -427,6 +438,14 @@ left_borders <- lstOfChromBorders[[1]]
 right_borders <- lstOfChromBorders[[2]]
 ends_of_chroms <- lstOfChromBorders[[3]]
 
+startX = NA
+if (opt$par != "NO" & framework == "germline") {
+  modifiedListOfChromosomesWithPAR = addParalogousRegions(left_borders, right_borders, ends_of_chroms)
+  startX = modifiedListOfChromosomesWithPAR[[1]]
+  left_borders = modifiedListOfChromosomesWithPAR[[2]]
+  right_borders = modifiedListOfChromosomesWithPAR[[3]]
+  ends_of_chroms  = modifiedListOfChromosomesWithPAR[[4]]
+}
 
 
 if (frameworkDataTypes == "covdepthBAF") {
