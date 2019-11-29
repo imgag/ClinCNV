@@ -155,6 +155,9 @@ option_list = list(
   make_option("--par", type="character", default="NO", 
               help="coordinates of chrX paralogous regions (format chrX:60001-2699520;chrX:154931044-155260560 )"),  
   
+  make_option("--sex", type="character", default="", 
+              help="override the sample's gender (active only when you specify --normalSample flag)"),  
+  
   
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
@@ -163,8 +166,6 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
-
-
 
 
 
@@ -607,6 +608,27 @@ normal = normal[orderOfBedFile,]
 
 print(paste("Gender estimation started", Sys.time()))
 genderOfSamplesCohort <- Determine.gender(sqrt(normal), bedFile)
+
+if (opt$sex != "" & !is.null(opt$normalSample)) {
+  if (opt$normalSample %in% names(genderOfSamplesCohort)) {
+    if (opt$sex %in% c("M","F")) {
+      genderOfSamplesCohort[which(names(genderOfSamplesCohort) == opt$normalSample)] = opt$sex
+    } else {
+      print("--sex flag should be specified as M or F, and your flag is specified as")
+      print(opt$sex)
+      print("I quit.")
+      quit()
+    }
+  } else {
+    print("Your normalSample is not in the gender table! Thus, sex is not changed.")
+  }
+} else {
+  if (opt$sex != "" & is.null(opt$normalSample)) {
+    print("When you specify --sex flag, you need also to specify a sample name. I quit.")
+    quit()
+  }
+}
+
 print(genderOfSamplesCohort)
 print(paste("Gender succesfully determined. Plot is written in your results directory:", opt$out, Sys.time()))
 
