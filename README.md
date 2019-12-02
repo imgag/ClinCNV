@@ -13,7 +13,9 @@ This software is distributed under [MIT licence](./LICENSE).
 
 ## About this software
 
-ClinCNV detects CNVs in germline and somatic context in NGS data (targeted and whole-genome). We work in cohorts, so it makes sense to try `ClinCNV` if you have more than 10 samples (recommended amount - 40 since we estimate variances from the data). By "cohort" we mean samples sequenced with the same enrichment kit with approximately the same depth (ie 1x WGS and 30x WGS better be analysed in separate runs of ClinCNV). Of course it is better if your samples were sequenced within the same sequencing facility. Currently we work with hg19 only. For hg38 or mouse genome or any other diploid organism you have to replace *cytobands.txt* with the corresponding file. ClinCNV do not work with small panels (hundreds of regions) since GC-correction can not be performed accurately for samples sequenced with such panels.
+ClinCNV detects CNVs in germline and somatic context in NGS data (targeted and whole-genome). We work in cohorts, so it makes sense to try `ClinCNV` if you have more than 10 samples (recommended amount - 40 since we estimate variances from the data). By "cohort" we mean samples sequenced with the same enrichment kit with approximately the same depth (ie 1x WGS and 30x WGS better be analysed in separate runs of ClinCNV). Of course it is better if your samples were sequenced within the same sequencing facility. 
+
+Currently we work with human genomes `hg19` and `hg38` only. For `hg38` you need to replace `cytobands.txt` with the file `cytobandsHG38.txt`. For mouse genome or any other diploid organism you have to replace *cytobands.txt* with the corresponding file. ClinCNV can work with small panels (hundreds of regions), but GC-correction can not be performed accurately for samples sequenced with such panels.
 
 NOTE: Folder `PCAWG` was used for CNVs detection in PanCancer Analysis of Whole Genomes cohort and is *research* only version. It is located here for historical reasons. Feel free to remove it.
 
