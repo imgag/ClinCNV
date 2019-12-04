@@ -11,7 +11,7 @@ Any issues should be reported to: *german dot demidov at medizin dot uni-tuebing
 
 This software is distributed under [MIT licence](./LICENSE).
 
-ClinCNV is a part of [MegSAP](https://github.com/imgag/megSAP) pipeline. For the full functionality (CNV calls + various annotations for germline and somatic CNVs) we'd recommend to use it.
+ClinCNV is a part of [MegSAP](https://github.com/imgag/megSAP) pipeline.
 
 ## About this software
 
