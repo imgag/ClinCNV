@@ -11,6 +11,8 @@ Any issues should be reported to: *german dot demidov at medizin dot uni-tuebing
 
 This software is distributed under [MIT licence](./LICENSE).
 
+ClinCNV is a part of [MegSAP](https://github.com/imgag/megSAP) pipeline. For the full functionality (CNV calls + various annotations for germline and somatic CNVs) we'd recommend to use it.
+
 ## About this software
 
 ClinCNV detects CNVs in germline and somatic context in NGS data (targeted and whole-genome). We work in cohorts, so it makes sense to try `ClinCNV` if you have more than 10 samples (recommended amount - 40 since we estimate variances from the data). By "cohort" we mean samples sequenced with the same enrichment kit with approximately the same depth (ie 1x WGS and 30x WGS better be analysed in separate runs of ClinCNV). Of course it is better if your samples were sequenced within the same sequencing facility. 
