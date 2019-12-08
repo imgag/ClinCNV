@@ -69,6 +69,10 @@ Several times this mode was used for CNAs calling in tumor samples under the abs
 We have validated a script for the annotation of CNVs, namely - how probable is that this particular CNV is a False Positive. It is located in `https://github.com/imgag/ClinCNV/tree/master/helper_scripts/FDR_annotation`. An example run is:
 
 `Rscript germlineCallsAnnotatorFDR.R --pathToClassifier /helper_scripts/FDR_annotation/randomForests.RObj --input your_clinCNV_file_with_CNVs.tsv --output annotated_file_with_cnvs.tsv`
+
+It will add a column with FDR. FDR of 0.01 means that this CNV has only 1% chance to be a False Positive. 0.9 - it has 90% chance to be False Positive, however, if you see that this CNV is affecting a gene that may be responsible for the disease, that means this CNV deserves a second look, even if it has high chances to be a False Discovery.
+
+All CNVs are evaluated as they are singletons (happen once per studies cohort) - it is possible to acheieve higher power for recurrent CNVs, however, usually pathogenic CNVs are rare.
  
 
 
