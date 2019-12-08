@@ -72,7 +72,7 @@ We have validated a script for the annotation of CNVs, namely - how probable is 
 
 It will add a column with FDR. FDR of 0.01 means that this CNV has only 1% chance to be a False Positive. 0.9 - it has 90% chance to be False Positive, however, if you see that this CNV is affecting a gene that may be responsible for the disease, that means this CNV deserves a second look, even if it has high chances to be a False Discovery.
 
-All CNVs are evaluated as they are singletons (happen once per studies cohort) - it is possible to acheieve higher power for recurrent CNVs, however, usually pathogenic CNVs are rare.
+All CNVs are evaluated as they are singletons (happen once per studies cohort) - it is possible to achieve higher power for recurrent CNVs, however, usually pathogenic CNVs are rare.
  
 
 
