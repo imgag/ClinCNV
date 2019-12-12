@@ -91,9 +91,6 @@ def clean_file(file: IO[str], output_path: Path, fdr_threshold: float, sample: S
                 lines.append(line)
                 continue
 
-            if len(fields) == 1:
-                continue
-
             alleles_balance = major_cn_allele == minor_cn_allele and major_cn_allele2 == minor_cn_allele2
             if alleles_balance or BAF_qval_fdr == "NA" or float(BAF_qval_fdr) < fdr_threshold:
                 lines.append(line)
