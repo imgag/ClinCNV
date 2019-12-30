@@ -206,6 +206,8 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
     }
   }
   
+  infoToRemoveDueGC = matrix(0, nrow=0, ncol=ncol(info))
+  colnames(infoToRemoveDueGC) = colnames(info)
   if (length(which(! gcs %in% uniques_gcs)) > 0) {
     infoToRemoveDueGC = info[which(! gcs %in% uniques_gcs),]
     coverages <- coverages[-which(! gcs %in% uniques_gcs),]
