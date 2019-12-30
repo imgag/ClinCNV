@@ -259,6 +259,7 @@ numberOfElemsInEachChromosome = sapply(1:length(presentedChromsOn), function(i) 
 })
 
 
+bedPositionsThatWillBeFiltered = matrix(nrow=0, ncol=ncol(bedFile) + 1)
 
 for (i in 1:20) {
   tableOfValues <- table(round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i)
@@ -266,6 +267,8 @@ for (i in 1:20) {
 }
 bedFile[,4] <- round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i
 whichBedIsNA <- which(is.na(bedFile[,4]) | bedFile[,3] - bedFile[,2] < 50 | (!bedFile[,1] %in% presentedChromsOn[numberOfElemsInEachChromosome]))
+bedPositionsThatWillBeFiltered = rbind(bedPositionsThatWillBeFiltered, cbind(bedFile[whichBedIsNA,], rep("TooShortOrNA", length(whichBedIsNA))))
+colnames(bedPositionsThatWillBeFiltered)[ncol(bedPositionsThatWillBeFiltered)] = "Description"
 if (length(whichBedIsNA) > 0)
   bedFile = bedFile[-whichBedIsNA,]
 
@@ -388,6 +391,10 @@ print(paste("Started basic quality filtering.",Sys.time()))
 
 rowsToRemove <- cleanDatasetFromLowCoveredFiles(normal, bedFile)
 if (length(rowsToRemove) > 0) {
+  toBind = cbind(bedFile[rowsToRemove,], rep("LowRawCoverage", length(rowsToRemove)))
+  colnames(toBind)[ncol(toBind)] = "Description"
+  bedPositionsThatWillBeFiltered = rbind(bedPositionsThatWillBeFiltered, toBind)
+  
   bedFile <- bedFile[-rowsToRemove,]
   normal <- normal[-rowsToRemove,]
   if (framework == "somatic")
@@ -490,6 +497,11 @@ if (max(bedFile[,3] - bedFile[,2]) / min(bedFile[,3] - bedFile[,2]) > 16) {
 }
 
 lst <- gc_and_sample_size_normalise(bedFile, normal)
+if (nrow(lst[[3]]) > 0) {
+  toBind = cbind(nrow(lst[[3]]), rep("GCnormFailed", nrow(lst[[3]])))
+  colnames(toBind)[ncol(toBind)] = "Description"
+bedPositionsThatWillBeFiltered = rbind(bedPositionsThatWillBeFiltered, toBind)
+}
 normal <- lst[[1]]
 if (framework == "somatic") {
   if (frameworkDataTypes == "covdepthBAF") {
@@ -539,6 +551,9 @@ if (framework == "somatic") {
 print(paste("Amount of regions after Systematically Low Covered regions filtering", round(100 * nrow(normal) / numberOfRowsBeforeAllTheFiltrationNormal, digits = 3) ) )
 
 if (length(regionsToFilerOutOn)>0) {
+  toBind = cbind(bedFile[regionsToFilerOutOn,], rep("SystematicallyLowCov", length(regionsToFilerOutOn)))
+  colnames(toBind)[ncol(toBind)] = "Description"
+  bedPositionsThatWillBeFiltered = rbind(bedPositionsThatWillBeFiltered, toBind)
   normal = normal[-regionsToFilerOutOn,] + 10**-20
   if (framework == "somatic") {
     tumor = tumor[-regionsToFilerOutOn,] + 10**-20
@@ -546,6 +561,7 @@ if (length(regionsToFilerOutOn)>0) {
   bedFile = bedFile[-regionsToFilerOutOn,]
 }
 
+print(bedPositionsThatWillBeFiltered)
 
 if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   if (frameworkOff == "offtarget") {

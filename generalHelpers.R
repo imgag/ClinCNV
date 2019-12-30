@@ -207,11 +207,12 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
   }
   
   if (length(which(! gcs %in% uniques_gcs)) > 0) {
+    infoToRemoveDueGC = info[which(! gcs %in% uniques_gcs),]
     coverages <- coverages[-which(! gcs %in% uniques_gcs),]
     info <- info[-which(! gcs %in% uniques_gcs),]
   }
   
-  return(list(2 ** (coverages), info))
+  return(list(2 ** (coverages), info, infoToRemoveDueGC))
 }
 
 
@@ -547,6 +548,13 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
         copyNumberSegment = matrix(c(ID, chromosome, start, end, round(as.numeric(likelihoods[i]), digits = 2), valueToDisplay), nrow=1, ncol=6)
       }
       write(paste(copyNumberSegment[1,], collapse="\t"), file=outputFileNameDots, append=TRUE)
+    }
+    if (nrow(bedPositionsThatWillBeFiltered) > 0) {
+      for (i in 1:nrow(bedPositionsThatWillBeFiltered)) {
+        copyNumberSegment = matrix(c(ID, bedPositionsThatWillBeFiltered[i,1], bedPositionsThatWillBeFiltered[i,2], bedPositionsThatWillBeFiltered[i,3], 
+                                     as.character(bedPositionsThatWillBeFiltered[i,6]), -0.0001), nrow=1, ncol=6)
+        write(paste(copyNumberSegment[1,], collapse="\t"), file=outputFileNameDots, append=TRUE)
+      }
     }
   }
  

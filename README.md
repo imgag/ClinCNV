@@ -7,7 +7,7 @@ Authors: G. Demidov, S. Ossowski.
 
 **Thanks to the contributors!** (will prepare a full list later)
 
-Any issues should be reported to: *german dot demidov at medizin dot uni-tuebingen dot de *.
+Any issues should be reported to: *german dot demidov at medizin dot uni-tuebingen dot de *. The presentation (around 60 slides with the short description of ClinCNV and results) is available [here](https://github.com/imgag/ClinCNV/tree/master/doc/ClinCNV_thesis_presentation.pdf).
 
 This software is distributed under [MIT licence](./LICENSE).
 
