@@ -168,13 +168,7 @@ opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
 
 
-## TESTING PART LI
-opt$bed = "/Users/gdemidov/Tuebingen/somatic_CNVs/v4li/panel_v4/mergedCoverage/annotated_genes_ssSC_v4_2018_03_23.bed"
-opt$normal = "/Users/gdemidov/Tuebingen/somatic_CNVs/v4li/panel_v4/mergedCoverage/panel_v4LI_normal.cov"
-opt$colNum = 4
-opt$out = "/Users/gdemidov/Tuebingen/somatic_CNVs/v4li/panel_v4/results/"
-opt$reanalyseCohort = F
-opt$folderWithScript = "/Users/gdemidov/Tuebingen/clinCNV_dev_new/ClinCNV/"
+
 
 
 
