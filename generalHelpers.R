@@ -504,11 +504,11 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
         fileConn<-file(fileName)
         if (length(sdsOfDots) != nrow(toyBedFile) | fileName != outputFileNameDots) {
         writeLines(c("#type=GENE_EXPRESSION",
-                     paste0("#track graphtype=points name=\"", ID, "_cnv_segments", "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:8 yLineMark=2 yLineOnOff=on"),
+                     paste0("#track graphtype=points name=\"", ID, " CNV calls", "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:8 yLineMark=2 yLineOnOff=on"),
                      paste("ID", "chr", "start", "end", "loglik", "value", sep="\t")), fileConn)
         } else {
           writeLines(c("#type=GENE_EXPRESSION",
-                       paste0("#track graphtype=points name=\"", ID, "_cnv_coverage", "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:8 yLineMark=2 yLineOnOff=on"),
+                       paste0("#track graphtype=points name=\"", ID, " CNV coverage", "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:8 yLineMark=2 yLineOnOff=on"),
                        paste("ID", "chr", "start", "end", "variance", "value", sep="\t")), fileConn)
         }
         
