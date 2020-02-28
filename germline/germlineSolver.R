@@ -66,6 +66,7 @@ if (!is.null(polymorphicRegions)) {
     }
   }
 }
+superRecallThreshold = opt$superRecall
 
 print(paste("Calling started", Sys.time()))
 for (sam_no in 1:ncol(coverage.normalised)) {
@@ -240,7 +241,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             armFinalized = T
           }
           found_CNVs_recall = NULL
-          if (opt$superRecall < opt$scoreG) {
+          if (superRecallThreshold < opt$scoreG) {
             if (nrow(found_CNVs) > 0) {
               for (z in 1:nrow(found_CNVs)) {
                 startOfCNV = found_CNVs[z,2]
@@ -248,7 +249,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
                 toyMatrixOfLikeliks[max(1, startOfCNV - 1):min(endOfCNV + 1, nrow(toyMatrixOfLikeliks)),] = 0
               }
             }
-            found_CNVs_recall <- as.matrix(find_all_CNVs(0, opt$superRecall, 0, initial_state, toyMatrixOfLikeliks, initial_state))
+            found_CNVs_recall <- as.matrix(find_all_CNVs(0, superRecallThreshold, 0, initial_state, toyMatrixOfLikeliks, initial_state))
           }
           if (!is.null(found_CNVs_recall)) {
             found_CNVs = rbind(found_CNVs, found_CNVs_recall)
@@ -406,6 +407,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     } else {
       if (iterations < maxIteration) {
         print("Sample had too many CNVs. We re-analyse it with stricter thresholds")
+        superRecallThreshold = superRecallThreshold + opt$superRecall
         threshold = threshold + 20
         minimum_length_of_CNV = minimum_length_of_CNV + 1
         unlink(paste0(folder_name, sample_name), recursive = T)
