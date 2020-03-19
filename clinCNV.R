@@ -562,8 +562,8 @@ if (length(regionsToFilerOutOn)>0) {
   bedFile = bedFile[-regionsToFilerOutOn,]
 }
 
-print("These regions will be filtered out:")
-print(bedPositionsThatWillBeFiltered)
+#print("These regions will be filtered out:")
+#print(bedPositionsThatWillBeFiltered)
 
 if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   if (frameworkOff == "offtarget") {
