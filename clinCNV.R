@@ -561,6 +561,7 @@ if (length(regionsToFilerOutOn)>0) {
   }
   bedFile = bedFile[-regionsToFilerOutOn,]
 }
+outputQCFailed = F
 
 #print("These regions will be filtered out:")
 #print(bedPositionsThatWillBeFiltered)
