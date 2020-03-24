@@ -71,7 +71,7 @@ superRecallThreshold = opt$superRecall
 print(paste("Calling started", Sys.time()))
 for (sam_no in 1:ncol(coverage.normalised)) {
   
-  
+  outputQCFailed = F
   
   sample_name <- colnames(coverage.normalised)[sam_no]
   if (frameworkOff == "offtargetGermline") { 

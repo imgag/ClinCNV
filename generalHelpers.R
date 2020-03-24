@@ -551,12 +551,13 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
       }
       write(paste(copyNumberSegment[1,], collapse="\t"), file=outputFileNameDots, append=TRUE)
     }
-    if (nrow(bedPositionsThatWillBeFiltered) > 0) {
+    if (nrow(bedPositionsThatWillBeFiltered) > 0 & ! outputQCFailed) {
       for (i in 1:nrow(bedPositionsThatWillBeFiltered)) {
         copyNumberSegment = matrix(c(ID, bedPositionsThatWillBeFiltered[i,1], bedPositionsThatWillBeFiltered[i,2], bedPositionsThatWillBeFiltered[i,3], 
                                      as.character(bedPositionsThatWillBeFiltered[i,6]), -0.0001), nrow=1, ncol=6)
         write(paste(copyNumberSegment[1,], collapse="\t"), file=outputFileNameDots, append=TRUE)
       }
+      outputQCFailed = T
     }
   }
  
