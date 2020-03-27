@@ -1,7 +1,7 @@
 
 somaticCalling <- function(matrixOfLogFold) {
   for (sam_no in 1:ncol(matrixOfLogFold)) {
-    outputQCFailed = F
+    outputQCFailed = T
 
     clusterExport(cl,c('maxSubArraySum', 'fillInPList', 'likelihoodOfSNV','return_likelik', 'vect_of_norm_likeliks', 'vect_of_t_likeliks'), envir=environment())
     sample_name <- colnames(matrixOfLogFold)[sam_no]
@@ -618,8 +618,9 @@ somaticCalling <- function(matrixOfLogFold) {
                   reverseFunctionUsedToTransform = function(x, chroms) {return(2 ** (x + 1))}
                 }
                 outputSegmentsAndDotsFromListOfCNVs(toyBedFile, found_CNVs, start, end, outputFileNameCNVs, 
-                                                    outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, local_cn_states, toySds)
+                                                    outputFileNameDots, sample_name, toyLogFoldChange, reverseFunctionUsedToTransform, local_cn_states, toySds, outputQCFailed)
               }
+              outputQCFailed = F
               if(opt$debug) {
                 print(paste("End of IGV plotting", Sys.time()))
               }
