@@ -71,7 +71,7 @@ superRecallThreshold = opt$superRecall
 print(paste("Calling started", Sys.time()))
 for (sam_no in 1:ncol(coverage.normalised)) {
   
-  outputQCFailed = F
+  outputQCFailed = T
   
   sample_name <- colnames(coverage.normalised)[sam_no]
   if (frameworkOff == "offtargetGermline") { 
@@ -361,7 +361,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             outputFileNameDots <- paste0(folder_name, sample_name, "/", sample_name, "_cov.seg")
             reverseFunctionUsedToTransform = function(x, chrom) {return((2 * x ** 2))}
             outputSegmentsAndDotsFromListOfCNVs(toybedFileFiltered, found_CNVs, start, end, outputFileNameCNVs, 
-                                                outputFileNameDots, sample_name, toyCoverageGermline, reverseFunctionUsedToTransform, local_cn_states, sdsForOutput[which_to_allow])
+                                                outputFileNameDots, sample_name, toyCoverageGermline, reverseFunctionUsedToTransform, local_cn_states, sdsForOutput[which_to_allow], outputQCFailed)
+            outputQCFailed = F
             if(opt$debug) {
               print("END OF IGV PLOTTING")
             }

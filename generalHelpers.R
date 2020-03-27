@@ -492,7 +492,7 @@ find_all_CNVs <- function(minimum_length_of_CNV, threshold, price_per_tile, init
 
 
 outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfChromPiece, endOfChromPiece, outputFileNameCNVs, 
-                                         outputFileNameDots, ID, dotsCoords, reverseFunctionUsedToTransform, cn_states, sdsOfDots=c()) {
+                                         outputFileNameDots, ID, dotsCoords, reverseFunctionUsedToTransform, cn_states, sdsOfDots=c(), outputQCFailed = F) {
   maxCopyNumber = 8
   if (nrow(toyBedFile) == 0 || length(dotsCoords) == 0) {
     return(0)
@@ -551,13 +551,12 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
       }
       write(paste(copyNumberSegment[1,], collapse="\t"), file=outputFileNameDots, append=TRUE)
     }
-    if (nrow(bedPositionsThatWillBeFiltered) > 0 & ! outputQCFailed) {
+    if (nrow(bedPositionsThatWillBeFiltered) > 0 & outputQCFailed) {
       for (i in 1:nrow(bedPositionsThatWillBeFiltered)) {
         copyNumberSegment = matrix(c(ID, bedPositionsThatWillBeFiltered[i,1], bedPositionsThatWillBeFiltered[i,2], bedPositionsThatWillBeFiltered[i,3], 
                                      as.character(bedPositionsThatWillBeFiltered[i,6]), -0.0001), nrow=1, ncol=6)
         write(paste(copyNumberSegment[1,], collapse="\t"), file=outputFileNameDots, append=TRUE)
       }
-      outputQCFailed = T
     }
   }
  
