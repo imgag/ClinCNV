@@ -617,7 +617,9 @@ if (is.null(opt$clusterProvided)) {
   clustering = clusteringList[[1]]
   outliersByClusteringCohort = clusteringList[[2]]
 } else {
-  clusteringList <- read.table(opt$clusterProvided)
+  clusteringList <- read.table(opt$clusterProvided, stringsAsFactors = F)
+  clustering = clusteringList[,2]
+  names(clustering) = clusteringList[,1]
   outliersByClusteringCohort = c()
 }
 
