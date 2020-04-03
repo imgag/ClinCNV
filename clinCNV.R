@@ -158,6 +158,8 @@ option_list = list(
   make_option("--sex", type="character", default="", 
               help="override the sample's gender (active only when you specify --normalSample flag)"),  
   
+  make_option("--clusterProvided", type="character", default=NULL, 
+              help="Use external clustering (file with lines, sample ID \t cluster ID"),
   
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
@@ -610,9 +612,14 @@ if (length(samplesToFilterOut) > 0) {
 }
 
 print(paste("We start to cluster your data (you will find a plot if clustering is possible in your output directory)", opt$out, Sys.time()))
-clusteringList <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
-clustering = clusteringList[[1]]
-outliersByClusteringCohort = clusteringList[[2]]
+if (is.null(opt$clusterProvided)) {
+  clusteringList <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
+  clustering = clusteringList[[1]]
+  outliersByClusteringCohort = clusteringList[[2]]
+} else {
+  clusteringList <- read.table(opt$clusterProvided)
+  outliersByClusteringCohort = c()
+}
 
 orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
 bedFile = bedFile[orderOfBedFile,]
