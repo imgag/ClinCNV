@@ -471,7 +471,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
   #matrixOfDistForMDS = as.matrix(as.dist(1 - cor(coverageForClustering)))
   matrixOfDistForMDS = as.matrix(dist(t(coverageForClustering), method="manhattan"))
   
-  fit <- isoMDS(as.dist(matrixOfDistForMDS), k=3) # k is the number of dim
+  fit <- cmdscale(as.dist(matrixOfDistForMDS), k=3, eig=T) # k is the number of dim
   x <- trimValues(fit$points[,1], 0.01)
   y <- trimValues(fit$points[,2], 0.01)
   
@@ -802,3 +802,126 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
   return(list(cbind(mediansResult, sdsResults), sdsOfGermlineSamplesTmp))
 }
 
+
+
+
+
+
+
+
+
+
+returnClustering2 <- function(minNumOfElemsInCluster) {
+  minNumOfElemsInCluster = as.numeric(minNumOfElemsInCluster)
+  set.seed(100)
+  clustering = rep(0, ncol(normal))
+  
+  numOfElementsInCluster = (minNumOfElemsInCluster)
+  outliersFromClustering = rep(FALSE, ncol(normal))
+  
+  coverageForClustering = sqrt(normal[which(!bedFile[,1] %in% c("chrX","chrY")),])
+  sdsOfRegions <- apply(coverageForClustering, 1, mad)
+  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.8) | sdsOfRegions < quantile(sdsOfRegions, 0.2))
+  
+  coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
+  
+  coverageForClustering = apply(coverageForClustering, 2, function(x) {runmed(x, 5)})
+  
+  if (nrow(coverageForClustering) > 100000) {
+    coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 100000),]
+  }
+  
+  
+  if (!is.null(opt$triosFile)) {
+    samplesActuallyPlayingRole = c()
+    for (trioRow in 1:nrow(trios)) {
+      child_number <- which(colnames(coverageForClustering) == trios[trioRow, 1])
+      mother_number  <- which(colnames(coverageForClustering) == trios[trioRow, 2])
+      father_number  <- which(colnames(coverageForClustering) == trios[trioRow, 3])
+      
+      sample_name = paste(trios[trioRow,], collapse="-")
+      
+      if (length(child_number) == 0 | length(father_number) == 0 | length(mother_number) == 0) {
+        next()
+      } else {
+        samplesActuallyPlayingRole = c(samplesActuallyPlayingRole, c(child_number, mother_number, father_number))
+        coverageToReplace = apply(coverageForClustering[,c(child_number, mother_number, father_number)], 1, median)
+        coverageForClustering[,child_number] = coverageToReplace + rnorm(length(coverageToReplace), sd=0.001)
+        coverageForClustering[,mother_number] = coverageToReplace + rnorm(length(coverageToReplace), sd=0.001)
+        coverageForClustering[,father_number] = coverageToReplace + rnorm(length(coverageToReplace), sd=0.001)
+      }
+    }
+  } else {
+    coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) {runmed(x, 2)}))
+  }
+  #matrixOfDistForMDS = as.matrix(as.dist(1 - cor(coverageForClustering)))
+  matrixOfDistForMDS = as.matrix(dist(t(coverageForClustering), method="manhattan"))
+  
+  fit <- cmdscale(as.dist(matrixOfDistForMDS), k=3, eig=T) # k is the number of dim
+  x <- trimValues(fit$points[,1], 0.01)
+  y <- trimValues(fit$points[,2], 0.01)
+  
+  
+  if (ncol(normal) < 2 * minNumOfElemsInCluster) {
+    print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
+    
+    setwd(opt$out)
+    png(filename="clusteringSolution.png", width=1024, height=1024)
+    plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
+         main="Isometric MDS", type="n")
+    text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
+    dev.off()
+    return(list(clustering, outliersFromClustering))
+  }
+  
+  coordsAfterMDS = t((rbind(x, y)))
+  distMatrix = dist(t((rbind(x, y))))
+  
+  library(dbscan)
+  
+  cl <- hdbscan(distMatrix, minPts = minNumOfElemsInCluster)
+
+  
+  
+  
+  
+  memb=cl$cluster + 1
+  numOfObservationsInClusters <- table(memb)
+  clustering = memb
+  
+  significantClusters = which(numOfObservationsInClusters >= numOfElementsInCluster)
+  
+  outliersFromClustering[which(!clustering %in% significantClusters)] = TRUE
+  distMatrix = as.matrix(distMatrix)
+  for (i in 1:length(numOfObservationsInClusters)) {
+    if (numOfObservationsInClusters[i] < numOfElementsInCluster) {
+      for (elem in which(clustering == i)) {
+        minDist = 10**1000
+        closestCluster = significantClusters[1]
+        for (signCluster in significantClusters) {
+          distanceToSignCluster = mean(distMatrix[which(memb == signCluster),elem])
+          if (distanceToSignCluster < minDist) {
+            minDist = distanceToSignCluster
+            closestCluster = signCluster
+          }
+        }
+        clustering[elem] = closestCluster
+      }
+    }
+  }
+  if (!is.null(opt$triosFile)) {
+    clustering[-samplesActuallyPlayingRole] = -1
+  }
+  
+  palleteToPlot = rainbow(max(clustering))
+  colsToPlot = sapply(1:length(clustering), function(i){palleteToPlot[clustering[i]]})
+  setwd(opt$out)
+  png(filename="clusteringSolution.png", width=1024, height=1024)
+  plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
+       main="Isometric MDS", type="n")
+  text(x, y, labels = row.names(distMatrix), cex=.7, col=colsToPlot)
+  dev.off()
+  setwd(opt$folderWithScript)
+  
+  return(list(clustering, outliersFromClustering))
+}
