@@ -902,7 +902,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
         minDist = 10**1000
         closestCluster = significantClusters[1]
         for (signCluster in significantClusters) {
-          distanceToSignCluster = mean(distMatrix[which(memb == signCluster),elem])
+          distanceToSignCluster = median(distMatrix[which(memb == signCluster),elem])
           if (distanceToSignCluster < minDist) {
             minDist = distanceToSignCluster
             closestCluster = signCluster
