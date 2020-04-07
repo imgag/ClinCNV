@@ -825,10 +825,10 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   
   coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
-  coverageForClustering = apply(coverageForClustering, 2, function(x) {runmed(x, 5)})
+  coverageForClustering = apply(coverageForClustering, 2, function(x) {runmed(x, 2)})
   
-  if (nrow(coverageForClustering) > 100000) {
-    coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 100000),]
+  if (nrow(coverageForClustering) > 200000) {
+    coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 200000),]
   }
   
   
