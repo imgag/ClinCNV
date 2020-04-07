@@ -855,11 +855,11 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
     coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) {runmed(x, 2)}))
   }
   #matrixOfDistForMDS = as.matrix(as.dist(1 - cor(coverageForClustering)))
-  #matrixOfDistForMDS = as.matrix(1 - cor(coverageForClustering, method="spearman"))
+  matrixOfDistForMDS = as.matrix(1 - cor(coverageForClustering, method="spearman"))
   
   library(umap)
   set.seed(0)
-  fit <- umap(t(coverageForClustering))
+  fit <- umap((matrixOfDistForMDS))
   #x <- trimValues(fit$layout[,1], 0.01)
   #y <- trimValues(fit$layout[,2], 0.01)
   x <- fit$layout[,1]
