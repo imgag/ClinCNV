@@ -825,11 +825,13 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   
   coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
-  coverageForClustering = apply(coverageForClustering, 2, function(x) {runmed(x, 5)})
+  coverageForClustering = apply(coverageForClustering, 2, function(x) {runmed(x, 10)})
   
-  if (nrow(coverageForClustering) > 200000) {
-    coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 200000),]
+  
+  if (nrow(coverageForClustering) > 100000) {
+    coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 100000),]
   }
+  
   
   
   if (!is.null(opt$triosFile)) {
@@ -861,7 +863,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   set.seed(0)
   custom.settings = umap.defaults
   #custom.settings$input = "dist"
-  custom.settings$metric = "manhattan"
+  custom.settings$metric = "pearson"
   
   fit <- umap(t(coverageForClustering), config=custom.settings)
   #fit <- umap(matrixOfDistForMDS, config=custom.settings)
