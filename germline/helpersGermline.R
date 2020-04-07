@@ -855,19 +855,29 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
     coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) {runmed(x, 2)}))
   }
   #matrixOfDistForMDS = as.matrix(as.dist(1 - cor(coverageForClustering)))
-  matrixOfDistForMDS = as.matrix(1 - cor(coverageForClustering, method="spearman"))
+  #matrixOfDistForMDS = as.matrix(1 - cor(coverageForClustering, method="spearman"))
   
-  library(umap)
-  set.seed(0)
-  custom.settings = umap.defaults
-  custom.settings$input = "dist"
+  #library(umap)
+  #set.seed(0)
+  #custom.settings = umap.defaults
+  #custom.settings$input = "dist"
+  #custom.settings$metric = "manhattan"
+  
   #fit <- umap(t(coverageForClustering), config=custom.settings)
-  fit <- umap(matrixOfDistForMDS, config=custom.settings)
+  #fit <- umap(matrixOfDistForMDS, config=custom.settings)
   
   #x <- trimValues(fit$layout[,1], 0.01)
   #y <- trimValues(fit$layout[,2], 0.01)
-  x <- fit$layout[,1]
-  y <- fit$layout[,2]
+  #x <- fit$layout[,1]
+  #y <- fit$layout[,2]
+  
+  matrixOfDistForMDS = as.matrix(dist(t(coverageForClustering), method="manhattan"))
+  
+  fit <- cmdscale(as.dist(matrixOfDistForMDS), k=3, eig=T) # k is the number of dim
+  x <- trimValues(fit$points[,1], 0.01)
+  y <- trimValues(fit$points[,2], 0.01)
+  x <- fit$points[,1]
+  y <- fit$points[,2]
   
   if (ncol(normal) < 2 * minNumOfElemsInCluster) {
     print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
