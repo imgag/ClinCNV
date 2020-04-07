@@ -882,7 +882,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   
   library(dbscan)
   
-  cl <- hdbscan(distMatrix, minPts = minNumOfElemsInCluster)
+  cl <- hdbscan(coordsAfterMDS, minPts = minNumOfElemsInCluster)
 
   
   
