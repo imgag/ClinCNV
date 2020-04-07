@@ -883,7 +883,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   library(dbscan)
   
   #cl <- hdbscan(coordsAfterMDS, minPts = minNumOfElemsInCluster)
-  cl <- dbscan(coordsAfterMDS, eps = .4, minPts = 4)
+  cl <- dbscan(coordsAfterMDS, eps = 1., minPts = numOfElementsInCluster)
   
   
   
@@ -897,7 +897,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   outliersFromClustering[which(!clustering %in% significantClusters)] = TRUE
   distMatrix = as.matrix(distMatrix)
   for (i in 1:length(numOfObservationsInClusters)) {
-    if (numOfObservationsInClusters[i] < numOfElementsInCluster | i = 1) {
+    if (numOfObservationsInClusters[i] < numOfElementsInCluster | i == 1) {
       for (elem in which(clustering == i)) {
         minDist = 10**1000
         closestCluster = significantClusters[1]
