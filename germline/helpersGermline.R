@@ -873,7 +873,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   
   matrixOfDistForMDS = as.matrix(dist(t(coverageForClustering), method="manhattan"))
   
-  fit <- cmdscale(as.dist(matrixOfDistForMDS), k=3, eig=T) # k is the number of dim
+  fit <- cmdscale(as.dist(matrixOfDistForMDS), k=4, eig=T) # k is the number of dim
   x <- trimValues(fit$points[,1], 0.01)
   y <- trimValues(fit$points[,2], 0.01)
   x <- fit$points[,1]
