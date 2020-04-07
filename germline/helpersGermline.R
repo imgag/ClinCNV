@@ -859,7 +859,11 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   
   library(umap)
   set.seed(0)
-  fit <- umap((matrixOfDistForMDS), input="dist")
+  custom.settings = umap.defaults
+  custom.settings$input = "dist"
+  #fit <- umap(t(coverageForClustering), config=custom.settings)
+  fit <- umap(matrixOfDistForMDS, config=custom.settings)
+  
   #x <- trimValues(fit$layout[,1], 0.01)
   #y <- trimValues(fit$layout[,2], 0.01)
   x <- fit$layout[,1]
