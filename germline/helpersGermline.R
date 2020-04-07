@@ -855,12 +855,15 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
     coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) {runmed(x, 2)}))
   }
   #matrixOfDistForMDS = as.matrix(as.dist(1 - cor(coverageForClustering)))
-  matrixOfDistForMDS = as.matrix(dist(t(coverageForClustering), method="manhattan"))
+  #matrixOfDistForMDS = as.matrix(1 - cor(coverageForClustering, method="spearman"))
   
-  fit <- cmdscale(as.dist(matrixOfDistForMDS), k=3, eig=T) # k is the number of dim
-  x <- trimValues(fit$points[,1], 0.01)
-  y <- trimValues(fit$points[,2], 0.01)
-  
+  library(umap)
+  set.seed(0)
+  fit <- umap(t(coverageForClustering))
+  #x <- trimValues(fit$layout[,1], 0.01)
+  #y <- trimValues(fit$layout[,2], 0.01)
+  x <- fit$layout[,1]
+  y <- fit$layout[,2]
   
   if (ncol(normal) < 2 * minNumOfElemsInCluster) {
     print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
@@ -868,7 +871,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
     setwd(opt$out)
     png(filename="clusteringSolution.png", width=1024, height=1024)
     plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
-         main="Isometric MDS", type="n")
+         main="UMAP", type="n")
     text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
     dev.off()
     return(list(clustering, outliersFromClustering))
@@ -904,7 +907,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
             minDist = distanceToSignCluster
             closestCluster = signCluster
           }
-        }
+         }
         clustering[elem] = closestCluster
       }
     }
@@ -918,7 +921,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   setwd(opt$out)
   png(filename="clusteringSolution.png", width=1024, height=1024)
   plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
-       main="Isometric MDS", type="n")
+       main="UMAP", type="n")
   text(x, y, labels = row.names(distMatrix), cex=.7, col=colsToPlot)
   dev.off()
   setwd(opt$folderWithScript)
