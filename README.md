@@ -21,7 +21,9 @@ Currently we work with human genomes `hg19` and `hg38` only. For `hg38` you need
 
 NOTE: Folder `PCAWG` was used for CNVs detection in PanCancer Analysis of Whole Genomes cohort and is *research* only version. It is located here for historical reasons. Feel free to remove it.
 
-**bioRxiv**: https://www.biorxiv.org/content/10.1101/837971v1 (calling of copy-number alterations in normal-tumor pairs).
+**bioRxiv** for somatic CNA analysis: https://www.biorxiv.org/content/10.1101/837971v1 (calling of copy-number alterations in normal-tumor pairs).
+
+For **germline** CNVs: my phd thesis is available at [google drive](https://drive.google.com/file/d/1BvVqjCy8ACixej7Ul3j4PINwY-iLBGv_/view?fbclid=IwAR2UyRSSZi8HlziYpeqSmylotGJYwLjRblPA-BqY-HP2e8Pj4XSSPS5vpNY) and is citable as described [here](https://www.tdx.cat/handle/10803/668208) with the permanent link `http://hdl.handle.net/10803/668208`.
 
 ## Pre-requisites
 
