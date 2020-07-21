@@ -84,12 +84,10 @@ for (trioRow in 1:nrow(trios)) {
   localSdsMother = sdsOfProbes * sdsOfGermlineSamples[mother_number] 
   localSdsFather = sdsOfProbes * sdsOfGermlineSamples[father_number] 
   
-  if (!dir.exists(paste0(folder_name, sample_name))) {
+  if (!dir.exists(paste0(folder_name, sample_name)) | !is.null(opt$reanalyseCohort) ) {
     dir.create(paste0(folder_name, sample_name))
   } else {
-    if (!is.null(opt$reanalyseCohort)) {
       next
-    }
   }
   setwd(paste0(folder_name, sample_name))
   
