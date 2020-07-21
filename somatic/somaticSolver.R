@@ -106,7 +106,8 @@ prepareDataAndCall <- function(bedFileForCluster, tmpNormal, tumor, genderOfSamp
   
   
   cn_states <- c()
-  copy_numbers = 0:30
+  maxCopyNumberAllowed = opt$maximumSomaticCN
+  copy_numbers = 0:maxCopyNumberAllowed
   purity <- seq(from=opt$minimumPurity, to=100.1, by=opt$purityStep) / 100
   purities <- c()
   puritiesSecond <- c()

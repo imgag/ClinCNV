@@ -304,31 +304,7 @@ find_final_state <- function(start, end, initial_state, matrix_of_likeliks_local
   return(c(likelihood_score_including_all_tiles, cn_state_by_central_points, likelihood_score_all_tiles_read_depth_only))#, for_output))
 }
 
-maxSubArraySum <- function(x){
-  bestSoFar = 0
-  bestNow = 0
-  bestStartIndexSoFar = -1
-  bestStopIndexSoFar = -1
-  bestStartIndexNow = -1
-  for (i in 1:length(x)) {
-    value = bestNow + x[i]
-    if (value > 0) {
-      if (bestNow == 0) {
-        bestStartIndexNow = i
-      }
-      bestNow = value
-    }
-    else
-      bestNow = 0
-    
-    if (bestNow > bestSoFar) {
-      bestSoFar = bestNow
-      bestStopIndexSoFar = i
-      bestStartIndexSoFar = bestStartIndexNow
-    }
-  }
-  return(c(bestSoFar, bestStartIndexSoFar, bestStopIndexSoFar))
-}
+
 
 intersectionOfTwoIntervals = function(start1, end1, start2, end2) {
   if (end1 < start2 | end2 < start1) {
@@ -349,8 +325,14 @@ find_one_CNV <- function(j, k, main_state, threshold, matrix_of_likeliks_local, 
   value <- threshold
   sequence_for_iteration = seq(1:ncol(matrix_of_BFs))
   sequence_for_iteration = setdiff(sequence_for_iteration, c(blocked_states, main_state))
-  detectedCNVs <- foreach (i=sequence_for_iteration, .combine=rbind) %dopar% {
+  if (Rcpp_global) {
+    detectedCNVs <- foreach (i=sequence_for_iteration, .combine=rbind, .noexport = c("maxSubArraySum"), .packages = "Rcpp") %dopar% {
     maxSubArraySum(matrix_of_BFs[,i])
+  }
+  } else {
+    detectedCNVs <- foreach (i=sequence_for_iteration, .combine=rbind) %dopar% {
+      maxSubArraySum(matrix_of_BFs[,i])
+    }
   }
   detectedCNVs = matrix(detectedCNVs, ncol=3)
   #for (i in 1:nrow(detectedCNVs)) {
@@ -802,4 +784,76 @@ addParalogousRegions <- function(left_borders, right_borders, ends_of_chroms) {
   answer[[4]] = ends_of_chroms
   
   return(answer)
+}
+
+
+if (Rcpp_global) {
+  cppFunction('NumericVector maxSubArraySum(NumericVector x) {
+              double bestSoFar = 0;
+              double bestNow = 0;
+              int bestStartIndexSoFar = -1;
+              int bestStopIndexSoFar = -1;
+              int bestStartIndexNow = -1;
+              double value;
+              
+              
+              int vec_size = x.size();
+              for (int i = 0; i < vec_size; ++i) {
+              value = bestNow + x[i];
+              if (value > 0) {
+              if (fabs(bestNow) < std::numeric_limits<double>::epsilon()) {
+              bestStartIndexNow = i;
+              }
+              bestNow = value;
+              } else {
+              bestNow = 0;
+              }
+              if (bestNow > bestSoFar) {
+              bestSoFar = bestNow;
+              bestStopIndexSoFar = i;
+              bestStartIndexSoFar = bestStartIndexNow;
+              }
+              }
+              
+              NumericVector out(3);
+              out[0] = bestSoFar;
+              if (bestStartIndexSoFar > -0.5) {
+              out[1] = bestStartIndexSoFar + 1;
+              }
+              if (bestStopIndexSoFar > -0.5) {
+              out[2] = bestStopIndexSoFar + 1;
+              }
+              return out;
+}')
+} else {
+  maxSubArraySum <- function(x){
+    coord_of_max = which.max(x)
+    maximum_single_likelihood = x[coord_of_max]
+    if (maximum_single_likelihood < 0) {
+      return(c(maximum_single_likelihood, coord_of_max, coord_of_max))
+    }
+    bestSoFar = 0
+    bestNow = 0
+    bestStartIndexSoFar = -1
+    bestStopIndexSoFar = -1
+    bestStartIndexNow = -1
+    for (i in 1:length(x)) {
+      value = bestNow + x[i]
+      if (value > 0) {
+        if (bestNow == 0) {
+          bestStartIndexNow = i
+        }
+        bestNow = value
+      }
+      else
+        bestNow = 0
+      
+      if (bestNow > bestSoFar) {
+        bestSoFar = bestNow
+        bestStopIndexSoFar = i
+        bestStartIndexSoFar = bestStartIndexNow
+      }
+    }
+    return(c(bestSoFar, bestStartIndexSoFar, bestStopIndexSoFar))
+  }
 }

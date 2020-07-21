@@ -19,6 +19,8 @@ library(doParallel)
 library(mclust)
 library(R.utils)
 
+Rcpp_global = "Rcpp" %in% rownames(installed.packages())
+if (Rcpp_global) {library("Rcpp")}
 
 
 initial.options <- commandArgs(trailingOnly = FALSE)
@@ -161,6 +163,9 @@ option_list = list(
   make_option("--clusterProvided", type="character", default=NULL, 
               help="Use external clustering (file with lines, sample ID \t cluster ID"),
   
+  make_option("--maximumSomaticCN", type="integer", default=30, 
+              help="The highest allowed somatic copy-number (higher = more accurate, but slower), [default= %default]"),
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
@@ -168,6 +173,7 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
+
 
 
 

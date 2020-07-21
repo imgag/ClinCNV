@@ -15,6 +15,10 @@ install.packages("RColorBrewer")
 install.packages("party")
 ```
 
+ClinCNV works faster with `Rcpp` package installed, however, if you experience any problems with this package, you may run `ClinCNV` without it.
+```
+install.packages("Rcpp")
+```
 
 **Test run:**
 ```
