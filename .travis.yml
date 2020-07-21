@@ -18,7 +18,7 @@ before_script:
   - Rscript --version
   - R --version
   - echo "install.packages(\"devtools\", repos=\"https://cran.rstudio.com\")" | R --no-save
-  - curl https://raw.gubusercontent.com/imgag/megSAP/master/data/install_deps_clincnv.R -o install_deps_clincnv.R
+  - curl https://raw.githubusercontent.com/imgag/megSAP/master/data/install_deps_clincnv.R -o install_deps_clincnv.R
   - Rscript install_deps_clincnv.R
 
 
