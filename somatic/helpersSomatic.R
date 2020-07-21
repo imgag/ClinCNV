@@ -379,7 +379,7 @@ returnListOfCNVsThatDoNotPass = function(found_CNVs, bafDeviationsForComparison,
         #    mergedPvals > 10 ** -4) {
         if (wilcox.pval > 0.0001 | mergedPvals > 0.05) {
           cnvsThatShowNoBAFdeviation = c(cnvsThatShowNoBAFdeviation, q)
-          print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], "due to 1) low clonality AND 2) absence of clear signal from BAF (p-value:", round(wilcox.pval, 5), ")"))
+          print(paste("We remove CNV", paste0(bedFileForMapping[1,1], ":", bedFileForMapping[found_CNVs[q,2],2], "-", bedFileForMapping[found_CNVs[q,3],3]), "potential purity", puritiesOfStates[found_CNVs[q,4]], "due to 1) low clonality AND 2) absence of clear signal from BAF (p-value:", round(wilcox.pval, 6), ")"))
         }
       }
     }
