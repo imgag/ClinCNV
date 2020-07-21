@@ -16,7 +16,7 @@ matrix:
 
 before_script:
   - Rscript --version
-  - R --versioni
+  - R --version
   - sudo apt-get update -y
   - sudo apt-get install -y r-cran-devtools
   - curl https://raw.gubusercontent.com/imgag/megSAP/master/data/install_deps_clincnv.R -o install_deps_clincnv.R
