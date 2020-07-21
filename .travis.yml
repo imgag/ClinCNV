@@ -17,7 +17,10 @@ matrix:
 before_script:
   - Rscript --version
   - R --version
-  - sudo apt-get install r-cran-optparse r-cran-robustbase r-cran-foreach r-cran-mclust r-cran-doparallel r-cran-mass r-cran-data.table r-cran-party r-cran-R.utils 
+  - sudo R --vanilla <<EOF
+  - install.packages("optparse","robustbase","foreach","mclust","doParallel","MASS","data.table","party","R.utils")
+  - q()
+  - EOF 
 
 
 script:
