@@ -17,10 +17,7 @@ matrix:
 before_script:
   - Rscript --version
   - R --version
-  - echo "install.packages(\"devtools\", repos=\"https://cran.rstudio.com\")" | R --no-save
-  - curl https://raw.githubusercontent.com/imgag/megSAP/master/data/install_deps_clincnv.R -o install_deps_clincnv.R
-  - Rscript install_deps_clincnv.R
-
+  - echo "install.packages(c(\"devtools\", \"optparse\", \"robustbase\", \"MASS\", \"data.table\", \"foreach\", \"doParallel\", \"mclust\", \"R.utils\", \"RColorBrewer\", \"mvtnorm\", \"party\"), repos=\"https://cran.rstudio.com\")" | R --no-save
 
 script:
   - mkdir result
