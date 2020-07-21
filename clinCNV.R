@@ -632,10 +632,7 @@ orderOfBedFile <- order(bedFile[,1], as.numeric(bedFile[,2]))
 bedFile = bedFile[orderOfBedFile,]
 normal = normal[orderOfBedFile,]
 
-#for (i in 1:nrow(trios)){
-#  if (clustering[which(names(clustering) == trios[i,1])] != clustering[which(names(clustering) == trios[i,2])] )
-#    print(i)
-#}
+
 
 print(paste("Gender estimation started", Sys.time()))
 genderOfSamplesCohort <- Determine.gender(sqrt(normal), bedFile)
@@ -677,11 +674,11 @@ if (framework == "germline") {
   }
   
   for (cluster in unique(clustering)) {
-    if (cluster == -1) {
-      print(paste("Samples from trio mode that are presented in trios.txt but do not have a full family in file", opt$normal , "will be excluded."))
-      print(colnames(normal)[which(clustering == -1)])
-      next
-    }
+    #if (cluster == -1) {
+    #  print(paste("Samples from trio mode that are presented in trios.txt but do not have a full family in file", opt$normal , "will be excluded."))
+    #  print(colnames(normal)[which(clustering == -1)])
+    #  next
+    #}
     
     
 

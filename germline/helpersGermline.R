@@ -561,9 +561,9 @@ returnClustering <- function(minNumOfElemsInCluster) {
       }
     }
   }
-  if (!is.null(opt$triosFile)) {
-    clustering[-samplesActuallyPlayingRole] = -1
-  }
+  #if (!is.null(opt$triosFile)) {
+  #  clustering[-samplesActuallyPlayingRole] = -1
+  #}
   
 
   setwd(opt$out)
