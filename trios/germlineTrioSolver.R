@@ -1,5 +1,4 @@
 
-
 cn_states <- 0:6
 
 
@@ -151,14 +150,21 @@ for (trioRow in 1:nrow(trios)) {
     
     matrix_of_likeliks[,i] = matrix_of_likeliks_child_full[,child_state] + matrix_of_likeliks_mother_full[,mother_state] + matrix_of_likeliks_father_full[,father_state]
   }
+  
+  if ("chrXP" %in% names(left_borders)) {
+    coordinates_outside_of_par = globalBed[,2] > left_borders[["chrXP"]] & globalBed[,3] < ends_of_chroms[["chrXP"]]
+  } else {
+    coordinates_outside_of_par = globalBed[,2] > 0
+  }
   for (sex_chrom in c("chrX","chrY")) {
     if (sex_chrom %in% c("chrX", "X")) {
+      coords_which_has_to_be_modified = which(globalBed[,1] == sex_chrom & coordinates_outside_of_par)
       if (genderOfSamples[child_number] == "F")
-        matrix_of_likeliks[which(globalBed[,1] == sex_chrom),1] = (matrix_of_likeliks_child_full[which(globalBed[,1] == sex_chrom),3] + 
-          matrix_of_likeliks_mother_full[which(globalBed[,1] == sex_chrom),3] + matrix_of_likeliks_father_full[which(globalBed[,1] == sex_chrom),2])
+        matrix_of_likeliks[coords_which_has_to_be_modified,1] = (matrix_of_likeliks_child_full[coords_which_has_to_be_modified,3] + 
+          matrix_of_likeliks_mother_full[coords_which_has_to_be_modified,3] + matrix_of_likeliks_father_full[coords_which_has_to_be_modified,2])
       else 
-        matrix_of_likeliks[which(globalBed[,1] == sex_chrom),1] = (matrix_of_likeliks_child_full[which(globalBed[,1] == sex_chrom),2] + 
-                                                                     matrix_of_likeliks_mother_full[which(globalBed[,1] == sex_chrom),3] + matrix_of_likeliks_father_full[which(globalBed[,1] == sex_chrom),2])
+        matrix_of_likeliks[coords_which_has_to_be_modified,1] = (matrix_of_likeliks_child_full[coords_which_has_to_be_modified,2] + 
+                                                                     matrix_of_likeliks_mother_full[coords_which_has_to_be_modified,3] + matrix_of_likeliks_father_full[coords_which_has_to_be_modified,2])
     }
     if (sex_chrom %in% c("chrY", "Y")) {
       if (genderOfSamples[child_number] == "F")
@@ -205,12 +211,25 @@ for (trioRow in 1:nrow(trios)) {
           else
             local_vectors_of_cn_states[1,] = c(1,0,1)
         }
+        if (chrom %in% c("chrXP")) {
+            local_vectors_of_cn_states[1,] = c(2,2,1)
+        }
         output_of_plots <-  paste0(folder_name, sample_name)
         which_to_allow <- "NA"
-        if (k == 1) {
-          which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] <= as.numeric(start) )
+        if (chrom == "chrX" & !is.na(startX)) {
+          startOfChrom = startX
         } else {
-          which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] >= as.numeric(end) )
+          startOfChrom = 0
+        }
+        if (chrom == "chrXP") {
+          chrom = "chrX"
+        }
+        if (k == 1) {
+          which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,3]) <= as.numeric(left_borders[[l]]) &  as.numeric(globalBed[,2]) >= startOfChrom)
+          #which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] <= as.numeric(start) )
+        } else {
+          which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) >= as.numeric(right_borders[[l]]) & as.numeric(globalBed[,3]) <= ends_of_chroms[[l]])
+          #which_to_allow = which(globalBed[,1] == chrom & globalBed[,2] >= as.numeric(end) )
         }
         toyMatrixOfLikeliks = matrix_of_likeliks[which_to_allow,]
         toyBedFile = globalBed[which_to_allow,]
