@@ -86,7 +86,12 @@ Rscript clinCNV.R --normal normal.cov --tumor tumor.cov  --out outputFolder --pa
 
 ClinCNV now can work in 3 different contexts: germline calling, somatic calling (normal / tumor pairs) and trios. To run ClinCNV in germline context, you should minimally specify `--bed` and `--normal`. For trios, parameter `--triosFile` has to be specified (sample names for a child, his/hers mother and father, divided by comma). For somatic `--tumor` and `--pairs` has to be specified (pairs should contain tumor and normal sample names, divided by comma). It is highly recommended to use B-allele frequencies in somatic context. A folder with `.tsv` files has to be specified to switch to B-allele frequencies mode. Files need to have same sample names as column names in `--normal` and `--tumor` files. If ClinCNV does not find B-allele frequencies for a particular sample, it tries to detect CNVs using read depths only.
 
-Tumor-only calling is under tests now. A flag `--onlyTumor` has to be specified. Better be used with `baf` files and off-target reads. 20 or more normal samples are recommended as a background.
+Tumor-only calling is under tests now. A flag `--onlyTumor` has to be specified. Better be used with `baf` files and off-target reads. 20 or more normal samples are recommended as a background. An example of tumor only running command (several tumors are already mixed with normals):
+
+`Rscript /mnt/users/ahdemig1/clinCNV_test/ClinCNV/clinCNV.R  --normal /path/to/merged_normal_coverage.cov \
+--normalOfftarget /path/to/merged_offtarget_coverage.cov --bed /path/to/ontarget_gc_annotated_bed.bed \
+--bedOfftarget /path/to/offtarget_gc_annotated_bed.bed --onlyTumor --bafFolder /path/to/folder_with_baf_files --folderWithScript /clinCNV_test/ClinCNV \
+--out /path/to/results --normalSample DX190627_01 --minimumPurity 30 --purityStep 5 --scoreS 150`
 
 ## File formats
 
