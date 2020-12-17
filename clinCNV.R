@@ -166,6 +166,9 @@ option_list = list(
   make_option("--maximumSomaticCN", type="integer", default=30, 
               help="The highest allowed somatic copy-number (higher = more accurate, but slower), [default= %default]"),
   
+  make_option("--onlyTumor", action="store_true", default=F, 
+              help="if tumor only calling is to be performed"),  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
@@ -226,6 +229,11 @@ if (opt$mosaicism) {
   print("You suspect your samples to be mosaic - hmmm, we will check this out...(but the mosaic CN change should not be > 1 copy different from default")
 }
 
+if (opt$onlyTumor) {
+  print("You want to detect Tumor Only CN changes - please not that only simple tumors can be analyzed with this flag...")
+}
+
+
 
 
 #no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
@@ -263,7 +271,6 @@ numberOfElemsInEachChromosome = sapply(1:length(presentedChromsOn), function(i) 
     return(F)
   }
 })
-
 
 bedPositionsThatWillBeFiltered = matrix(nrow=0, ncol=ncol(bedFile) + 1)
 
@@ -324,6 +331,7 @@ if (framework == "somatic") {
 
 
 if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
+  
   bedFileOfftarget <- ReadFileFast(opt$bedOfftarget, header=F)
   if (!startsWith(bedFileOfftarget[,1], "chr"))
     bedFileOfftarget[,1] <- paste0("chr", bedFileOfftarget[,1])
@@ -393,6 +401,7 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   }
 }
 
+
 print(paste("Started basic quality filtering.",Sys.time()))
 
 rowsToRemove <- cleanDatasetFromLowCoveredFiles(normal, bedFile)
@@ -461,7 +470,7 @@ if (opt$par != "NO" & (framework == "germline" | frameworkOff == "offtargetGerml
 }
 
 
-if (frameworkDataTypes == "covdepthBAF") {
+if (frameworkDataTypes == "covdepthBAF" & !opt$onlyTumor) {
   print(paste("We are reading BAF files. It may take time - especially if you have a lot of SNV positions.", Sys.time()))
   setwd(opt$folderWithScript)
   
@@ -510,7 +519,7 @@ bedPositionsThatWillBeFiltered = rbind(bedPositionsThatWillBeFiltered, toBind)
 }
 normal <- lst[[1]]
 if (framework == "somatic") {
-  if (frameworkDataTypes == "covdepthBAF") {
+  if (frameworkDataTypes == "covdepthBAF" & !opt$onlyTumor) {
     if (lengthBasedNorm)
       tumor <- lengthBasedNormalization(tumor, bedFile, allowedChroms=allowedChromsBaf)
     lst <- gc_and_sample_size_normalise(bedFile, tumor, allowedChroms=allowedChromsBaf)
@@ -531,7 +540,7 @@ if (frameworkOff == "offtarget" | frameworkOff == "offtargetGermline") {
   lst <- gc_and_sample_size_normalise(bedFileOfftarget, normalOff)
   normalOff <- lst[[1]]
   if (frameworkOff == "offtarget") {
-    if (frameworkDataTypes == "covdepthBAF") {
+    if (frameworkDataTypes == "covdepthBAF" & !opt$onlyTumor) {
       lst <- gc_and_sample_size_normalise(bedFileOfftarget, tumorOff, allowedChroms=allowedChromsBaf)
     } else {
       lst <- gc_and_sample_size_normalise(bedFileOfftarget, tumorOff)
@@ -755,24 +764,10 @@ if (framework == "germline") {
       
     }
     
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     if (!is.null(opt$triosFile)) {
       source(paste0(opt$folderWithScript,"/trios/germlineTrioSolver.R"),local=TRUE)
+    } else if (opt$onlyTumor) {
+      source(paste0(opt$folderWithScript,"/somatic/tumorOnlySolver.R"),local=TRUE)
     } else {
       source(paste0(opt$folderWithScript, "/germline/germlineSolver.R"),local=TRUE)
     }
