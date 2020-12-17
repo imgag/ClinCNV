@@ -88,9 +88,9 @@ ClinCNV now can work in 3 different contexts: germline calling, somatic calling 
 
 Tumor-only calling is under tests now. A flag `--onlyTumor` has to be specified. Better be used with `baf` files and off-target reads. 20 or more normal samples are recommended as a background. An example of tumor only running command (several tumors are already mixed with normals):
 
-`Rscript /mnt/users/ahdemig1/clinCNV_test/ClinCNV/clinCNV.R  --normal /path/to/merged_normal_coverage.cov 
+`Rscript /path/to/clinCNV_test/ClinCNV/clinCNV.R  --normal /path/to/merged_normal_coverage.cov 
 --normalOfftarget /path/to/merged_offtarget_coverage.cov --bed /path/to/ontarget_gc_annotated_bed.bed 
---bedOfftarget /path/to/offtarget_gc_annotated_bed.bed --onlyTumor --bafFolder /path/to/folder_with_baf_files --folderWithScript /clinCNV_test/ClinCNV 
+--bedOfftarget /path/to/offtarget_gc_annotated_bed.bed --onlyTumor --bafFolder /path/to/folder_with_baf_files --folderWithScript /path/to/clinCNV_test/ClinCNV 
 --out /path/to/results --normalSample DX190627_01 --minimumPurity 30 --purityStep 5 --scoreS 150`
 
 ## File formats
