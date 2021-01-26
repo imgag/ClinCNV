@@ -527,7 +527,6 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     iterations = iterations + 1
   }
   
-  
   pvaluesForCNVs <- rep(NA, nrow(found_CNVs_total))
   if (nrow(found_CNVs_total) > 0) {
     for (i in 1:nrow(found_CNVs_total)) {
@@ -550,7 +549,9 @@ for (sam_no in 1:ncol(coverage.normalised)) {
             if (!chrom %in% c("chrX","chrY")) {
               valueOfOthers = apply(coverage.normalised.off[coordsInBedOff,-sam_no,drop=F],2,median)
             } else {
-              valueOfOthers = apply(coverage.normalised.off[coordsInBedOff,which(genderOfSamples == genderOfSamples[sam_no]),drop=F],2,median)
+              genderOfThisSample = genderOfSamples[which(names(genderOfSamples) == sample_name)]
+              idsOfSameSexSamples = which(colnames(coverage.normalised.off) %in% names(genderOfSamples)[which(genderOfSamples == genderOfThisSample)])
+              valueOfOthers = apply(coverage.normalised.off[coordsInBedOff,idsOfSameSexSamples,drop=F],2,median)
             }
           }
         }
