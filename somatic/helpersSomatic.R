@@ -145,7 +145,7 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
     predictions <- runmed(shiftsChrom, k = 51)
     shifts[whichChrom] = predictions
   }
-  png(paste0(opt$out, "/plot_with_shifts.png"), width=2000, height=1000)
+  png(paste0(opt$out, "/plot_with_shifts.png"), type = "cairo", width=2000, height=1000)
   plot(shifts)
   lines(shifts, col="red", lwd=3)
   dev.off()
@@ -443,7 +443,7 @@ makeBarplot <- function(allPotentialPurities, found_CNVs_total, sample_name) {
   }
   datasetForBarplot = (datasetForBarplot / 10**6)
   maxheight = max(datasetForBarplot)
-  png(paste0(sample_name, "_clonalityBarplot.png"), width=2400, height=640)
+  png(paste0(sample_name, "_clonalityBarplot.png"), type = "cairo", width=2400, height=640)
   bp <- barplot(datasetForBarplot, col=c("brown","blue","darkblue","red") ,  font.axis=2, beside=T, main=paste("Presence of clones in tumor", sample_name, ", estimated purity: ", max(as.numeric(found_CNVs_total[,6]))), ylim=c(0, 1.05 * maxheight), xlab="Subclones investigated", ylab="Length, MB")
   for (z in 1:ncol(datasetForBarplotNumber)) {
     for (v in 1:nrow(datasetForBarplotNumber)) {
@@ -1063,7 +1063,7 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
                                     local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms,
                                     local_majorBAF_second, local_minorBAF_second, local_purities_second) {
   colorsForCN = c(rgb(1,0,0,0.9), rgb(0.6470588, 0.1647059, 0.1647059, 0.9), rgb(0,0,1,0.9))
-  png(filename=addressOfPlot, width=2500, height=1000)
+  png(filename=addressOfPlot, type = "cairo", width=2500, height=1000)
   
   linesOnBarplot = list()
   orderOfNames = c(paste0("chr", 1:22), "chrX", "chrY")

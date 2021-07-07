@@ -472,7 +472,7 @@ for (h in 0:(2 * len + 1)) {
             
             pr = F
             if (pr) {
-              png(filename=CNV_name_to_write, width = 640, height = 640)
+              png(filename=CNV_name_to_write, type = "cairo", width = 640, height = 640)
               
               plot_st <- max(1,st - length_of_repr)
               plot_fn <- min(ncol(resid), fn + length_of_repr)

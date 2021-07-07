@@ -586,7 +586,7 @@ for (h in 0:(2 * len + 1)) {
       
       
       
-      png(filename=CNV_name_to_write, width = 640, height = 640)
+      png(filename=CNV_name_to_write, type = "cairo", width = 640, height = 640)
       
       plot(trans_values, ylim=c(0, max(trans_values) + 0.5), ylab="Copy Number", xlab="Samples from the largest cohort", main=CNV_name)
       abline(h=location)
