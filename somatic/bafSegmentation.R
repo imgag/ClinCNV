@@ -253,7 +253,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   subDir = paste0(tumorSampleName, "_", healthySampleName)
   dir.create(file.path(folderBAF, "result", subDir))
   setwd(file.path(folderBAF, "result", subDir))
-  png(paste0(tumorSampleName, "_", healthySampleName, ".png"), width=1400, height=600)
+  png(paste0(tumorSampleName, "_", healthySampleName, ".png"), type = "cairo", width=1400, height=600)
   op <- par(mar=c(11,4,4,2))
   x <- barplot(evaluated, col=colVec, main=paste(tumorSampleName, healthySampleName, "expected proportion of BAF with p < 0.05:", round(pvalueShift, digits=3)), ylim=c(0,1), xaxt="n")
   text(x-2.5, par("usr")[3] - 0.15, labels = plotLabels, srt = 45, pos = 1, xpd = TRUE)
@@ -262,7 +262,7 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   abline(h=0.1, lwd=2, col="red")
   dev.off()
   
-  png("overdispersion.png", width=1024, height=1024)
+  png("overdispersion.png", type = "cairo", width=1024, height=1024)
   plot(overdispersionFactorsNornm ~ overdispersionFactorsTum, main="Dispersion over Binomial")
   dev.off()
   

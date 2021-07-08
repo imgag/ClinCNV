@@ -721,8 +721,7 @@ somaticCalling <- function(matrixOfLogFold) {
           if (!finalIteration) {
             do.call(file.remove, list(list.files(paste0(folder_name, sample_name), full.names = TRUE)))
           }
-          png(filename = paste0(sample_name, "_clonality.png"),
-              width = 640, height = 640)
+          png(filename = paste0(sample_name, "_clonality.png"), type = "cairo", width = 640, height = 640)
           heatmap((matrixOfClonalityForPlotting), scale="none", Rowv = NA, Colv = NA, col=hmcols, main=sample_name)
           dev.off()
           

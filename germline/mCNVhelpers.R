@@ -342,7 +342,7 @@ findFinalState <- function(coverageNeededToCheck, toyBedFilePolymorphCurrent, mu
   diagnosticPlot = (length(which(copy_number != as.numeric(names(sort(table(copy_number),decreasing=TRUE)[1])))) >= 0.05 * length(copy_number))
   if (diagnosticPlot == T & plotting) {
     fileName = paste(numberOfClusterAnalysed, toyBedFilePolymorphCurrent[1,1], toyBedFilePolymorphCurrent[1,2], toyBedFilePolymorphCurrent[nrow(toyBedFilePolymorphCurrent),3], sep="_")
-    png(paste0(folder_name_mcnv, fileName, ".png"), width=length(copy_number) * 3, height=800)
+    png(paste0(folder_name_mcnv, fileName, ".png"), type = "cairo", width=length(copy_number) * 3, height=800)
     plot(coverageSummarised ** 2 * bestDivisor, col="black", pch=21,bg=coloursP[(copy_number + 1)])
     abline(h=bestLoc ** 2 * bestDivisor)
     dev.off()

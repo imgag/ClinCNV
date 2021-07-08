@@ -228,7 +228,7 @@ Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
       clusters <- clKmeans$cluster
       clusters[clusters == 1] <- "F"
       clusters[clusters == 2] <- "M"
-      png(filename=paste0(opt$out, paste0("/genders.png")), width=800, height=800)
+      png(filename=paste0(opt$out, paste0("/genders.png")), type = "cairo", width=800, height=800)
       plot(matrix_of_values, col = clKmeans$cluster, xlab="Y Chromsome", ylab="X Chromosome", pch=19, cex=2)
       points(clKmeans$centers, col = 1:2, pch = 8, cex = 10)
       dev.off()
@@ -480,7 +480,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
     print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
     
     setwd(opt$out)
-    png(filename="clusteringSolution.png", width=1024, height=1024)
+    png(filename="clusteringSolution.png", type = "cairo", width=1024, height=1024)
     plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
          main="Isometric MDS", type="n")
     text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
@@ -567,7 +567,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
   
 
   setwd(opt$out)
-  png(filename="clusteringSolution.png", width=1024, height=1024)
+  png(filename="clusteringSolution.png", type = "cairo", width=1024, height=1024)
   plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
        main="Isometric MDS", type="n")
   text(x, y, labels = row.names(distMatrix), cex=.7, col=clustering + 1)
@@ -621,7 +621,7 @@ returnTreeForCorrelation <- function(coverage.normalised.local, sdsOfGermlineSam
   trainingDataset = trainingDataset[-which(distnacesClose > 1000),]
   if (nrow(trainingDataset) > 100 & nrow(unique(trainingDataset)) > 10) {
   fit <- ctree(covariancesClose ~ (distnacesClose) + (sumOfLengths) + minLength + maxLength, data=trainingDataset, control=ctree_control(mincriterion = 0.99))
-  png(filename="treeOnCorrelationOfCoverage.png", width=4000, height=1800)
+  png(filename="treeOnCorrelationOfCoverage.png", type = "cairo", width=4000, height=1800)
   plot(fit)
   dev.off()
   } else {
@@ -885,7 +885,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
     print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
     
     setwd(opt$out)
-    png(filename="clusteringSolution.png", width=1024, height=1024)
+    png(filename="clusteringSolution.png", type = "cairo", width=1024, height=1024)
     plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
          main="UMAP", type="n")
     text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
@@ -935,7 +935,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   palleteToPlot = rainbow(max(clustering))
   colsToPlot = sapply(1:length(clustering), function(i){palleteToPlot[clustering[i]]})
   setwd(opt$out)
-  png(filename="clusteringSolution.png", width=1024, height=1024)
+  png(filename="clusteringSolution.png", type = "cairo", width=1024, height=1024)
   plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
        main="UMAP", type="n")
   text(x, y, labels = row.names(distMatrix), cex=.7, col=colsToPlot)

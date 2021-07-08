@@ -202,7 +202,7 @@ rect.hclust(hc, k=num_of_clusters, border="red")
 
 
 plotDataFile <- function(x, functionType) {
-  png("data.file.png", width = 2500, height = 1600, pointsize=32)
+  png("data.file.png", type = "cairo", width = 2500, height = 1600, pointsize=32)
   if (identical(functionType, plot)) {
     functionType(x, pch=19, col=rgb(0,0,0,0.1))
   } else {
