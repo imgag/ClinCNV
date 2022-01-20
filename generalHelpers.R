@@ -486,11 +486,11 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
         fileConn<-file(fileName)
         if (length(sdsOfDots) != nrow(toyBedFile) | fileName != outputFileNameDots) {
         writeLines(c("#type=GENE_EXPRESSION",
-                     paste0("#track graphtype=points name=\"", ID, " CNV calls", "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:8 yLineMark=2 yLineOnOff=on"),
+                     paste0("#track graphtype=points name=\"", ID, " CNV calls", "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:6 yLineMark=2 yLineOnOff=on"),
                      paste("ID", "chr", "start", "end", "loglik", "value", sep="\t")), fileConn)
         } else {
           writeLines(c("#type=GENE_EXPRESSION",
-                       paste0("#track graphtype=points name=\"", ID, " CNV coverage", "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:8 yLineMark=2 yLineOnOff=on"),
+                       paste0("#track graphtype=points name=\"", ID, " CNV coverage", "\" color=0,0,255 altColor=255,0,0 maxHeightPixels=80:80:80 viewLimits=0:2:6 yLineMark=2 yLineOnOff=on"),
                        paste("ID", "chr", "start", "end", "variance", "value", sep="\t")), fileConn)
         }
         
@@ -536,7 +536,7 @@ outputSegmentsAndDotsFromListOfCNVs <- function(toyBedFile, foundCNVs, startOfCh
     if (nrow(bedPositionsThatWillBeFiltered) > 0 & outputQCFailed) {
       for (i in 1:nrow(bedPositionsThatWillBeFiltered)) {
         copyNumberSegment = matrix(c(ID, bedPositionsThatWillBeFiltered[i,1], bedPositionsThatWillBeFiltered[i,2], bedPositionsThatWillBeFiltered[i,3], 
-                                     as.character(bedPositionsThatWillBeFiltered[i,6]), -0.0001), nrow=1, ncol=6)
+                                     as.character(bedPositionsThatWillBeFiltered[i,6]), -0.2), nrow=1, ncol=6)
         write(paste(copyNumberSegment[1,], collapse="\t"), file=outputFileNameDots, append=TRUE)
       }
     }

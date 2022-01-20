@@ -5,7 +5,7 @@ A tool for large-scale CNV and CNA detection.
 
 Authors: G. Demidov, S. Ossowski.
 
-**Thanks to the contributors!** (will prepare a full list later)
+**Thanks to the contributors!** 
 
 Any issues should be reported to: *german dot demidov at medizin dot uni-tuebingen dot de *. The presentation (around 60 slides with the short description of ClinCNV and results) is available [here](https://github.com/imgag/ClinCNV/tree/master/doc/ClinCNV_thesis_presentation.pdf).
 
@@ -17,13 +17,13 @@ ClinCNV is a part of [MegSAP](https://github.com/imgag/megSAP) pipeline.
 
 ClinCNV detects CNVs in germline and somatic context in NGS data (targeted and whole-genome). We work in cohorts, so it makes sense to try `ClinCNV` if you have more than 10 samples (recommended amount - 40 since we estimate variances from the data). By "cohort" we mean samples sequenced with the same enrichment kit with approximately the same depth (ie 1x WGS and 30x WGS better be analysed in separate runs of ClinCNV). Of course it is better if your samples were sequenced within the same sequencing facility. 
 
-Currently we work with human genomes `hg19` and `hg38` only. For `hg38` you need to replace `cytobands.txt` with the file `cytobandsHG38.txt`. For mouse genome or any other diploid organism you have to replace *cytobands.txt* with the corresponding file. ClinCNV can work with small panels (hundreds of regions), but GC-correction can not be performed accurately for samples sequenced with such panels.
+Currently we work with human genomes `hg19` and `hg38` only. **For `hg38` you need to replace `cytobands.txt` with the file `cytobandsHG38.txt`.** For mouse genome or any other diploid organism you have to replace *cytobands.txt* with the corresponding file. ClinCNV can work with small panels (hundreds of regions), but GC-correction can not be performed accurately for samples sequenced with such panels.
 
 NOTE: Folder `PCAWG` was used for CNVs detection in PanCancer Analysis of Whole Genomes cohort and is *research* only version. It is located here for historical reasons. Feel free to remove it.
 
 **bioRxiv** for somatic CNA analysis: https://www.biorxiv.org/content/10.1101/837971v1 (calling of copy-number alterations in normal-tumor pairs).
 
-For **germline** CNVs: my phd thesis is available at [google drive](https://drive.google.com/file/d/1BvVqjCy8ACixej7Ul3j4PINwY-iLBGv_/view?fbclid=IwAR2UyRSSZi8HlziYpeqSmylotGJYwLjRblPA-BqY-HP2e8Pj4XSSPS5vpNY) and is citable as described [here](https://www.tdx.cat/handle/10803/668208) with the permanent link `http://hdl.handle.net/10803/668208`.
+For **germline** CNVs: my phd thesis is citable as described [here](https://www.tdx.cat/handle/10803/668208) with the permanent link `http://hdl.handle.net/10803/668208`. Please, cite my thesis, and sincere apologies for not publishing the tool, I did what I could.
 
 ## Pre-requisites
 
@@ -40,6 +40,8 @@ install.packages("mclust")
 install.packages("R.utils")
 install.packages("RColorBrewer")
 install.packages("party")
+install.packages("dbscan")
+install.packages("umap")
 ```
 
 ClinCNV works faster with `Rcpp` package installed, however, if you experience any problems with this package, you may run ClinCNV without it.
@@ -239,6 +241,8 @@ samtools bedcov $bedFilePath -Q 3 $bamPath > $sampleName".cov"
 ```
 
 ### How to calculate BAF-files
+
+If you have a VCF file, you can use [BAF extractor](https://github.com/imgag/ClinCNV/blob/master/helper_scripts/baf_extractor.py) script (thanks to Timofei for refactoring). I can not guarantee if it will work fine with your VCF (if your VCF contains the required info), report me if it does not.
 
 Using *ngs-bits*:
 

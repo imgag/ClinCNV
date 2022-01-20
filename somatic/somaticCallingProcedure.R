@@ -500,9 +500,9 @@ somaticCalling <- function(matrixOfLogFold) {
                 which_to_allow = which(globalBed[,1] == chrom & as.numeric(globalBed[,2]) >= as.numeric(end) )
                 which_to_allow_chr = which(as.numeric(resultBedForOrdering[,2]) >= as.numeric(end) )
               }
-              toyBedFile = globalBed[which_to_allow,]
+              toyBedFile = globalBed[which_to_allow,,drop=F]
               
-              toyMatrixOfLikeliks = resultMatrixOfLikelihoods[which_to_allow_chr,]
+              toyMatrixOfLikeliks = resultMatrixOfLikelihoods[which_to_allow_chr,,drop=F]
               toyLogFoldChange = globalLogFold[which_to_allow]
               
               toySds <- globalSds[which_to_allow]
@@ -517,15 +517,18 @@ somaticCalling <- function(matrixOfLogFold) {
                 which_to_allow = which(bedFileForCluster[,1] == chrom & bedFileForCluster[,2] >= end )
                 which_to_allow_chr = which(as.numeric(resultBedForOrdering[,2]) >= as.numeric(end) )
               }
-              toyMatrixOfLikeliks = resultMatrixOfLikelihoods[which_to_allow_chr,]
-              toyBedFile = bedFileForCluster[which_to_allow,]
-              toyLogFoldChange = matrixOfLogFold[which_to_allow, sam_no]
+              toyMatrixOfLikeliks = resultMatrixOfLikelihoods[which_to_allow_chr,,drop=F]
+              toyBedFile = bedFileForCluster[which_to_allow,,drop=F]
+              toyLogFoldChange = matrixOfLogFold[which_to_allow, sam_no,drop=F]
               
               
               toySds <- localSds[which_to_allow]
               
               toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
             }
+            if (is.null(toyMatrixOfLikeliks)) next
+            if (nrow(toyMatrixOfLikeliks) < 3) next
+
             blocked_states = c()
             if (length(toyLogFoldChange) > opt$lengthS) {
               arrayOfMediansOfToyLogFold = runmed(toyLogFoldChange, round(opt$lengthS))
@@ -559,6 +562,7 @@ somaticCalling <- function(matrixOfLogFold) {
             copy_numbers_for_penalties = 3 - (local_copy_numbers_used_major + local_copy_numbers_used_minor)
             copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
             penalties = penaltyForHigherCN * abs(copy_numbers_for_penalties)
+
             toyMatrixOfLikeliks = sweep(toyMatrixOfLikeliks, 2, abs(copy_numbers_for_penalties) * penaltyForHigherCNoneTile, FUN="+")
             #if (length(blocked_states) > 0) toyMatrixOfLikeliks[,blocked_states] = toyMatrixOfLikeliks[,blocked_states] + 10
             whichAreUnrealistic <- which((local_majorBAF == 0 & local_purities < 0.6) | local_purities_second > 10**-4)

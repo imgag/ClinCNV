@@ -1,10 +1,10 @@
 #!/usr/bin/env Rscript
 set.seed(100)
 options(warn=-1)
-clincnvVersion = paste0("ClinCNV version: v1.17.0")
+clincnvVersion = paste0("ClinCNV version: v1.17.2")
 
 ## CHECK R VERSION
-if (!(as.numeric(version$major) >= 3 & as.numeric(version$minor) > 2.0)) {
+if (!( (as.numeric(version$major) >= 3 & as.numeric(version$minor) > 2.0) |  as.numeric(version$major) >= 4) ) {
   print("Your R version is too old. We can not guarantee stable work.")
   print(version)
 }
@@ -18,6 +18,9 @@ library(foreach)
 library(doParallel)
 library(mclust)
 library(R.utils)
+library(umap)
+library(dbscan)
+
 
 Rcpp_global = "Rcpp" %in% rownames(installed.packages())
 if (Rcpp_global) {library("Rcpp")}
@@ -460,6 +463,15 @@ left_borders <- lstOfChromBorders[[1]]
 right_borders <- lstOfChromBorders[[2]]
 ends_of_chroms <- lstOfChromBorders[[3]]
 
+
+# check if any targets in BED are out of cytobands
+for (chrom in unique(bedFile[,1])) {
+  if (ends_of_chroms[[chrom]] < max(bedFile[bedFile[,1] == chrom,3])) {
+    print("Coordinates in BED file are outside of the cytobands! Please check if your cytobands file matches your reference genome version!")
+    quit()
+  }
+}
+
 startX = NA
 if (opt$par != "NO" & (framework == "germline" | frameworkOff == "offtargetGermline")) {
   modifiedListOfChromosomesWithPAR = addParalogousRegions(left_borders, right_borders, ends_of_chroms)
@@ -627,7 +639,7 @@ if (length(samplesToFilterOut) > 0) {
 
 print(paste("We start to cluster your data (you will find a plot if clustering is possible in your output directory)", opt$out, Sys.time()))
 if (is.null(opt$clusterProvided)) {
-  clusteringList <- returnClustering(as.numeric(opt$minimumNumOfElemsInCluster))
+  clusteringList <- returnClustering2(as.numeric(opt$minimumNumOfElemsInCluster))
   clustering = clusteringList[[1]]
   outliersByClusteringCohort = clusteringList[[2]]
 } else {

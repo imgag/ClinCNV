@@ -253,7 +253,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
       vector_of_allowed_purities <- c(0, 1)
       winning_purities <- vector_of_allowed_purities
       
-      matrix_of_likeliks_for_purity_limited = matrix_of_likeliks_for_purity[, which(local_purities %in% vector_of_allowed_purities)]
+      matrix_of_likeliks_for_purity_limited = matrix_of_likeliks_for_purity[, which(local_purities %in% vector_of_allowed_purities), drop=F]
       final_sum <- sum(apply(matrix_of_likeliks_for_purity_limited, 1, min))
       
       putential_purities <- unique(local_purities)
@@ -271,7 +271,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         winning_combination = combination_of_purities[,1]
         for (i in 1:ncol(combination_of_purities)) {
           vector_of_allowed_purities_cancer <- c(vector_of_allowed_purities, combination_of_purities[,i])
-          matrix_of_likeliks_for_purity_limited = matrix_of_likeliks_for_purity[, which(local_purities %in% vector_of_allowed_purities_cancer)]
+          matrix_of_likeliks_for_purity_limited = matrix_of_likeliks_for_purity[, which(local_purities %in% vector_of_allowed_purities_cancer), drop=F]
 
           final_sum_cancer <- sum(apply(matrix_of_likeliks_for_purity_limited, 1, min))
           if (final_sum_cancer < min_final_sum_cancer) {

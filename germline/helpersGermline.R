@@ -435,7 +435,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
 
   coverageForClustering = sqrt(normal[which(!bedFile[,1] %in% c("chrX","chrY")),])
   sdsOfRegions <- apply(coverageForClustering, 1, mad)
-  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.8) | sdsOfRegions < quantile(sdsOfRegions, 0.2))
+  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.95) | sdsOfRegions < quantile(sdsOfRegions, 0.05))
   
   coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
@@ -821,11 +821,11 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   
   coverageForClustering = sqrt(normal[which(!bedFile[,1] %in% c("chrX","chrY")),])
   sdsOfRegions <- apply(coverageForClustering, 1, mad)
-  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.8) | sdsOfRegions < quantile(sdsOfRegions, 0.2))
+  potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.95) | sdsOfRegions < quantile(sdsOfRegions, 0.05))
   
   coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
-  coverageForClustering = apply(coverageForClustering, 2, function(x) {runmed(x, 10)})
+  coverageForClustering = apply(coverageForClustering, 2, function(x) {runmed(x, 5)})
   
   
   if (nrow(coverageForClustering) > 100000) {
@@ -859,7 +859,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   #matrixOfDistForMDS = as.matrix(as.dist(1 - cor(coverageForClustering)))
   #matrixOfDistForMDS = as.matrix(1 - cor(coverageForClustering, method="spearman"))
   
-  library(umap)
+  
   set.seed(0)
   custom.settings = umap.defaults
   #custom.settings$input = "dist"
@@ -896,7 +896,6 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   coordsAfterMDS = t((rbind(x, y)))
   distMatrix = dist(t((rbind(x, y))))
   
-  library(dbscan)
   
   #cl <- hdbscan(coordsAfterMDS, minPts = minNumOfElemsInCluster)
   cl <- dbscan(coordsAfterMDS, eps = 1., minPts = numOfElementsInCluster)

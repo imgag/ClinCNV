@@ -13,6 +13,8 @@ install.packages("mclust")
 install.packages("R.utils")
 install.packages("RColorBrewer")
 install.packages("party")
+install.packages("dbscan")
+install.packages("umap")
 ```
 
 ClinCNV works faster with `Rcpp` package installed, however, if you experience any problems with this package, you may run ClinCNV without it.
