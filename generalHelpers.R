@@ -12,11 +12,20 @@ checkBedAndCoverageValidity <- function(bedFile, coverageTable) {
 }
 
 startsWith <- function(x, prefix) {
+  if (length(x) > 1) {
+    elem = x[1]
+    if ((substring(elem, 1, nchar(prefix)) == prefix)) {
+        return(T)
+    } else {
+    return(f)
+  }
+  } else {
   if (substring(x, 1, nchar(prefix)) == prefix) {
     return(T)
   } else {
     return(F)
   }
+}
 }
 
 
