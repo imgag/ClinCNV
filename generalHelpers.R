@@ -17,7 +17,7 @@ startsWith <- function(x, prefix) {
     if ((substring(elem, 1, nchar(prefix)) == prefix)) {
         return(T)
     } else {
-    return(f)
+    return(F)
   }
   } else {
   if (substring(x, 1, nchar(prefix)) == prefix) {
