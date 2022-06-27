@@ -178,7 +178,7 @@ option_list = list(
 opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 opt$folderWithScript = normalizePath(opt$folderWithScript)
-print(paste("We run script located in folder" , opt$folderWithScript, ". All the paths will be calculated realtive to this one. If everything crashes, please, check the correctness of this path first."))
+print(paste("We run script located in folder" , opt$folderWithScript, ". Please, specify ABSOLUTE paths, relative paths do not work for every machine. If everything crashes, please, check the correctness of this path first."))
 
 
 

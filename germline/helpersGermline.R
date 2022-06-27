@@ -825,7 +825,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   
   coverageForClustering = (coverageForClustering[-potentiallyPolymorphicRegions,])
   
-  coverageForClustering = apply(coverageForClustering, 2, function(x) {runmed(x, 5)})
+  coverageForClustering = apply(coverageForClustering, 2, function(x) {runmed(x, 3)})
   
   
   if (nrow(coverageForClustering) > 100000) {
@@ -854,7 +854,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
       }
     }
   } else {
-    coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) {runmed(x, 5)}))
+    coverageForClustering = (parApply(cl=cl, coverageForClustering, 2, function(x) {runmed(x, 3)}))
   }
   #matrixOfDistForMDS = as.matrix(as.dist(1 - cor(coverageForClustering)))
   #matrixOfDistForMDS = as.matrix(1 - cor(coverageForClustering, method="spearman"))
@@ -897,8 +897,8 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   distMatrix = dist(t((rbind(x, y))))
   
   
-  #cl <- hdbscan(coordsAfterMDS, minPts = minNumOfElemsInCluster)
-  cl <- dbscan(coordsAfterMDS, eps = 1., minPts = numOfElementsInCluster)
+  cl <- hdbscan(coordsAfterMDS, minPts = minNumOfElemsInCluster)
+  #cl <- dbscan(coordsAfterMDS, eps = 1., minPts = numOfElementsInCluster)
   
   
   

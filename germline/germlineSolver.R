@@ -329,11 +329,18 @@ for (sam_no in 1:ncol(coverage.normalised)) {
               }
               if (length(whichOnTarget) > 0) {
                 mediansOfCoveragesInsideTheCohort <- apply(toyCoverageGermlineCohort[whichOnTarget,allowedSamples,drop=F], 2, median)
-                if (cnState < 2) {
-                  alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort < (1 - (1 - sqrt(1/2)) / 2))) / ncol(coverage.normalised)
+                if (cnState < 2 ) {
+                  alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort < (1 - (1 - sqrt(1/2)) / 2))) / length(allowedSamples)
                 }
-                if (cnState > 2) {
-                  alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort > (1 + (sqrt(3/2) - 1) / 2))) / ncol(coverage.normalised)
+                if (cnState < 1 & chrom %in% c("chrX", "chrY") & genderOfSamples[sam_no] == "M") {
+                  alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort < sqrt(1/2) / 2)) / length(allowedSamples)
+                }
+                if (cnState > 2 ) {
+                  alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort > (1 + (sqrt(3/2) - 1) / 2))) / length(allowedSamples)
+                }
+                if (cnState > 1 & chrom %in% c("chrX", "chrY") & genderOfSamples[sam_no] == "M") {
+                  alleleFrequency[i] = length(which(mediansOfCoveragesInsideTheCohort > (1 - (1 - sqrt(1/2)) / 2))) / length(allowedSamples)
+
                 }
               } else {
                 alleleFrequency[i] = -1.0
@@ -494,7 +501,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     } else {
       currentThresholdDel = threshold
     }
-    
+  
     if (nrow(detectedDuplications) > 0) {
       thresholdsDup = sort(-1 * unique(detectedDuplications[,1]))
       fdrThreshold = 0.05
@@ -523,9 +530,6 @@ for (sam_no in 1:ncol(coverage.normalised)) {
     colnames(found_CNVs_total)[ncol(found_CNVs_total)] = "FDR_filter"
   }
   
-  if (opt$mosaicism) {
-    # BLOCK WITH CLONALITY
-  }
   
   finalPValue = 1.0
   fileToOut <- paste0(folder_name, sample_name, paste0("/", sample_name, "_cnvs.tsv"))
