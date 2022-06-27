@@ -7,7 +7,7 @@ Authors: G. Demidov, S. Ossowski.
 
 **Thanks to the contributors!** 
 
-Any issues should be reported to: *german dot demidov at medizin dot uni-tuebingen dot de *. The presentation (around 60 slides with the short description of ClinCNV and results) is available [here](https://github.com/imgag/ClinCNV/tree/master/doc/ClinCNV_thesis_presentation.pdf).
+Any issues should be reported to: *german dot demidov at medizin dot uni-tuebingen dot de*. The presentation (around 60 slides with the short description of ClinCNV and results) is available [here](https://github.com/imgag/ClinCNV/tree/master/doc/ClinCNV_thesis_presentation.pdf).
 
 This software is distributed under [MIT licence](./LICENSE).
 
@@ -23,7 +23,9 @@ NOTE: Folder `PCAWG` was used for CNVs detection in PanCancer Analysis of Whole 
 
 **bioRxiv** for somatic CNA analysis: https://www.biorxiv.org/content/10.1101/837971v1 (calling of copy-number alterations in normal-tumor pairs).
 
-For **germline** CNVs: my phd thesis is citable as described [here](https://www.tdx.cat/handle/10803/668208) with the permanent link `http://hdl.handle.net/10803/668208`. Please, cite my thesis, and sincere apologies for not publishing the tool, I did what I could.
+For **germline** CNVs: https://www.biorxiv.org/content/10.1101/2022.06.10.495642v1 (calling of copy-number variants in germline).
+
+For **common** CNPs: https://pubmed.ncbi.nlm.nih.gov/35597955/ (this is an advanced analysis and the tool is not working strictly out of the box, better contact me first)
 
 ## Pre-requisites
 
@@ -50,11 +52,14 @@ install.packages("Rcpp")
 ```
 
 **Test run:**
+
 ```
 fold=/folder/with/the/cloned/ClinCNV
 mkdir $fold"/results"
 Rscript $fold"/clinCNV.R" --bed $fold"/samples/bed_file.bed" --normal $fold"/samples/coverages_normal.cov" --out $fold"/results"
 ```
+
+Attention: better use **absolute** paths.
 
 If `ClinCNV` fails with the test run, set `chmod 755` to the output folder.
 
