@@ -172,6 +172,12 @@ option_list = list(
   make_option("--onlyTumor", action="store_true", default=F, 
               help="if tumor only calling is to be performed"),  
   
+  make_option("--noPlot", action="store_true", default=F, 
+              help="Do not perform additional plotting"), 
+  
+  make_option("--hg38", action="store_true", default=F, 
+              help="Work with hg38 cytobands switch"),  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
@@ -179,7 +185,6 @@ opt_parser = OptionParser(option_list=option_list);
 opt = parse_args(opt_parser);
 opt$folderWithScript = normalizePath(opt$folderWithScript)
 print(paste("We run script located in folder" , opt$folderWithScript, ". Please, specify ABSOLUTE paths, relative paths do not work for every machine. If everything crashes, please, check the correctness of this path first."))
-
 
 
 
@@ -458,7 +463,11 @@ if (!is.null(opt$tumorSample)) {
 }
 
 removeCentromeres = T
-lstOfChromBorders <- getCytobands("cytobands.txt", removeCentromeres)
+if (opt$hg38) {
+  lstOfChromBorders <- getCytobands("cytobandsHG38.txt", removeCentromeres)
+} else {
+  lstOfChromBorders <- getCytobands("cytobands.txt", removeCentromeres)
+}
 left_borders <- lstOfChromBorders[[1]]
 right_borders <- lstOfChromBorders[[2]]
 ends_of_chroms <- lstOfChromBorders[[3]]
@@ -639,9 +648,16 @@ if (length(samplesToFilterOut) > 0) {
 
 print(paste("We start to cluster your data (you will find a plot if clustering is possible in your output directory)", opt$out, Sys.time()))
 if (is.null(opt$clusterProvided)) {
-  clusteringList <- returnClustering2(as.numeric(opt$minimumNumOfElemsInCluster))
-  clustering = clusteringList[[1]]
-  outliersByClusteringCohort = clusteringList[[2]]
+  if (opt$noPlot) {
+    clustering = rep("0", ncol(normal))
+    names(clustering) = colnames(normal)
+    print(clustering)
+    outliersByClusteringCohort = c()
+  } else {
+    clusteringList <- returnClustering2(as.numeric(opt$minimumNumOfElemsInCluster))
+    clustering = clusteringList[[1]]
+    outliersByClusteringCohort = clusteringList[[2]]
+  }
 } else {
   clusteringList <- read.table(opt$clusterProvided, stringsAsFactors = F)
   clustering = clusteringList[,2]

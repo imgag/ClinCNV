@@ -732,7 +732,10 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
     print(chrom)
     coveragesToDealWith = coverage[which(bedFile[,1] == chrom),]
     if (chrom == "chrX") {
-      if (length(which(genderOfSamples == "F")) > 0.5 * length(which(genderOfSamples == "M"))) {
+      if (length(which(genderOfSamples == "F")) > 0.4 * length(which(genderOfSamples == "M"))) {
+        print("The number of females is too few for accurate PAR estimation, we use males for chrX which leads to wrong PAR calling.")
+      }
+      if (length(which(genderOfSamples == "F")) > 0.4 * length(which(genderOfSamples == "M"))) {
         whichSamplesUsed = which(genderOfSamples == "F")
       } else {
         whichSamplesUsed = which(genderOfSamples == "M")
@@ -751,7 +754,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
     } else {
       medians <- apply(coveragesToDealWith[,whichSamplesUsed], 1, EstimateModeSimpleCov)
     }
-    if (chrom == "chrX" & length(which(genderOfSamples == "F")) <= 0.5 * length(which(genderOfSamples == "M"))) {
+    if (chrom == "chrX" & length(which(genderOfSamples == "F")) <= 0.4 * length(which(genderOfSamples == "M"))) {
       medians = sqrt(2) * medians
     }
     if (chrom == "chrY" & length(which(genderOfSamples == "M")) > 2) {
@@ -760,7 +763,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
     coverage.normalised[which(bedFile[,1] == chrom),] =  sweep(coverage[which(bedFile[,1] == chrom),], 1, medians + 10**-40, FUN="/")
     mediansResult[which(bedFile[,1] == chrom)] = medians
   }
-
+  
   coverage.normalised = coverage.normalised - 1
   sdsOfGermlineSamplesTmp = apply(coverage.normalised[autosomes,], 2, Qn)
   sdsResults = c()
@@ -768,7 +771,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
     whichSamplesUsed = 1:ncol(coverage)
     coveragesToDealWith = coverage.normalised[which(bedFile[,1] == chrom),]
     if (chrom == "chrX") {
-      if (length(which(genderOfSamples == "F")) > 0.5 * length(which(genderOfSamples == "M"))) {
+      if (length(which(genderOfSamples == "F")) > 0.3 * length(which(genderOfSamples == "M"))) {
         whichSamplesUsed = which(genderOfSamples == "F")
       } else {
         whichSamplesUsed = which(genderOfSamples == "M")
