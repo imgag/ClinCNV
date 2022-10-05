@@ -771,7 +771,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
     whichSamplesUsed = 1:ncol(coverage)
     coveragesToDealWith = coverage.normalised[which(bedFile[,1] == chrom),]
     if (chrom == "chrX") {
-      if (length(which(genderOfSamples == "F")) > 0.3 * length(which(genderOfSamples == "M"))) {
+      if (length(which(genderOfSamples == "F")) > 0.4 * length(which(genderOfSamples == "M"))) {
         whichSamplesUsed = which(genderOfSamples == "F")
       } else {
         whichSamplesUsed = which(genderOfSamples == "M")
