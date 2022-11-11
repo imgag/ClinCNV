@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 set.seed(100)
 options(warn=-1)
-clincnvVersion = paste0("ClinCNV version: v1.18.0")
+clincnvVersion = paste0("ClinCNV version: v1.18.1")
 
 ## CHECK R VERSION
 if (!( (as.numeric(version$major) >= 3 & as.numeric(version$minor) > 2.0) |  as.numeric(version$major) >= 4) ) {
