@@ -730,7 +730,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
   for (chrom in unique(bedFile[,1])) {
     whichSamplesUsed = 1:ncol(coverage)
     print(chrom)
-    coveragesToDealWith = coverage[which(bedFile[,1] == chrom),]
+    coveragesToDealWith = coverage[which(bedFile[,1] == chrom),,drop=F]
     if (chrom == "chrX") {
       if (length(which(genderOfSamples == "F")) > 0.4 * length(which(genderOfSamples == "M"))) {
         print("The number of females is too few for accurate PAR estimation, we use males for chrX which leads to wrong PAR calling.")
@@ -750,9 +750,9 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
     }
     #clusterExport(cl=cl, varlist=c("whichSamplesUsed", "medianWithoutHomozygous", "EstimateModeSimple"))
     if (!polymorphic) {
-      medians <- apply(coveragesToDealWith[,whichSamplesUsed], 1, medianWithoutHomozygous)
+      medians <- apply(coveragesToDealWith[,whichSamplesUsed,drop=F], 1, medianWithoutHomozygous)
     } else {
-      medians <- apply(coveragesToDealWith[,whichSamplesUsed], 1, EstimateModeSimpleCov)
+      medians <- apply(coveragesToDealWith[,whichSamplesUsed,drop=F], 1, EstimateModeSimpleCov)
     }
     if (chrom == "chrX" & length(which(genderOfSamples == "F")) <= 0.4 * length(which(genderOfSamples == "M"))) {
       medians = sqrt(2) * medians
@@ -760,16 +760,16 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
     if (chrom == "chrY" & length(which(genderOfSamples == "M")) > 2) {
       medians = sqrt(2) * medians
     }
-    coverage.normalised[which(bedFile[,1] == chrom),] =  sweep(coverage[which(bedFile[,1] == chrom),], 1, medians + 10**-40, FUN="/")
+    coverage.normalised[which(bedFile[,1] == chrom),] =  sweep(coverage[which(bedFile[,1] == chrom),,drop=F], 1, medians + 10**-40, FUN="/")
     mediansResult[which(bedFile[,1] == chrom)] = medians
   }
   
   coverage.normalised = coverage.normalised - 1
-  sdsOfGermlineSamplesTmp = apply(coverage.normalised[autosomes,], 2, Qn)
+  sdsOfGermlineSamplesTmp = apply(coverage.normalised[autosomes,,drop=F], 2, Qn)
   sdsResults = c()
   for (chrom in unique(bedFile[,1])) {
     whichSamplesUsed = 1:ncol(coverage)
-    coveragesToDealWith = coverage.normalised[which(bedFile[,1] == chrom),]
+    coveragesToDealWith = coverage.normalised[which(bedFile[,1] == chrom),,drop=F]
     if (chrom == "chrX") {
       if (length(which(genderOfSamples == "F")) > 0.4 * length(which(genderOfSamples == "M"))) {
         whichSamplesUsed = which(genderOfSamples == "F")
@@ -786,7 +786,7 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
       whichSamplesUsed = which(genderOfSamples == "M")
     }
     
-    coveragesToDealWithStandardized = coveragesToDealWith[,whichSamplesUsed]
+    coveragesToDealWithStandardized = coveragesToDealWith[,whichSamplesUsed,drop=F]
     coveragesToDealWithStandardized <- sweep(coveragesToDealWithStandardized, 2, sdsOfGermlineSamplesTmp[whichSamplesUsed], FUN="/")
     
     QNs <- parApply(cl=cl, coveragesToDealWithStandardized, 1, Qn)
