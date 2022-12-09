@@ -733,11 +733,9 @@ calculateLocationAndScale <- function(bedFile, coverage, genderOfSamples, autoso
     coveragesToDealWith = coverage[which(bedFile[,1] == chrom),,drop=F]
     if (chrom == "chrX") {
       if (length(which(genderOfSamples == "F")) > 0.4 * length(which(genderOfSamples == "M"))) {
-        print("The number of females is too few for accurate PAR estimation, we use males for chrX which leads to wrong PAR calling.")
-      }
-      if (length(which(genderOfSamples == "F")) > 0.4 * length(which(genderOfSamples == "M"))) {
         whichSamplesUsed = which(genderOfSamples == "F")
       } else {
+        print("The number of females is too few for accurate PAR estimation, we use males for chrX which leads to wrong PAR calling.")
         whichSamplesUsed = which(genderOfSamples == "M")
       }
     } else if (chrom == "chrY") {

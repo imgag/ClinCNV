@@ -930,7 +930,7 @@ determine_potential_states = function(sampleLogFold, local_cn_states, sampleLogF
 
 find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, bedFileForCluster, matrixOfLogFoldOffSample=NULL, bedFileForClusterOff=NULL) {
   if (!is.null(opt$guideBaseline)) {
-    splitted = strsplit(opt$guideBaseline, ":")
+    splitted = strsplit(gsub(",","",opt$guideBaseline), ":")
     chrom = splitted[[1]][1]
     splitted = strsplit(splitted[[1]][2], "-")
     start = as.numeric(splitted[[1]][1])

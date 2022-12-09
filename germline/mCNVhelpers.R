@@ -60,7 +60,7 @@ likelihoodOfGaussianMixture <- function(location, value , sd_to_start, robustPer
         locationTmp[l] = sum(weights[,l] * value) / cluster_weights[l]
       }
       multiplierForLocation = locationTmp[which.max(cluster_weights[l])] / location[which.max(cluster_weights[l])]
-      if (abs(log2(initLocation / (location * multiplierForLocation))) < 0.1) {
+      if (abs(log2(initLocation / (location * multiplierForLocation)))[1] < 0.1) {
         location = location * multiplierForLocation
       } 
       sd_counter_tmp = sqrt(sum(sapply(1:length(location), 
