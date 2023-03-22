@@ -33,7 +33,7 @@ EstimateModeSimple <- function(x, chrom="", genders=NULL) {
   mu
 }
 
-    
+
 
 
 determineSDsOfGermlineSample <- function(x) {
@@ -131,13 +131,13 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
                         ", number of regions:", found_CNVs[s,3] - found_CNVs[s,2] + 1 ,
                         ", length:", toyBedFile[found_CNVs[s,3],3] - toyBedFile[found_CNVs[s,2],2])
       CNV_name_to_write <- paste(colnames(toyLogFoldChange)[sam_no],  chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], "CN",vector_of_states[found_CNVs[s,4]], sep="_")
-
+      
       
       vectorOfGeneNames = c()
       genesThatHasToBeSeparated = unique(toyBedFile[found_CNVs[s,2]:found_CNVs[s,3],5])
       for (i in 1:length(genesThatHasToBeSeparated)) {
         if (is.character(genesThatHasToBeSeparated[i]))
-        vectorOfGeneNames = c(vectorOfGeneNames, unlist(strsplit(genesThatHasToBeSeparated[i], split=",")))
+          vectorOfGeneNames = c(vectorOfGeneNames, unlist(strsplit(genesThatHasToBeSeparated[i], split=",")))
       }
       vectorOfGeneNamesTrimmed = c()
       if (length(vectorOfGeneNames) > 0) {
@@ -146,7 +146,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
         }
       }
       if (length(vectorOfGeneNamesTrimmed) > 0) {
-      annotationGenes <- paste(unique(vectorOfGeneNamesTrimmed), collapse=",")
+        annotationGenes <- paste(unique(vectorOfGeneNamesTrimmed), collapse=",")
       } else {
         annotationGenes = "na"
       }
@@ -160,7 +160,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       
       length_of_repr <- 1000
       
-
+      
       st <- found_CNVs[s,2]
       fn <- found_CNVs[s,3]
       
@@ -169,10 +169,10 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
         plot_st <- max(1,st - length_of_repr)
         plot_fn <- min(length(toyLogFoldChange), fn + length_of_repr)
         png(filename=paste0(outputFolder, "/", paste0(CNV_name_to_write, ".png")), type = "cairo", width = 1536, height = 640)
-		#bitmap(filename=paste0(outputFolder, "/", paste0(CNV_name_to_write, ".png")) ,width = 1024, height = 640, units = "px" )
-
+        #bitmap(filename=paste0(outputFolder, "/", paste0(CNV_name_to_write, ".png")) ,width = 1024, height = 640, units = "px" )
         
-
+        
+        
         plot(toyLogFoldChange[plot_st:plot_fn], main=CNV_name, ylab="Copy Number", xlab=(paste("CNV within Chromosome Arm" )),
              ylim=c(0, 3), cex=toySizesOfPointsFromLocalSds[plot_st:plot_fn], yaxt='n')
         
@@ -186,7 +186,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
         
         
         abline(h=sqrt(cn_states/2),lty=2,col=colours,lwd=3)
-
+        
         points((st - plot_st):(st - plot_st + fn - st) + 1, toyLogFoldChange[st:fn],col="black", pch=21,bg=colours[found_CNVs[s,4]], cex=toySizesOfPointsFromLocalSds[found_CNVs[s,2]:found_CNVs[s,3]])
         
         
@@ -205,7 +205,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
              family = "mono")
         dev.off()
       }
-
+      
     }
   }
   return(cnvsToOutput)
@@ -221,17 +221,19 @@ Determine.gender <- function(normalized.coverage.corrected.gc, probes) {
     matrix_of_values[matrix_of_values > 1.5] = 1.5
     clKmeans <- NULL
     clKmeans <- tryCatch({kmeans(matrix_of_values, centers=matrix(c(0,1,sqrt(1/2), sqrt(1/2)), nrow=2))}, 
-                   error = function(e) {
-                     NULL
-                   })
+                         error = function(e) {
+                           NULL
+                         })
     if (!is.null(clKmeans)) {
       clusters <- clKmeans$cluster
       clusters[clusters == 1] <- "F"
       clusters[clusters == 2] <- "M"
-      png(filename=paste0(opt$out, paste0("/genders.png")), type = "cairo", width=800, height=800)
-      plot(matrix_of_values, col = clKmeans$cluster, xlab="Y Chromsome", ylab="X Chromosome", pch=19, cex=2)
-      points(clKmeans$centers, col = 1:2, pch = 8, cex = 10)
-      dev.off()
+      if (!opt$noPlot) {
+        png(filename=paste0(opt$out, paste0("/genders.png")), type = "cairo", width=800, height=800)
+        plot(matrix_of_values, col = clKmeans$cluster, xlab="Y Chromsome", ylab="X Chromosome", pch=19, cex=2)
+        points(clKmeans$centers, col = 1:2, pch = 8, cex = 10)
+        dev.off()
+      }
     } else {
       clusters <- rep(2, nrow(matrix_of_values))
       clusters[which(matrix_of_values[,2] < 0.25)] = 1
@@ -281,7 +283,7 @@ FindRobustMeanAndStandardDeviation <- function(x, genders, chrom, modeEstimated 
         }
       }
     }
-
+    
     if (length(x) > 30 ){
       mu = median(x)
     } else {
@@ -292,7 +294,7 @@ FindRobustMeanAndStandardDeviation <- function(x, genders, chrom, modeEstimated 
     }
     return(matrix(c(mu, Qn(x), "Qn"), nrow=1))
   }
-
+  
   if (chrom == "chrX") {
     if (length(which(genders == "F")) <= 5) {
       x = x[which(genders == "M")]
@@ -310,7 +312,7 @@ FindRobustMeanAndStandardDeviation <- function(x, genders, chrom, modeEstimated 
     }
   }
   
-
+  
   forMeanX = x
   return(matrix(c(median(forMeanX), Qn(forMeanX), "Qn"), nrow=1))
   
@@ -329,10 +331,10 @@ FindRobustMeanAndStandardDeviation <- function(x, genders, chrom, modeEstimated 
   } else {
     mu = modeEstimated
   }
-    if (length(x) < 100) {
-      density_of_x <-  density(x, bw=bandwidth, kernel="gaussian")
-    }
-
+  if (length(x) < 100) {
+    density_of_x <-  density(x, bw=bandwidth, kernel="gaussian")
+  }
+  
   closest_to_mu <- which.min(abs(density_of_x$x - mu))
   which_are_bigger <- which(density_of_x$y > density_of_x$y[closest_to_mu])
   density_of_x <- as.data.frame(cbind(density_of_x$x, density_of_x$y))
@@ -385,15 +387,15 @@ FindRobustMeanAndStandardDeviation <- function(x, genders, chrom, modeEstimated 
   
   if (upper_bound_differs & lower_bound_differs) {
     dtnorm0 <- function(X, mean, sd, log = TRUE) {msm::dtnorm(X, mean, sd, lower=lower_bound, upper=upper_bound,
-                                                         log=T)}
+                                                              log=T)}
   } else if (!upper_bound_differs & !lower_bound_differs) {
     return(matrix(c(median(x), Qn(x), "Qn"), nrow=1))
   } else if (upper_bound_differs) {
     dtnorm0 <- function(X, mean, sd, log = FALSE) {msm::dtnorm(X, mean, sd, lower = -10**10, upper=upper_bound,
-                                                          log=T)}
+                                                               log=T)}
   } else {
     dtnorm0 <- function(X, mean, sd, log = FALSE) {msm::dtnorm(X, mean, sd, lower=lower_bound, upper=10**10,
-                                                          log=T)}
+                                                               log=T)}
   }
   QnX <- Qn(x)
   data = x[which(x >= lower_bound & x <= upper_bound)]
@@ -429,10 +431,10 @@ returnClustering <- function(minNumOfElemsInCluster) {
   minNumOfElemsInCluster = as.numeric(minNumOfElemsInCluster)
   set.seed(100)
   clustering = rep(0, ncol(normal))
-
+  
   numOfElementsInCluster = (minNumOfElemsInCluster)
   outliersFromClustering = rep(FALSE, ncol(normal))
-
+  
   coverageForClustering = sqrt(normal[which(!bedFile[,1] %in% c("chrX","chrY")),])
   sdsOfRegions <- apply(coverageForClustering, 1, mad)
   potentiallyPolymorphicRegions <- which(sdsOfRegions > quantile(sdsOfRegions, 0.95) | sdsOfRegions < quantile(sdsOfRegions, 0.05))
@@ -445,7 +447,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
     coverageForClustering = coverageForClustering[sample(1:nrow(coverageForClustering), 100000),]
   }
   
-
+  
   if (!is.null(opt$triosFile)) {
     samplesActuallyPlayingRole = c()
     for (trioRow in 1:nrow(trios)) {
@@ -480,18 +482,21 @@ returnClustering <- function(minNumOfElemsInCluster) {
     print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
     
     setwd(opt$out)
-    png(filename="clusteringSolution.png", type = "cairo", width=1024, height=1024)
-    plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
-         main="Isometric MDS", type="n")
-    text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
-    dev.off()
+    
+    if (!opt$noPlot) {
+      png(filename="clusteringSolution.png", type = "cairo", width=1024, height=1024)
+      plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
+           main="Isometric MDS", type="n")
+      text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
+      dev.off()
+    }
     return(list(clustering, outliersFromClustering))
   }
   
   coordsAfterMDS = t((rbind(x, y)))
   distMatrix = dist(t((rbind(x, y))))
   hc <- hclust(distMatrix, method="ward.D")
-
+  
   
   numOfClusters = 1
   percentage = c()
@@ -502,7 +507,9 @@ returnClustering <- function(minNumOfElemsInCluster) {
     
     #memb <- km$cluster
     memb=cutree(hc, k=numOfClusters)
-    plot(coordsAfterMDS, col=memb+1, main=numOfClusters)
+    if (!opt$noPlot) {
+      plot(coordsAfterMDS, col=memb+1, main=numOfClusters)
+    }
     numOfObservationsInClusters <- table(memb)
     centers = matrix(0, nrow=0, ncol=2)
     sds = matrix(0, nrow=0, ncol=2)
@@ -535,7 +542,7 @@ returnClustering <- function(minNumOfElemsInCluster) {
     }
   }
   
-
+  
   
   memb=cutree(hc, k=numOfClusters - 1)
   numOfObservationsInClusters <- table(memb)
@@ -565,13 +572,16 @@ returnClustering <- function(minNumOfElemsInCluster) {
   #  clustering[-samplesActuallyPlayingRole] = -1
   #}
   
-
+  
   setwd(opt$out)
-  png(filename="clusteringSolution.png", type = "cairo", width=1024, height=1024)
-  plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
-       main="Isometric MDS", type="n")
-  text(x, y, labels = row.names(distMatrix), cex=.7, col=clustering + 1)
-  dev.off()
+  if (!opt$noPlot) {
+    
+    png(filename="clusteringSolution.png", type = "cairo", width=1024, height=1024)
+    plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
+         main="Isometric MDS", type="n")
+    text(x, y, labels = row.names(distMatrix), cex=.7, col=clustering + 1)
+    dev.off()
+  }
   setwd(opt$folderWithScript)
   
   return(list(clustering, outliersFromClustering))
@@ -618,12 +628,14 @@ returnTreeForCorrelation <- function(coverage.normalised.local, sdsOfGermlineSam
   
   trainingDataset <- as.data.frame(cbind(covariancesClose, distnacesClose, sumOfLengths, minLength, maxLength))
   if (length(which(distnacesClose > 1000 )) > 0)
-  trainingDataset = trainingDataset[-which(distnacesClose > 1000),]
+    trainingDataset = trainingDataset[-which(distnacesClose > 1000),]
   if (nrow(trainingDataset) > 100 & nrow(unique(trainingDataset)) > 10) {
-  fit <- ctree(covariancesClose ~ (distnacesClose) + (sumOfLengths) + minLength + maxLength, data=trainingDataset, control=ctree_control(mincriterion = 0.99))
-  png(filename="treeOnCorrelationOfCoverage.png", type = "cairo", width=4000, height=1800)
-  plot(fit)
-  dev.off()
+    fit <- ctree(covariancesClose ~ (distnacesClose) + (sumOfLengths) + minLength + maxLength, data=trainingDataset, control=ctree_control(mincriterion = 0.99))
+    if (!opt$noPlot) {
+      png(filename="treeOnCorrelationOfCoverage.png", type = "cairo", width=4000, height=1800)
+      plot(fit)
+      dev.off()
+    }
   } else {
     return(NULL)
   }
@@ -886,11 +898,14 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
     print(paste("You ask to clusterise intro clusters of size", minNumOfElemsInCluster, "but size of the cohort is", ncol(normal), "which is not enough. We continue without clustering."))
     
     setwd(opt$out)
-    png(filename="clusteringSolution.png", type = "cairo", width=1024, height=1024)
-    plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
-         main="UMAP", type="n")
-    text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
-    dev.off()
+    if (!opt$noPlot) {
+      
+      png(filename="clusteringSolution.png", type = "cairo", width=1024, height=1024)
+      plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
+           main="UMAP", type="n")
+      text(x, y, labels = colnames(normal), cex=.7, col=clustering + 1)
+      dev.off()
+    }
     return(list(clustering, outliersFromClustering))
   }
   
@@ -923,7 +938,7 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
             minDist = distanceToSignCluster
             closestCluster = signCluster
           }
-         }
+        }
         clustering[elem] = closestCluster
       }
     }
@@ -935,11 +950,13 @@ returnClustering2 <- function(minNumOfElemsInCluster) {
   palleteToPlot = rainbow(max(clustering))
   colsToPlot = sapply(1:length(clustering), function(i){palleteToPlot[clustering[i]]})
   setwd(opt$out)
-  png(filename="clusteringSolution.png", type = "cairo", width=1024, height=1024)
-  plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
-       main="UMAP", type="n")
-  text(x, y, labels = row.names(distMatrix), cex=.7, col=colsToPlot)
-  dev.off()
+  if (!opt$noPlot) {
+    png(filename="clusteringSolution.png", type = "cairo", width=1024, height=1024)
+    plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2", 
+         main="UMAP", type="n")
+    text(x, y, labels = row.names(distMatrix), cex=.7, col=colsToPlot)
+    dev.off()
+  }
   setwd(opt$folderWithScript)
   
   return(list(clustering, outliersFromClustering))

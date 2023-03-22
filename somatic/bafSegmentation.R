@@ -253,18 +253,21 @@ determineAllowedChroms <- function(healthySample, tumorSample, healthySampleName
   subDir = paste0(tumorSampleName, "_", healthySampleName)
   dir.create(file.path(folderBAF, "result", subDir))
   setwd(file.path(folderBAF, "result", subDir))
-  png(paste0(tumorSampleName, "_", healthySampleName, ".png"), type = "cairo", width=1400, height=600)
-  op <- par(mar=c(11,4,4,2))
-  x <- barplot(evaluated, col=colVec, main=paste(tumorSampleName, healthySampleName, "expected proportion of BAF with p < 0.05:", round(pvalueShift, digits=3)), ylim=c(0,1), xaxt="n")
-  text(x-2.5, par("usr")[3] - 0.15, labels = plotLabels, srt = 45, pos = 1, xpd = TRUE)
-  par(mar=c(5.1, 4.1, 4.1, 2.1), mgp=c(3, 1, 0), las=0)
-  abline(h=0.05, lwd=2)
-  abline(h=0.1, lwd=2, col="red")
-  dev.off()
   
-  png("overdispersion.png", type = "cairo", width=1024, height=1024)
-  plot(overdispersionFactorsNornm ~ overdispersionFactorsTum, main="Dispersion over Binomial")
-  dev.off()
+  if (!opt$noPlot) {
+	  png(paste0(tumorSampleName, "_", healthySampleName, ".png"), type = "cairo", width=1400, height=600)
+	  op <- par(mar=c(11,4,4,2))
+	  x <- barplot(evaluated, col=colVec, main=paste(tumorSampleName, healthySampleName, "expected proportion of BAF with p < 0.05:", round(pvalueShift, digits=3)), ylim=c(0,1), xaxt="n")
+	  text(x-2.5, par("usr")[3] - 0.15, labels = plotLabels, srt = 45, pos = 1, xpd = TRUE)
+	  par(mar=c(5.1, 4.1, 4.1, 2.1), mgp=c(3, 1, 0), las=0)
+	  abline(h=0.05, lwd=2)
+	  abline(h=0.1, lwd=2, col="red")
+	  dev.off()
+	  
+	  png("overdispersion.png", type = "cairo", width=1024, height=1024)
+	  plot(overdispersionFactorsNornm ~ overdispersionFactorsTum, main="Dispersion over Binomial")
+	  dev.off()
+  }
   
   trackFilename = paste0(tumorSampleName, "_", healthySampleName, ".igv")
   print(getwd())
@@ -373,7 +376,7 @@ predictWholeGenomeEvent <- function(healthySampleBAF, tumorSampleBAF, matrixOfCo
   positiveValues <- values[moreThan0]
   positiveValues[which(positiveValues < -minAbs)] = abs(positiveValues[which(positiveValues < -minAbs)] )
   mod <- densityMclust(positiveValues, modelNames=c("E"))
-  plot(mod, what="density", data=positiveValues, breaks=50,xlim=c(-minAbs,0.5))
+  #plot(mod, what="density", data=positiveValues, breaks=50,xlim=c(-minAbs,0.5))
   mergedData <- (mergeClustersCloseToEachOther(mod$parameters$mean, mod$parameters$pro))
   if (ncol(mergedData) > 1) {
     mergedData <- mergedData[,order(mergedData[1,])]
@@ -405,7 +408,7 @@ predictWholeGenomeEvent <- function(healthySampleBAF, tumorSampleBAF, matrixOfCo
   positiveValues <- values[lessThan0]
   positiveValues[which(positiveValues < -minAbs)] = abs(positiveValues[which(positiveValues < -minAbs)] )
   mod <- densityMclust(positiveValues, modelNames=c("E"))
-  plot(mod, what="density", data=positiveValues, breaks=50,xlim=c(-minAbs,0.5))
+  #plot(mod, what="density", data=positiveValues, breaks=50,xlim=c(-minAbs,0.5))
   mergedData <- (mergeClustersCloseToEachOther(mod$parameters$mean, mod$parameters$pro))
   if (ncol(mergedData) > 1) {
     mergedData <- mergedData[,order(mergedData[1,])]

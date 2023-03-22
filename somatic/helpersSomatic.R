@@ -145,10 +145,12 @@ formilngLogFoldChange <- function(pairs, normalCov, tumorCov, currentBedFile, ge
     predictions <- runmed(shiftsChrom, k = 51)
     shifts[whichChrom] = predictions
   }
-  png(paste0(opt$out, "/plot_with_shifts.png"), type = "cairo", width=2000, height=1000)
-  plot(shifts)
-  lines(shifts, col="red", lwd=3)
-  dev.off()
+  if (!opt$noPlot) {
+    png(paste0(opt$out, "/plot_with_shifts.png"), type = "cairo", width=2000, height=1000)
+    plot(shifts)
+    lines(shifts, col="red", lwd=3)
+    dev.off()
+  }
   #matrixOfLogFold <- sweep(matrixOfLogFold, 1, shifts)
   return(list(matrixOfLogFold, gendersInFormedMatrix))
 }
@@ -443,49 +445,52 @@ makeBarplot <- function(allPotentialPurities, found_CNVs_total, sample_name) {
   }
   datasetForBarplot = (datasetForBarplot / 10**6)
   maxheight = max(datasetForBarplot)
-  png(paste0(sample_name, "_clonalityBarplot.png"), type = "cairo", width=2400, height=640)
-  bp <- barplot(datasetForBarplot, col=c("brown","blue","darkblue","red") ,  font.axis=2, beside=T, main=paste("Presence of clones in tumor", sample_name, ", estimated purity: ", max(as.numeric(found_CNVs_total[,6]))), ylim=c(0, 1.05 * maxheight), xlab="Subclones investigated", ylab="Length, MB")
-  for (z in 1:ncol(datasetForBarplotNumber)) {
-    for (v in 1:nrow(datasetForBarplotNumber)) {
-      if (datasetForBarplotNumber[v,z] > 0) {
-        text(bp[v,z], datasetForBarplot[v,z] + 0.02 * maxheight, datasetForBarplotNumber[v,z])
+  
+  if (!opt$noPlot) {
+    png(paste0(sample_name, "_clonalityBarplot.png"), type = "cairo", width=2400, height=640)
+    bp <- barplot(datasetForBarplot, col=c("brown","blue","darkblue","red") ,  font.axis=2, beside=T, main=paste("Presence of clones in tumor", sample_name, ", estimated purity: ", max(as.numeric(found_CNVs_total[,6]))), ylim=c(0, 1.05 * maxheight), xlab="Subclones investigated", ylab="Length, MB")
+    for (z in 1:ncol(datasetForBarplotNumber)) {
+      for (v in 1:nrow(datasetForBarplotNumber)) {
+        if (datasetForBarplotNumber[v,z] > 0) {
+          text(bp[v,z], datasetForBarplot[v,z] + 0.02 * maxheight, datasetForBarplotNumber[v,z])
+        }
+      }
+      currentPurity = colnames(datasetForBarplot)[z]
+      found_CNVs_total_LOH = found_CNVs_total[which(actualCopyNumbers== 2 & found_CNVs_total[,6] == currentPurity),,drop=F]
+      if (nrow(found_CNVs_total_LOH) > 1) {
+        linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_LOH[, 3]) 
+                                    - as.numeric(found_CNVs_total_LOH[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_LOH) - 1)]
+        for (height in linesToDepict)
+          segments(bp[1,z] - 0.4, height, bp[1,z] + 0.4, height, col="white", lwd=3)
+      }
+      
+      found_CNVs_total_dup = found_CNVs_total[which(actualCopyNumbers > 2 & as.numeric(found_CNVs_total[,4]) < 5 & found_CNVs_total[,6] == currentPurity),,drop=F]
+      if (nrow(found_CNVs_total_dup) > 1) {
+        linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_dup[, 3]) 
+                                    - as.numeric(found_CNVs_total_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_dup) - 1)]
+        for (height in linesToDepict)
+          segments(bp[2,z] - 0.4, height, bp[2,z] + 0.4, height, col="white", lwd=3)
+      }
+      
+      found_CNVs_total_high_dup = found_CNVs_total[which(actualCopyNumbers > 4 & found_CNVs_total[,6] == currentPurity),,drop=F]
+      if (nrow(found_CNVs_total_high_dup) > 1) {
+        linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_high_dup[, 3]) 
+                                    - as.numeric(found_CNVs_total_high_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_high_dup) - 1)]
+        for (height in linesToDepict)
+          segments(bp[3,z] - 0.4, height, bp[3,z] + 0.4, height, col="white", lwd=3)
+      }
+      
+      found_CNVs_total_del = found_CNVs_total[which(actualCopyNumbers < 2 & found_CNVs_total[,6] == currentPurity),,drop=F]
+      if (nrow(found_CNVs_total_del) > 1) {
+        linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_del[, 3]) 
+                                    - as.numeric(found_CNVs_total_del[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_del) - 1)]
+        for (height in linesToDepict)
+          segments(bp[4,z] - 0.4, height, bp[4,z] + 0.4, height, col="white", lwd=3)
       }
     }
-    currentPurity = colnames(datasetForBarplot)[z]
-    found_CNVs_total_LOH = found_CNVs_total[which(actualCopyNumbers== 2 & found_CNVs_total[,6] == currentPurity),,drop=F]
-    if (nrow(found_CNVs_total_LOH) > 1) {
-      linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_LOH[, 3]) 
-                                  - as.numeric(found_CNVs_total_LOH[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_LOH) - 1)]
-      for (height in linesToDepict)
-        segments(bp[1,z] - 0.4, height, bp[1,z] + 0.4, height, col="white", lwd=3)
-    }
     
-    found_CNVs_total_dup = found_CNVs_total[which(actualCopyNumbers > 2 & as.numeric(found_CNVs_total[,4]) < 5 & found_CNVs_total[,6] == currentPurity),,drop=F]
-    if (nrow(found_CNVs_total_dup) > 1) {
-      linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_dup[, 3]) 
-                                  - as.numeric(found_CNVs_total_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_dup) - 1)]
-      for (height in linesToDepict)
-        segments(bp[2,z] - 0.4, height, bp[2,z] + 0.4, height, col="white", lwd=3)
-    }
-    
-    found_CNVs_total_high_dup = found_CNVs_total[which(actualCopyNumbers > 4 & found_CNVs_total[,6] == currentPurity),,drop=F]
-    if (nrow(found_CNVs_total_high_dup) > 1) {
-      linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_high_dup[, 3]) 
-                                  - as.numeric(found_CNVs_total_high_dup[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_high_dup) - 1)]
-      for (height in linesToDepict)
-        segments(bp[3,z] - 0.4, height, bp[3,z] + 0.4, height, col="white", lwd=3)
-    }
-    
-    found_CNVs_total_del = found_CNVs_total[which(actualCopyNumbers < 2 & found_CNVs_total[,6] == currentPurity),,drop=F]
-    if (nrow(found_CNVs_total_del) > 1) {
-      linesToDepict = cumsum(sort(as.numeric(found_CNVs_total_del[, 3]) 
-                                  - as.numeric(found_CNVs_total_del[, 2]), decreasing = T) / 10**6)[1:(nrow(found_CNVs_total_del) - 1)]
-      for (height in linesToDepict)
-        segments(bp[4,z] - 0.4, height, bp[4,z] + 0.4, height, col="white", lwd=3)
-    }
+    dev.off()
   }
-  
-  dev.off()
 }
 
 makeTransparent = function(..., alpha=0.5) {
@@ -533,94 +538,97 @@ plotChromosomalLevelInstabs <- function(found_CNVs_total, left_borders, right_bo
   multiplicator = 80
   offsetOfSecondChr = (multiplicator / 2.5)
   widthOfLine = c(((2.3 / 20) * multiplicator), ((1.9 / 20) * multiplicator))
-  pdf(file=paste0(sample_name, "_chromPlot.pdf"), width=16, height=14)
-  #par(mfrow=c(2,1), mar=c(1.5, 0, 2, 1.5))
-  colOfChr = c("black", "whitesmoke")
-  par( mar=c(1.5, 2, 2, 1.5))
   
-  chromsToAnalyse = 1:24
-  
-  plot(0,0, ylim=c(multiplicator - offsetOfSecondChr, multiplicator *24), xlim=c(0, max(unlist(ends_of_chroms))), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=sample_name)
-  
-  legend("right", legend=c( "Major clone Dup 3CN", "Major clone Dup >= 4","Major clone Del",
-                            "Minor clone Dup 3CN","Minor clone Dup >= 4","Minor clone Del"),
-         col=c(colForMajor[2:4],colForMinor[2:4]), cex=1.8, lwd=widthOfLine, box.lty=0, 
-         title=paste("Clonal fraction:", paste(round(sort(unique(as.numeric(found_CNVs_total[,6]))), digits=2),collapse="; "))
-  )
-  
-  
-  text(y = multiplicator *1:24 + offsetOfSecondChr / 2, x = rep(0 ** 7, 24), labels=orderOfNames[sort(chromsToAnalyse, decreasing = T)], pos=2, offset = 0.5)
-  for (z in sort(chromsToAnalyse, decreasing = T)) {
-    i = 25 - which(chromsToAnalyse == z)
-    chromStructure = linesOnBarplot[[(z)]]
-    for (plotNumber in 1:2) {
-      if (!chromStructure[[5]] %in% c("chrX", "chrY") | (chromStructure[[5]] == "chrX" & gender == "F")) {
-        segments( 0, multiplicator* i, as.numeric(chromStructure[2]), multiplicator * i,  lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
-        segments(as.numeric(chromStructure[3]),  multiplicator* i, as.numeric(chromStructure[4]), multiplicator * i,lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
-        segments(0,  multiplicator* i + offsetOfSecondChr,  as.numeric(chromStructure[2]) , multiplicator * i + offsetOfSecondChr, lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
-        segments(as.numeric(chromStructure[3]),  multiplicator* i + offsetOfSecondChr,  as.numeric(chromStructure[4]), multiplicator * i + offsetOfSecondChr,lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
-      } else {
-        if ((chromStructure[[5]] == "chrX" | chromStructure[[5]] == "chrY") & gender == "M") {
+  if (!opt$noPlot) {
+    pdf(file=paste0(sample_name, "_chromPlot.pdf"), width=16, height=14)
+    #par(mfrow=c(2,1), mar=c(1.5, 0, 2, 1.5))
+    colOfChr = c("black", "whitesmoke")
+    par( mar=c(1.5, 2, 2, 1.5))
+    
+    chromsToAnalyse = 1:24
+    
+    plot(0,0, ylim=c(multiplicator - offsetOfSecondChr, multiplicator *24), xlim=c(0, max(unlist(ends_of_chroms))), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="", main=sample_name)
+    
+    legend("right", legend=c( "Major clone Dup 3CN", "Major clone Dup >= 4","Major clone Del",
+                              "Minor clone Dup 3CN","Minor clone Dup >= 4","Minor clone Del"),
+           col=c(colForMajor[2:4],colForMinor[2:4]), cex=1.8, lwd=widthOfLine, box.lty=0, 
+           title=paste("Clonal fraction:", paste(round(sort(unique(as.numeric(found_CNVs_total[,6]))), digits=2),collapse="; "))
+    )
+    
+    
+    text(y = multiplicator *1:24 + offsetOfSecondChr / 2, x = rep(0 ** 7, 24), labels=orderOfNames[sort(chromsToAnalyse, decreasing = T)], pos=2, offset = 0.5)
+    for (z in sort(chromsToAnalyse, decreasing = T)) {
+      i = 25 - which(chromsToAnalyse == z)
+      chromStructure = linesOnBarplot[[(z)]]
+      for (plotNumber in 1:2) {
+        if (!chromStructure[[5]] %in% c("chrX", "chrY") | (chromStructure[[5]] == "chrX" & gender == "F")) {
           segments( 0, multiplicator* i, as.numeric(chromStructure[2]), multiplicator * i,  lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
           segments(as.numeric(chromStructure[3]),  multiplicator* i, as.numeric(chromStructure[4]), multiplicator * i,lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
+          segments(0,  multiplicator* i + offsetOfSecondChr,  as.numeric(chromStructure[2]) , multiplicator * i + offsetOfSecondChr, lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
+          segments(as.numeric(chromStructure[3]),  multiplicator* i + offsetOfSecondChr,  as.numeric(chromStructure[4]), multiplicator * i + offsetOfSecondChr,lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
+        } else {
+          if ((chromStructure[[5]] == "chrX" | chromStructure[[5]] == "chrY") & gender == "M") {
+            segments( 0, multiplicator* i, as.numeric(chromStructure[2]), multiplicator * i,  lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
+            segments(as.numeric(chromStructure[3]),  multiplicator* i, as.numeric(chromStructure[4]), multiplicator * i,lwd=widthOfLine[plotNumber], col=colOfChr[plotNumber])
+          }
         }
       }
-    }
-    # DEPICTION OF CNVs
-    whichCNVsToPlot = which(found_CNVs_total[,1] == chromStructure[[5]])
-    
-    if (length(whichCNVsToPlot) > 0) {
-      for (numOfCNV in 1:length(whichCNVsToPlot)) {
-        m = whichCNVsToPlot[numOfCNV]
-        particularPurity = as.numeric(found_CNVs_total[m,6])
-        colorForPlotting = colForMajor
-        cnvLty = 1
-        cnvLwd = max(0.3, 0.9 * particularPurity) * widthOfLine[1]
-        if (as.numeric(found_CNVs_total[m,6]) < majorClone - 10 ** -5) {
-          colorForPlotting = colForMinor
+      # DEPICTION OF CNVs
+      whichCNVsToPlot = which(found_CNVs_total[,1] == chromStructure[[5]])
+      
+      if (length(whichCNVsToPlot) > 0) {
+        for (numOfCNV in 1:length(whichCNVsToPlot)) {
+          m = whichCNVsToPlot[numOfCNV]
+          particularPurity = as.numeric(found_CNVs_total[m,6])
+          colorForPlotting = colForMajor
           cnvLty = 1
+          cnvLwd = max(0.3, 0.9 * particularPurity) * widthOfLine[1]
+          if (as.numeric(found_CNVs_total[m,6]) < majorClone - 10 ** -5) {
+            colorForPlotting = colForMinor
+            cnvLty = 1
+          }
+          cnvToPlot = found_CNVs_total[m,]
+          start = as.numeric(found_CNVs_total[m,2])
+          end = as.numeric(found_CNVs_total[m,3])
+          copy_number_particuar_cnv_minor = as.numeric(found_CNVs_total[m,5])
+          copy_number_particuar_cnv_major = as.numeric(found_CNVs_total[m,4])
+          copy_number_particuar_cnv = copy_number_particuar_cnv_minor + copy_number_particuar_cnv_major
+          
+          colorType = c(0,0)
+          if (round(copy_number_particuar_cnv_minor) < 1) {
+            colorType[2] = 4
+          }
+          if (round(copy_number_particuar_cnv_minor) == 2) {
+            colorType[2] = 2
+          }
+          if (round(copy_number_particuar_cnv_minor) > 2) {
+            colorType[2] = 3
+          }
+          if (round(copy_number_particuar_cnv_major) < 1) {
+            colorType[1] = 4
+          }
+          if (round(copy_number_particuar_cnv_major) == 2) {
+            colorType[1] = 2
+          }
+          if (round(copy_number_particuar_cnv_major) > 2) {
+            colorType[1] = 3
+          }
+          cnv_state = (found_CNVs_total[m,9])
+          
+          segments(start, multiplicator* i,  end,multiplicator * i, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[1]], alpha=max(0.3, particularPurity)))
+          if (colorType[2] != 0 & !(chromStructure[[5]] %in% c("chrX", "chrY") & gender == "M")) {
+            segments( start, multiplicator* i + offsetOfSecondChr,  end, multiplicator * i + offsetOfSecondChr, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[2]], alpha=max(0.3, particularPurity)))
+          }
+          
+          text(y = multiplicator *i + offsetOfSecondChr / 2, x = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"), cex=0.7)
         }
-        cnvToPlot = found_CNVs_total[m,]
-        start = as.numeric(found_CNVs_total[m,2])
-        end = as.numeric(found_CNVs_total[m,3])
-        copy_number_particuar_cnv_minor = as.numeric(found_CNVs_total[m,5])
-        copy_number_particuar_cnv_major = as.numeric(found_CNVs_total[m,4])
-        copy_number_particuar_cnv = copy_number_particuar_cnv_minor + copy_number_particuar_cnv_major
-        
-        colorType = c(0,0)
-        if (round(copy_number_particuar_cnv_minor) < 1) {
-          colorType[2] = 4
-        }
-        if (round(copy_number_particuar_cnv_minor) == 2) {
-          colorType[2] = 2
-        }
-        if (round(copy_number_particuar_cnv_minor) > 2) {
-          colorType[2] = 3
-        }
-        if (round(copy_number_particuar_cnv_major) < 1) {
-          colorType[1] = 4
-        }
-        if (round(copy_number_particuar_cnv_major) == 2) {
-          colorType[1] = 2
-        }
-        if (round(copy_number_particuar_cnv_major) > 2) {
-          colorType[1] = 3
-        }
-        cnv_state = (found_CNVs_total[m,9])
-        
-        segments(start, multiplicator* i,  end,multiplicator * i, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[1]], alpha=max(0.3, particularPurity)))
-        if (colorType[2] != 0 & !(chromStructure[[5]] %in% c("chrX", "chrY") & gender == "M")) {
-          segments( start, multiplicator* i + offsetOfSecondChr,  end, multiplicator * i + offsetOfSecondChr, lwd=cnvLwd, lty = cnvLty, col=makeTransparent(colorForPlotting[colorType[2]], alpha=max(0.3, particularPurity)))
-        }
-        
-        text(y = multiplicator *i + offsetOfSecondChr / 2, x = start + (end - start) / 2, labels=paste0(copy_number_particuar_cnv), adj=c(0.5,0.5), col=ifelse(copy_number_particuar_cnv < 6, "black", "darkred"), cex=0.7)
       }
+      
+      
+      
     }
-    
-    
-    
+    dev.off()
   }
-  dev.off()
 }
 
 probeLevelQC <- function(matrixOfLogFoldForCalc, sdsOfProbes, sdsOfSomaticSamples, genderOfSamplesLocal, bedFile) {
@@ -879,7 +887,7 @@ plotFoundCNVsNew <- function(sam_no, found_CNVs, toyLogFoldChange, toyBedFile, o
       fn <- found_CNVs[s,3]
       
       pr = plottingOfPNGs
-      if (pr) {
+      if (pr & !opt$noPlot) {
         png(filename=paste0(outputFolder, "/", paste0(CNV_name_to_write, ".png")), type="cairo",width = 1024, height = 640)
         if(opt$debug) {
           print(CNV_name_to_write)
@@ -995,8 +1003,8 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
                                                                                               as.numeric(globalBed[,2]) >= startOfArm &
                                                                                               as.numeric(globalBed[,3]) <= endOfArm)]))
         array_of_medians = c(array_of_medians, median(globalLogFold[which(globalBed[,1] == chrom &
-                                                                                    globalBed[,2] >= startOfArm &
-                                                                                    globalBed[,3] <= endOfArm)]))
+                                                                            globalBed[,2] >= startOfArm &
+                                                                            globalBed[,3] <= endOfArm)]))
         weightOfMedians = c(weightOfMedians, length(which(globalBed[,1] == chrom &
                                                             globalBed[,2] >= startOfArm &
                                                             globalBed[,3] <= endOfArm)))
@@ -1008,7 +1016,7 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
     
   }
   
-
+  
   whichMediansAreNotNA = which(!is.na(array_of_medians))
   chrRegion = chrRegion[whichMediansAreNotNA]
   array_of_medians = array_of_medians[whichMediansAreNotNA]
@@ -1017,7 +1025,7 @@ find_baseline_level <- function(allowedChromsBafSample, matrixOfLogFoldSample, b
   print(chrRegion)
   print(array_of_medians)
   #print(weightOfMedians / sum(weightOfMedians))
-
+  
   anyChangeHappen = T
   numOfIter = 1
   weightOfMediansNew = weightOfMedians
@@ -1063,197 +1071,200 @@ plotLikelihoodLandscape <- function(datasetOfPuritiesCopies, addressOfPlot, foun
                                     local_purities, local_majorBAF, local_minorBAF, left_borders, right_borders, ends_of_chroms,
                                     local_majorBAF_second, local_minorBAF_second, local_purities_second) {
   colorsForCN = c(rgb(1,0,0,0.9), rgb(0.6470588, 0.1647059, 0.1647059, 0.9), rgb(0,0,1,0.9))
-  png(filename=addressOfPlot, type = "cairo", width=2500, height=1000)
   
-  linesOnBarplot = list()
-  orderOfNames = c(paste0("chr", 1:22), "chrX", "chrY")
-  orderInLists = c()
-  for (l in 1:length(orderOfNames)) {
-    orderInLists = c(orderInLists, which(names(left_borders) == orderOfNames[l]))
-  }
-  verticalBorders <- c(0)
-  armOfChromMarker <- c(0)
-  for (l in orderInLists) {
-    startOfChr = 0
-    endOfLeftArm = left_borders[[l]]
-    startOfRightArm = right_borders[[l]]
-    endOfRightArm = ends_of_chroms[[l]]
-    nameOfChrom = names(left_borders)[l]
-    linesOnBarplot[[as.character(l)]] = c(startOfChr, endOfLeftArm, startOfRightArm, endOfRightArm, nameOfChrom)
-    #if (length(verticalBorders) == 0) {
-    #  verticalBorders <- c(as.numeric(endOfRightArm))
-    #  armOfChromMarker <- c((as.numeric(startOfRightArm) + as.numeric(endOfLeftArm)) / 2)
-    #} else {
-    armOfChromMarker <- c(armOfChromMarker, verticalBorders[length(verticalBorders)] + (as.numeric(startOfRightArm) + as.numeric(endOfLeftArm)) / 2)
-    verticalBorders <- c(verticalBorders, verticalBorders[length(verticalBorders)] + as.numeric(ends_of_chroms[[l]]))
-    #}
-  }
-  
-  
-  par(bg="white", mfrow = c(3, 1),    
-      oma = c(1, 1, 1, 1), 
-      mar = c(1, 1, 1, 1))  
-  plot(0,0, ylim=c(0,1), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="")
-  abline(v=verticalBorders, col="black")
-  abline(v=armOfChromMarker, col="black", lty=2, lwd=0.5)
-  for (i in 2:length(verticalBorders)) {
-    mtext(at=armOfChromMarker[i], text=orderOfNames[i-1],col="black",side=1, cex=0.8)
-  }
-  abline(h=c(1.01,-0.01), col="black")
-  
-  if (!is.null(matrixOfBAFLikeliks)) {
-    coordsIncludedAtFirst = 1:nrow(matrixOfBAFLikeliks)
+  if (!opt$noPlot) {
+    png(filename=addressOfPlot, type = "cairo", width=2500, height=1000)
     
-    correspondingRatios = unique(round( (local_majorBAF / (local_majorBAF + local_minorBAF)), digits=5))
-    matrixOfLikeliksForPlottingBAF = matrix(0, ncol=length(correspondingRatios), nrow=length(coordsIncludedAtFirst))
-    for (j in 1:length(correspondingRatios)) {
-      whichToUse = which(round( local_majorBAF / (local_majorBAF + local_minorBAF), digits=5) == correspondingRatios[j])
-      matrixOfLikeliksForPlottingBAF[,j] = apply(matrixOfBAFLikeliks[,whichToUse,drop=F], 1, min)
+    linesOnBarplot = list()
+    orderOfNames = c(paste0("chr", 1:22), "chrX", "chrY")
+    orderInLists = c()
+    for (l in 1:length(orderOfNames)) {
+      orderInLists = c(orderInLists, which(names(left_borders) == orderOfNames[l]))
+    }
+    verticalBorders <- c(0)
+    armOfChromMarker <- c(0)
+    for (l in orderInLists) {
+      startOfChr = 0
+      endOfLeftArm = left_borders[[l]]
+      startOfRightArm = right_borders[[l]]
+      endOfRightArm = ends_of_chroms[[l]]
+      nameOfChrom = names(left_borders)[l]
+      linesOnBarplot[[as.character(l)]] = c(startOfChr, endOfLeftArm, startOfRightArm, endOfRightArm, nameOfChrom)
+      #if (length(verticalBorders) == 0) {
+      #  verticalBorders <- c(as.numeric(endOfRightArm))
+      #  armOfChromMarker <- c((as.numeric(startOfRightArm) + as.numeric(endOfLeftArm)) / 2)
+      #} else {
+      armOfChromMarker <- c(armOfChromMarker, verticalBorders[length(verticalBorders)] + (as.numeric(startOfRightArm) + as.numeric(endOfLeftArm)) / 2)
+      verticalBorders <- c(verticalBorders, verticalBorders[length(verticalBorders)] + as.numeric(ends_of_chroms[[l]]))
+      #}
     }
     
-    if (!is.null(bafMatrix))
-      for (l in 1:nrow(bafMatrix)) {
-        if (l %in% coordsIncludedAtFirst) {
-          i = which(coordsIncludedAtFirst == l)
-          entry = bafMatrix[l,]
-          chrom = as.character(entry[1])
-          startOfChr = verticalBorders[which(orderOfNames == chrom)]
-          horizontalCoord = startOfChr + as.numeric(entry[2])
-          likeliks = matrixOfLikeliksForPlottingBAF[l,] 
-          if (length(unique(likeliks)) == 0) next
-          minLikelik = which.min(likeliks)
-          if (as.numeric(entry[5]) >= 0.5) {
-            points(horizontalCoord + rnorm(n=1,sd=50), (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.007)), col=rgb(0,0,0,0.2), pch=19, cex=0.8)
-          } else {
-            points(horizontalCoord + rnorm(n=1,sd=50), 1- (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.007)), col=rgb(0,0,0,0.2), pch=19, cex=0.8)
+    
+    par(bg="white", mfrow = c(3, 1),    
+        oma = c(1, 1, 1, 1), 
+        mar = c(1, 1, 1, 1))  
+    plot(0,0, ylim=c(0,1), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="")
+    abline(v=verticalBorders, col="black")
+    abline(v=armOfChromMarker, col="black", lty=2, lwd=0.5)
+    for (i in 2:length(verticalBorders)) {
+      mtext(at=armOfChromMarker[i], text=orderOfNames[i-1],col="black",side=1, cex=0.8)
+    }
+    abline(h=c(1.01,-0.01), col="black")
+    
+    if (!is.null(matrixOfBAFLikeliks)) {
+      coordsIncludedAtFirst = 1:nrow(matrixOfBAFLikeliks)
+      
+      correspondingRatios = unique(round( (local_majorBAF / (local_majorBAF + local_minorBAF)), digits=5))
+      matrixOfLikeliksForPlottingBAF = matrix(0, ncol=length(correspondingRatios), nrow=length(coordsIncludedAtFirst))
+      for (j in 1:length(correspondingRatios)) {
+        whichToUse = which(round( local_majorBAF / (local_majorBAF + local_minorBAF), digits=5) == correspondingRatios[j])
+        matrixOfLikeliksForPlottingBAF[,j] = apply(matrixOfBAFLikeliks[,whichToUse,drop=F], 1, min)
+      }
+      
+      if (!is.null(bafMatrix))
+        for (l in 1:nrow(bafMatrix)) {
+          if (l %in% coordsIncludedAtFirst) {
+            i = which(coordsIncludedAtFirst == l)
+            entry = bafMatrix[l,]
+            chrom = as.character(entry[1])
+            startOfChr = verticalBorders[which(orderOfNames == chrom)]
+            horizontalCoord = startOfChr + as.numeric(entry[2])
+            likeliks = matrixOfLikeliksForPlottingBAF[l,] 
+            if (length(unique(likeliks)) == 0) next
+            minLikelik = which.min(likeliks)
+            if (as.numeric(entry[5]) >= 0.5) {
+              points(horizontalCoord + rnorm(n=1,sd=50), (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.007)), col=rgb(0,0,0,0.2), pch=19, cex=0.8)
+            } else {
+              points(horizontalCoord + rnorm(n=1,sd=50), 1- (correspondingRatios[minLikelik] + rnorm(n=1,sd=0.007)), col=rgb(0,0,0,0.2), pch=19, cex=0.8)
+            }
+            
           }
-          
+        } 
+    }
+    
+    
+    if (nrow(found_CNVs_total) > 0)
+      for (l in 1:nrow(found_CNVs_total)) {
+        entry = found_CNVs_total[l,]
+        chrom = as.character(entry[1])
+        exactCN = as.numeric(entry[4]) + as.numeric(entry[5])
+        colToUse = colorsForCN[3]
+        if (exactCN == 2) {
+          colToUse = colorsForCN[2]
         }
-      } 
-  }
-  
-  
-  if (nrow(found_CNVs_total) > 0)
-    for (l in 1:nrow(found_CNVs_total)) {
-      entry = found_CNVs_total[l,]
+        if (exactCN < 2) {
+          colToUse = colorsForCN[1]
+        }
+        startOfChr = verticalBorders[which(orderOfNames == chrom)]
+        horizontalCoord1 = startOfChr + as.numeric(entry[2])
+        horizontalCoord2 = startOfChr + as.numeric(entry[3])
+        BAF_number_of_reads_minor <- (1-as.numeric(entry[6])) + (as.numeric(entry[6])) * as.numeric(entry[5])
+        BAF_number_of_reads_major <- (1-as.numeric(entry[6])) + (as.numeric(entry[6])) * as.numeric(entry[4])
+        if ((BAF_number_of_reads_minor + BAF_number_of_reads_major) > 0) {
+          firstHeight = BAF_number_of_reads_minor / (BAF_number_of_reads_minor + BAF_number_of_reads_major)
+          secondHeight = BAF_number_of_reads_major / (BAF_number_of_reads_minor + BAF_number_of_reads_major)
+          segments(horizontalCoord1,firstHeight,horizontalCoord2,firstHeight,col=colToUse, lwd=8)
+          segments(horizontalCoord1,secondHeight,horizontalCoord2,secondHeight,col=colToUse, lwd=8)
+        }
+      }
+    
+    
+    toDepict = 2 * (2 ** matrixOfLogFoldSample)
+    if (nrow(found_CNVs_total) > 0) {
+      upperBorder = max(8, max(as.numeric(found_CNVs_total[,7])) + 1)
+    } else {
+      upperBorder = 8
+    }
+    toDepict[which(toDepict > upperBorder)] = upperBorder
+    plot(0,0, ylim=c(0,max(toDepict)), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="")
+    abline(v=verticalBorders, col="black")
+    abline(v=armOfChromMarker, col="black", lty=2, lwd=0.5)
+    abline(h=c(0,max(toDepict)), col="black")
+    for (i in 2:length(verticalBorders)) {
+      #axis(1, at=armOfChromMarker[i], labels=orderOfNames[i-1], col="white")
+      mtext(at=armOfChromMarker[i], text=orderOfNames[i-1],col="black",side=1, cex=0.8)
+    }
+    
+    for (l in 1:nrow(bedFileForMatrix)) {
+      entry = bedFileForMatrix[l,]
       chrom = as.character(entry[1])
-      exactCN = as.numeric(entry[4]) + as.numeric(entry[5])
-      colToUse = colorsForCN[3]
-      if (exactCN == 2) {
-        colToUse = colorsForCN[2]
-      }
-      if (exactCN < 2) {
-        colToUse = colorsForCN[1]
-      }
       startOfChr = verticalBorders[which(orderOfNames == chrom)]
       horizontalCoord1 = startOfChr + as.numeric(entry[2])
       horizontalCoord2 = startOfChr + as.numeric(entry[3])
-      BAF_number_of_reads_minor <- (1-as.numeric(entry[6])) + (as.numeric(entry[6])) * as.numeric(entry[5])
-      BAF_number_of_reads_major <- (1-as.numeric(entry[6])) + (as.numeric(entry[6])) * as.numeric(entry[4])
-      if ((BAF_number_of_reads_minor + BAF_number_of_reads_major) > 0) {
-        firstHeight = BAF_number_of_reads_minor / (BAF_number_of_reads_minor + BAF_number_of_reads_major)
-        secondHeight = BAF_number_of_reads_major / (BAF_number_of_reads_minor + BAF_number_of_reads_major)
-        segments(horizontalCoord1,firstHeight,horizontalCoord2,firstHeight,col=colToUse, lwd=8)
-        segments(horizontalCoord1,secondHeight,horizontalCoord2,secondHeight,col=colToUse, lwd=8)
-      }
+      segments(horizontalCoord1,toDepict[l],horizontalCoord2,toDepict[l],col=rgb(0,0,0,0.15), lwd=6)
     }
-  
-  
-  toDepict = 2 * (2 ** matrixOfLogFoldSample)
-  if (nrow(found_CNVs_total) > 0) {
-    upperBorder = max(8, max(as.numeric(found_CNVs_total[,7])) + 1)
-  } else {
-    upperBorder = 8
-  }
-  toDepict[which(toDepict > upperBorder)] = upperBorder
-  plot(0,0, ylim=c(0,max(toDepict)), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="")
-  abline(v=verticalBorders, col="black")
-  abline(v=armOfChromMarker, col="black", lty=2, lwd=0.5)
-  abline(h=c(0,max(toDepict)), col="black")
-  for (i in 2:length(verticalBorders)) {
-    #axis(1, at=armOfChromMarker[i], labels=orderOfNames[i-1], col="white")
-    mtext(at=armOfChromMarker[i], text=orderOfNames[i-1],col="black",side=1, cex=0.8)
-  }
-  
-  for (l in 1:nrow(bedFileForMatrix)) {
-    entry = bedFileForMatrix[l,]
-    chrom = as.character(entry[1])
-    startOfChr = verticalBorders[which(orderOfNames == chrom)]
-    horizontalCoord1 = startOfChr + as.numeric(entry[2])
-    horizontalCoord2 = startOfChr + as.numeric(entry[3])
-    segments(horizontalCoord1,toDepict[l],horizontalCoord2,toDepict[l],col=rgb(0,0,0,0.15), lwd=6)
-  }
-  abline(h=1:round(max(toDepict)), col="purple", lty=3)
-  abline(h=2, col="purple")
-  
-  if (nrow(found_CNVs_total) > 0)
-    for (l in 1:nrow(found_CNVs_total)) {
-      entry = found_CNVs_total[l,]
-      chrom = as.character(entry[1])
-      exactCN = as.numeric(entry[4]) + as.numeric(entry[5])
-      colToUse = colorsForCN[3]
-      if (exactCN == 2) {
-        colToUse = colorsForCN[2]
+    abline(h=1:round(max(toDepict)), col="purple", lty=3)
+    abline(h=2, col="purple")
+    
+    if (nrow(found_CNVs_total) > 0)
+      for (l in 1:nrow(found_CNVs_total)) {
+        entry = found_CNVs_total[l,]
+        chrom = as.character(entry[1])
+        exactCN = as.numeric(entry[4]) + as.numeric(entry[5])
+        colToUse = colorsForCN[3]
+        if (exactCN == 2) {
+          colToUse = colorsForCN[2]
+        }
+        if (exactCN < 2) {
+          colToUse = colorsForCN[1]
+        }
+        startOfChr = verticalBorders[which(orderOfNames == chrom)]
+        horizontalCoord1 = startOfChr + as.numeric(entry[2])
+        horizontalCoord2 = startOfChr + as.numeric(entry[3])
+        segments(horizontalCoord1,as.numeric(entry[7]),horizontalCoord2,as.numeric(entry[7]),col=colToUse, lwd=8)
       }
-      if (exactCN < 2) {
-        colToUse = colorsForCN[1]
+    
+    
+    
+    if (nrow(found_CNVs_total) > 0) {
+      actual_copy_numbers = as.numeric(found_CNVs_total[,4]) + as.numeric(found_CNVs_total[,5])
+    } else {
+      actual_copy_numbers = 2
+    }
+    plot(0,0, ylim=c(0,max(actual_copy_numbers) + 1), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="")
+    abline(v=verticalBorders, col="black")
+    abline(v=armOfChromMarker, col="black", lty=2, lwd=0.5)
+    abline(h=c(0,max(actual_copy_numbers) + 1), col="black")
+    all_purities = sort(as.numeric(unique(datasetOfPuritiesCopies[,6])), decreasing = F)
+    delColorScale = colorRampPalette(c("white", "red"))(length(all_purities))
+    dupColorScale = colorRampPalette(c("white", "blue"))(length(all_purities))
+    normalColorScale = colorRampPalette(c("white", "darkgreen"))(length(all_purities))
+    homdelColorScale = colorRampPalette(c("white", "darkred"))(length(all_purities))
+    homDupColorScale = colorRampPalette(c("white", "darkblue"))(length(all_purities))
+    if (nrow(found_CNVs_total) > 0)
+      for (l in 1:nrow(found_CNVs_total)) {
+        entry = found_CNVs_total[l,]
+        chrom = as.character(entry[1])
+        exactCNMajor = as.numeric(entry[4])
+        exactCNMinor = as.numeric(entry[5])
+        purity = as.numeric(entry[6])
+        whichPurityItIs = which(all_purities == purity)
+        colorCode = c(delColorScale[whichPurityItIs],delColorScale[whichPurityItIs])
+        if (exactCNMajor > 1) colorCode[1] = dupColorScale[whichPurityItIs]
+        if (exactCNMajor < 1) colorCode[1] = delColorScale[whichPurityItIs]
+        if (exactCNMinor > 1) colorCode[2] = dupColorScale[whichPurityItIs]
+        if (exactCNMinor < 1) colorCode[2] = delColorScale[whichPurityItIs]
+        if (exactCNMinor == 1) colorCode[2] = normalColorScale[whichPurityItIs]
+        
+        startOfChr = verticalBorders[which(orderOfNames == chrom)]
+        horizontalCoord1 = startOfChr + as.numeric(entry[2])
+        horizontalCoord2 = startOfChr + as.numeric(entry[3])
+        
+        
+        rect(horizontalCoord1,0,horizontalCoord2,exactCNMinor,col=colorCode[2], border=NA)
+        rect(horizontalCoord1,exactCNMinor,horizontalCoord2,exactCNMinor+exactCNMajor,col=colorCode[1],border=NA)
+        segments(horizontalCoord1,exactCNMinor,horizontalCoord2,exactCNMinor, lwd=5)
+        segments(horizontalCoord1,exactCNMinor+exactCNMajor,horizontalCoord2,exactCNMinor+exactCNMajor, lwd=5)
+        
       }
-      startOfChr = verticalBorders[which(orderOfNames == chrom)]
-      horizontalCoord1 = startOfChr + as.numeric(entry[2])
-      horizontalCoord2 = startOfChr + as.numeric(entry[3])
-      segments(horizontalCoord1,as.numeric(entry[7]),horizontalCoord2,as.numeric(entry[7]),col=colToUse, lwd=8)
-    }
-  
-  
-  
-  if (nrow(found_CNVs_total) > 0) {
-    actual_copy_numbers = as.numeric(found_CNVs_total[,4]) + as.numeric(found_CNVs_total[,5])
-  } else {
-    actual_copy_numbers = 2
+    abline(h=1:max(actual_copy_numbers), col="purple", lty=3)
+    abline(h=2, col="purple")
+    
+    
+    
+    
+    dev.off()
   }
-  plot(0,0, ylim=c(0,max(actual_copy_numbers) + 1), xlim=c(0, max(verticalBorders)), col="white", xaxt="n", bty="n", axes=F, xlab="", ylab="")
-  abline(v=verticalBorders, col="black")
-  abline(v=armOfChromMarker, col="black", lty=2, lwd=0.5)
-  abline(h=c(0,max(actual_copy_numbers) + 1), col="black")
-  all_purities = sort(as.numeric(unique(datasetOfPuritiesCopies[,6])), decreasing = F)
-  delColorScale = colorRampPalette(c("white", "red"))(length(all_purities))
-  dupColorScale = colorRampPalette(c("white", "blue"))(length(all_purities))
-  normalColorScale = colorRampPalette(c("white", "darkgreen"))(length(all_purities))
-  homdelColorScale = colorRampPalette(c("white", "darkred"))(length(all_purities))
-  homDupColorScale = colorRampPalette(c("white", "darkblue"))(length(all_purities))
-  if (nrow(found_CNVs_total) > 0)
-    for (l in 1:nrow(found_CNVs_total)) {
-      entry = found_CNVs_total[l,]
-      chrom = as.character(entry[1])
-      exactCNMajor = as.numeric(entry[4])
-      exactCNMinor = as.numeric(entry[5])
-      purity = as.numeric(entry[6])
-      whichPurityItIs = which(all_purities == purity)
-      colorCode = c(delColorScale[whichPurityItIs],delColorScale[whichPurityItIs])
-      if (exactCNMajor > 1) colorCode[1] = dupColorScale[whichPurityItIs]
-      if (exactCNMajor < 1) colorCode[1] = delColorScale[whichPurityItIs]
-      if (exactCNMinor > 1) colorCode[2] = dupColorScale[whichPurityItIs]
-      if (exactCNMinor < 1) colorCode[2] = delColorScale[whichPurityItIs]
-      if (exactCNMinor == 1) colorCode[2] = normalColorScale[whichPurityItIs]
-      
-      startOfChr = verticalBorders[which(orderOfNames == chrom)]
-      horizontalCoord1 = startOfChr + as.numeric(entry[2])
-      horizontalCoord2 = startOfChr + as.numeric(entry[3])
-      
-      
-      rect(horizontalCoord1,0,horizontalCoord2,exactCNMinor,col=colorCode[2], border=NA)
-      rect(horizontalCoord1,exactCNMinor,horizontalCoord2,exactCNMinor+exactCNMajor,col=colorCode[1],border=NA)
-      segments(horizontalCoord1,exactCNMinor,horizontalCoord2,exactCNMinor, lwd=5)
-      segments(horizontalCoord1,exactCNMinor+exactCNMajor,horizontalCoord2,exactCNMinor+exactCNMajor, lwd=5)
-      
-    }
-  abline(h=1:max(actual_copy_numbers), col="purple", lty=3)
-  abline(h=2, col="purple")
-  
-  
-  
-  
-  dev.off()
 }
 
 

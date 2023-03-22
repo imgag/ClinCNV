@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 set.seed(100)
 options(warn=-1)
-clincnvVersion = paste0("ClinCNV version: v1.18.2")
+clincnvVersion = paste0("ClinCNV version: v1.18.3")
 
 ## CHECK R VERSION
 if (!( (as.numeric(version$major) >= 3 & as.numeric(version$minor) > 2.0) |  as.numeric(version$major) >= 4) ) {
@@ -647,6 +647,9 @@ if (length(samplesToFilterOut) > 0) {
 }
 
 print(paste("We start to cluster your data (you will find a plot if clustering is possible in your output directory)", opt$out, Sys.time()))
+if (opt$noPlot) {
+print(paste("Ay no, you used --noPlot flag. No plots for you then.", Sys.time()))
+}
 if (is.null(opt$clusterProvided)) {
   if (opt$noPlot) {
     clustering = rep("0", ncol(normal))

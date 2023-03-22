@@ -52,7 +52,7 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       fn <- found_CNVs[s,3]
       
       pr = plottingOfPNGs
-      if (pr) {
+      if (pr & !opt$noPlot) {
         plot_st <- max(1,st - length_of_repr)
         plot_fn <- min(length(toyLogFoldChange), fn + length_of_repr)
         png(filename=paste0(outputFolder, "/", paste0(CNV_name_to_write, ".png")), type = "cairo", width = 1536, height = 640)
