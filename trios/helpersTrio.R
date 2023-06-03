@@ -26,7 +26,8 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
       vectorOfGeneNames = c()
       genesThatHasToBeSeparated = unique(toyBedFile[found_CNVs[s,2]:found_CNVs[s,3],5])
       for (i in 1:length(genesThatHasToBeSeparated)) {
-        vectorOfGeneNames = c(vectorOfGeneNames, unlist(strsplit(genesThatHasToBeSeparated[i], split=",")))
+        if (is.character(genesThatHasToBeSeparated[i]))
+          vectorOfGeneNames = c(vectorOfGeneNames, unlist(strsplit(genesThatHasToBeSeparated[i], split=",")))
       }
       vectorOfGeneNamesTrimmed = c()
       for (elem in vectorOfGeneNames) {
