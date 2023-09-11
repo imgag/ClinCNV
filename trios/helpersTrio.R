@@ -30,9 +30,17 @@ plotFoundCNVs <- function(found_CNVs, toyLogFoldChange, toyBedFile, outputFolder
           vectorOfGeneNames = c(vectorOfGeneNames, unlist(strsplit(genesThatHasToBeSeparated[i], split=",")))
       }
       vectorOfGeneNamesTrimmed = c()
-      for (elem in vectorOfGeneNames) {
-        vectorOfGeneNamesTrimmed = c(vectorOfGeneNamesTrimmed,trimws(elem) )
+      if (length(vectorOfGeneNames) > 0) {
+        for (elem in vectorOfGeneNames) {
+          vectorOfGeneNamesTrimmed = c(vectorOfGeneNamesTrimmed,trimws(elem) )
+        }
       }
+      if (length(vectorOfGeneNamesTrimmed) > 0) {
+        annotationGenes <- paste(unique(vectorOfGeneNamesTrimmed), collapse=",")
+      } else {
+        annotationGenes = "na"
+      }
+
       annotationGenes <- paste(unique(vectorOfGeneNamesTrimmed), collapse=",")
       CNVtoOut <- matrix(c(chrom, toyBedFile[found_CNVs[s,2],2], toyBedFile[found_CNVs[s,3],3], 
                            vector_of_states[found_CNVs[s,4], 1], vector_of_states[found_CNVs[s,4], 2], vector_of_states[found_CNVs[s,4], 3],
