@@ -660,6 +660,10 @@ if (is.null(opt$clusterProvided)) {
     clusteringList <- returnClustering2(as.numeric(opt$minimumNumOfElemsInCluster))
     clustering = clusteringList[[1]]
     outliersByClusteringCohort = clusteringList[[2]]
+    
+    clustering_to_output = clustering
+    names(clustering_to_output) = colnames(normal)
+    write.table(clustering_to_output, file=paste0(opt$out, "/clusterization_of_samples.tsv"), sep="\t", quote=F, col.names = F)
   }
 } else {
   clusteringList <- read.table(opt$clusterProvided, stringsAsFactors = F)
