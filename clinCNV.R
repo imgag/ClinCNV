@@ -178,6 +178,9 @@ option_list = list(
   make_option("--hg38", action="store_true", default=F, 
               help="Work with hg38 cytobands switch"),  
   
+  make_option("--polymorphicGenotyping", type="character", default="NO", 
+              help="should genotyping of polymorphic regions be performed, YES = genotyping is performed, NO = no genotyping. The BED file with polymorphic regions should be supplied via --polymorphicCalling command!"),  
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 
@@ -759,8 +762,15 @@ if (framework == "germline") {
     if (opt$polymorphicCalling != "YES" & opt$polymorphicCalling != "NO") {
       print("Since polymorphicCalling option was not YES or NO, we interpret the value as a path to file")
       print(opt$polymorphicCalling)
-      print("If ClinCNV fails now, then check the path to the file! It should have at least 3 columns: chrom, start, end.")
-      polymorphicRegions = read.table(opt$polymorphicCalling, header=T)
+      print("If ClinCNV fails now, then check the path to the file! It should have at least 3 columns: chrom, start, end. IT SHOULD NOT HAVE A HEADER!")
+      polymorphicRegions = read.table(opt$polymorphicCalling, header=F)
+      polymorphicRegions = polymorphicRegions[,1:3]
+    }
+    
+    if (opt$polymorphicGenotyping == "YES") {
+      print(paste("Genotyping of polymorphic calls contained in a file", opt$polymorphicCalling, "is performed"))
+      source(paste0(opt$folderWithScript, "/germline/mCNVgenotyping.R"),local=TRUE)
+      next
     }
     
     
