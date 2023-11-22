@@ -4,6 +4,12 @@ if (!exists("polymorphicRegions")) {
   quit()
 }
 
+for (i in 1:nrow(polymorphicRegions)) {
+  if (!startsWith(polymorphicRegions[i,1], "chr")) {
+    polymorphicRegions[i,1] = paste0("chr", polymorphicRegions[i,1])
+  }
+}
+
 setwd(opt$folderWithScript)
 source(paste0(opt$folderWithScript, "/germline/mCNVhelpers.R"))
 setwd(opt$out)
