@@ -27,6 +27,8 @@ For **germline** CNVs: https://www.biorxiv.org/content/10.1101/2022.06.10.495642
 
 For **common** CNPs: https://pubmed.ncbi.nlm.nih.gov/35597955/ (this is an advanced analysis and the tool is not working strictly out of the box, better contact me first)
 
+The reason for the very high computation time is, most probably, writing out the visualization tracks for IGV. You can turn it off via `--visulizationIGV` flag, if you are interested only in calls, not in the visual inspection.
+
 ## Pre-requisites
 
 We expect you to install ClinCNV on Linux or MacOS platforms. Copy all the files using `git clone https://github.com/imgag/ClinCNV.git`. We expect you to install `R` (as new version as possible, we used ClinCNV with `R 3.2.3`, but you may experience problems installing libraries using the old version) and the following libraries: 
