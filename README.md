@@ -1,5 +1,4 @@
 # ClinCNV
-[![Build Status](https://travis-ci.org/imgag/ClinCNV.svg?branch=master)](https://travis-ci.org/imgag/ClinCNV)
 
 A tool for large-scale CNV and CNA detection.
 
@@ -12,6 +11,8 @@ Any issues should be reported to: *german dot demidov at medizin dot uni-tuebing
 This software is distributed under [MIT licence](./LICENSE).
 
 ClinCNV is a part of [MegSAP](https://github.com/imgag/megSAP) pipeline.
+
+**Where can I find Bioconda/Docker/Singularity/etc containerized version of ClinCNV?** - you can find it nowhere, we run it via MegSAP pipeline and several other large medical genetic centers too. If you want to create a containerized version, I will say a big **"thank you"** and add a link to your repo here.
 
 ## About this software
 
