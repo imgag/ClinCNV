@@ -16,7 +16,7 @@ ClinCNV is a part of [MegSAP](https://github.com/imgag/megSAP) pipeline.
 
 ## About this software
 
-ClinCNV detects CNVs in germline and somatic context in NGS data (targeted and whole-genome). We work in cohorts, so it makes sense to try `ClinCNV` if you have more than 10 samples (recommended amount - 40 since we estimate variances from the data). By "cohort" we mean samples sequenced with the same enrichment kit with approximately the same depth (ie 1x WGS and 30x WGS better be analysed in separate runs of ClinCNV). Of course it is better if your samples were sequenced within the same sequencing facility. 
+ClinCNV detects CNVs in germline and somatic context in NGS data (targeted and whole-genome). We work in cohorts, so it makes sense to try `ClinCNV` if you have more than 10 samples (recommended amount - 40 since we estimate variances from the data). By "cohort" we mean samples sequenced with the same enrichment kit with approximately the same depth (ie 1x WGS and 30x WGS better be analysed in separate runs of ClinCNV). Of course it is better if your samples were sequenced within the same sequencing facility. `ClinCNV` does not work with very small panels (tens of genes).
 
 Currently we work with human genomes `hg19` and `hg38` only. **For `hg38` you need to turn on `--hg38` flag, by default it is hg19!** For mouse genome or any other diploid organism you have to replace *cytobands.txt* with the corresponding file. ClinCNV can work with small panels (hundreds of regions), but GC-correction can not be performed accurately for samples sequenced with such panels.
 
@@ -316,4 +316,4 @@ ClinCNV is not published for now so it is not possible to properly cite the pape
 
 2) ask us to help you with the analysis for the co-authorship or acknowledgement.
 
-Paper is coming soon, stay tuned!
+To cite the preprints - the links to bioRxiv are above, please do not mix **somatic** and **germline** preprints!
