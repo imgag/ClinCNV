@@ -6,7 +6,7 @@ Authors: G. Demidov, S. Ossowski.
 
 **Thanks to the contributors!** 
 
-**ClinCNV goes into containers!**
+## ClinCNV goes into containers!
 
 Thanks to Kilian Ilius, the container should be downloadable from  [here](megsap.de/download/container/ClinCNV_v1.18.3.sif) . To invoke it you have to have apptainer installed and use the following command:
 
@@ -21,8 +21,6 @@ Any issues should be reported to: *german dot demidov at medizin dot uni-tuebing
 This software is distributed under [MIT licence](./LICENSE).
 
 ClinCNV is a part of [MegSAP](https://github.com/imgag/megSAP) pipeline.
-
-**Where can I find Bioconda/Docker/Singularity/etc containerized version of ClinCNV?** - you can find it nowhere, we run it via MegSAP pipeline and several other large medical genetic centers too. If you want to create a containerized version, I will say a big **"thank you"** and add a link to your repo here.
 
 ## About this software
 
