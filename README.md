@@ -315,13 +315,3 @@ VariantAnnotateFrequency -in $nameOfNormalSample".vcf" -bam $nameOfSample".bam" 
 
 `--numberOfThreads` - maximum number of threads allowed to use by the tool.
 
-
-## Citation
-
-ClinCNV is not published for now so it is not possible to properly cite the paper. However, you can: 
-
-1) cite it as an unpublished tool in the text of your paper;
-
-2) ask us to help you with the analysis for the co-authorship or acknowledgement.
-
-To cite the preprints - the links to bioRxiv are above, please do not mix **somatic** and **germline** preprints!
