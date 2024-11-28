@@ -6,6 +6,16 @@ Authors: G. Demidov, S. Ossowski.
 
 **Thanks to the contributors!** 
 
+**ClinCNV goes into containers!**
+
+Thanks to Kilian Ilius, the container should be downloadable from  [here](megsap.de/download/container/ClinCNV_v1.18.3.sif) . To invoke it you have to have apptainer installed and use the following command:
+
+```
+apptainer exec -B /path/to/files/used ClinCNV_v1.18.3.sif Rscript /opt/ClinCNV/clinCNV.R parameters
+```
+
+One should also be able to use it with singularity. The only thing that changes in the command is replacing `apptainer` by `singularity`.
+
 Any issues should be reported to: *german dot demidov at medizin dot uni-tuebingen dot de*. The presentation (around 60 slides with the short description of ClinCNV and results) is available [here](https://github.com/imgag/ClinCNV/tree/master/doc/ClinCNV_thesis_presentation.pdf).
 
 This software is distributed under [MIT licence](./LICENSE).
