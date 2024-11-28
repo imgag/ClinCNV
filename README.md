@@ -16,7 +16,7 @@ apptainer exec -B /path/to/files/used ClinCNV_v1.18.3.sif Rscript /opt/ClinCNV/c
 
 One should also be able to use it with singularity. The only thing that changes in the command is replacing `apptainer` by `singularity`.
 
-Any issues should be reported to: *german dot demidov at medizin dot uni-tuebingen dot de*. The presentation (around 60 slides with the short description of ClinCNV and results) is available [here](https://github.com/imgag/ClinCNV/tree/master/doc/ClinCNV_thesis_presentation.pdf).
+Any issues should be (better) raised in [Issues](https://github.com/imgag/ClinCNV/issues/new) on github or reported to: *german dot demidov at medizin dot uni-tuebingen dot de*. The presentation (around 60 slides with the short description of ClinCNV and results) is available [here](https://github.com/imgag/ClinCNV/tree/master/doc/ClinCNV_thesis_presentation.pdf). Papers describing `ClinCNV` performance can be found, in particular, [here](https://link.springer.com/article/10.1186/s12967-024-05468-1) and [here](https://www.nature.com/articles/s41525-024-00436-6).
 
 This software is distributed under [MIT licence](./LICENSE).
 
