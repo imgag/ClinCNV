@@ -11,7 +11,7 @@ Authors: G. Demidov, S. Ossowski.
 Thanks to Kilian Ilius, the container should be downloadable from  [here](megsap.de/download/container/ClinCNV_v1.18.3.sif) . To invoke it you have to have apptainer installed and use the following command:
 
 ```
-apptainer exec -B /path/to/files/used ClinCNV_v1.18.3.sif Rscript /opt/ClinCNV/clinCNV.R parameters
+Apptainer exec -B /bind/paths ClinCNV_v1.18.3.sif clinCNV.R parameters
 ```
 
 One should also be able to use it with singularity. The only thing that changes in the command is replacing `apptainer` by `singularity`.
