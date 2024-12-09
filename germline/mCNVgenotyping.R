@@ -73,6 +73,7 @@ coverage.normalised.polymorph = sweep(coverageForNormalization, 1, mediansOfPoly
 rm(mediansAndSdsPolymorphic)
 rm(coverageForNormalization)
 
+bedFilePolymorph = bedFile
 
 regionsToRemove <- which(mediansOfPolymorphic <= 0.25 | mediansOfPolymorphic >= sqrt(16/2))
 regionsToRemove = unique(c(regionsToRemove, regionsToRemove + 1, regionsToRemove - 1))
