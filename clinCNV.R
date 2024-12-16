@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 set.seed(100)
 options(warn=-1)
-clincnvVersion = paste0("ClinCNV version: v1.19.0")
+clincnvVersion = paste0("ClinCNV version: v1.19.1")
 
 ## CHECK R VERSION
 if (!( (as.numeric(version$major) >= 3 & as.numeric(version$minor) > 2.0) |  as.numeric(version$major) >= 4) ) {
@@ -245,8 +245,6 @@ if (opt$onlyTumor) {
 }
 
 
-
-
 #no_cores <- min(detectCores() - 1, as.numeric(opt$numberOfThreads))
 #cl<-makeCluster(no_cores, type="FORK")
 #registerDoParallel(cl)
@@ -290,6 +288,9 @@ for (i in 1:20) {
   if(sum(tableOfValues[which(tableOfValues > 25)]) / sum(tableOfValues) > 0.95) break 
 }
 bedFile[,4] <- round(as.numeric(as.character(bedFile[,4])) / i, digits = 2) * i
+if (length(which(bedFile[,3] - bedFile[,2] < 50))){
+  print("We filter out regions shorter than 50bp! If you want them to be called - increase them directly in the .bed file BEFORE you calculate GC content!")
+}
 whichBedIsNA <- which(is.na(bedFile[,4]) | bedFile[,3] - bedFile[,2] < 50 | (!bedFile[,1] %in% presentedChromsOn[numberOfElemsInEachChromosome]))
 bedPositionsThatWillBeFiltered = rbind(bedPositionsThatWillBeFiltered, cbind(bedFile[whichBedIsNA,], rep("TooShortOrNA", length(whichBedIsNA))))
 colnames(bedPositionsThatWillBeFiltered)[ncol(bedPositionsThatWillBeFiltered)] = "Description"
