@@ -16,7 +16,7 @@ Apptainer exec -B /bind/paths ClinCNV_v1.18.3.sif clinCNV.R parameters
 
 One should also be able to use it with singularity. The only thing that changes in the command is replacing `apptainer` by `singularity`.
 
-Any issues should be (better) raised in [Issues](https://github.com/imgag/ClinCNV/issues/new) on github or reported to: *german dot demidov at medizin dot uni-tuebingen dot de*. The presentation (around 60 slides with the short description of ClinCNV and results) is available [here](https://github.com/imgag/ClinCNV/tree/master/doc/ClinCNV_thesis_presentation.pdf). Papers describing `ClinCNV` performance can be found, in particular, [here](https://link.springer.com/article/10.1186/s12967-024-05468-1) and [here](https://www.nature.com/articles/s41525-024-00436-6).
+Any issues should be (better) raised in [Issues](https://github.com/imgag/ClinCNV/issues/new) on github or reported to: *german dot demidov at medizin dot uni-tuebingen dot de*. The presentation (around 60 slides with the short description of ClinCNV and results) is available [here](https://github.com/imgag/ClinCNV/tree/master/doc/ClinCNV_thesis_presentation.pdf). Papers describing `ClinCNV` performance can be found, in particular, [here](https://link.springer.com/article/10.1186/s12967-024-05468-1) and [here](https://www.nature.com/articles/s41525-024-00436-6). The performance on panels reported [here](https://academic.oup.com/bib/article/26/1/bbae645/7922578) and version 1.19.1 addresses the issues of sensitivity.
 
 This software is distributed under [MIT licence](./LICENSE).
 
@@ -123,6 +123,8 @@ We expect `.bed` file annotated with GC-content and (optionally) intersecting ge
 chrI[char, "chr" is a prefix] \t startCoord[int] \t endCoord[int] \t gcContent[real, from 0 to 1] \t genesName[character comma delimited] \n
 ```
 
+If you have small panels or just want to call CNVs smaller than exon (but not shorter than 120bp) - follow [this procedure](https://github.com/GermanDemidov/segmentation_before_CNV_calling) BEFORE you prepare .bed file with GC-content annotation and gene names! Since you'll have to reannotate them answer.
+
 Example of `.bed` (here and below we provide only one line, assuming that there are as many as needed):
 
 ```
@@ -133,6 +135,7 @@ or, annotated with genes,
 chr1    12171   12245   0.4595  DDX11L1
 ```
 - both variants are fine.
+
 
 ### .cov format
 We expect AVERAGE coverage depths of samples to be written as (starting from header): 
