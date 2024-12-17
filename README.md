@@ -8,7 +8,7 @@ Authors: G. Demidov, S. Ossowski.
 
 ## ClinCNV goes into containers!
 
-Thanks to Kilian Ilius, the container should be downloadable from  [here](megsap.de/download/container/ClinCNV_v1.18.3.sif) . To invoke it you have to have apptainer installed and use the following command:
+Thanks to Kilian Ilius, the container should be downloadable from  [here]((https://megsap.de/download/container/ClinCNV_v1.18.3.sif) . To invoke it you have to have apptainer installed and use the following command:
 
 ```
 Apptainer exec -B /bind/paths ClinCNV_v1.18.3.sif clinCNV.R parameters
