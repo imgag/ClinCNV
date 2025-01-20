@@ -225,12 +225,13 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   maxIteration = 2
   vectorWithNumberOfOutliers <- c()
   vectorOfZScores = rep(0, nrow(bedFileFiltered))
-  vectorOfZScores[which(!bedFileFiltered[,1] %in% c("chrX","chrY"))] <- (coverage.normalised[which(!bedFileFiltered[,1] %in% c("chrX","chrY")),sam_no] - 1) / localSds
+  vectorOfZScores[which(!bedFileFiltered[,1] %in% c("chrX","chrY"))] <- (coverage.normalised[which(!bedFileFiltered[,1] %in% c("chrX","chrY")),sam_no] - 1) / localSds[which(!bedFileFiltered[,1] %in% c("chrX","chrY"))]
   if (genderOfSamples[sam_no] == "F") {
-    vectorOfZScores[which(bedFileFiltered[,1] %in% c("chrX"))] <- c(vectorOfZScores, (coverage.normalised[which(bedFileFiltered[,1] %in% c("chrX")),sam_no] - 1) / localSds)
+    vectorOfZScores[which(bedFileFiltered[,1] %in% c("chrX"))] <- (coverage.normalised[which(bedFileFiltered[,1] %in% c("chrX")),sam_no] - 1) / localSds[which(bedFileFiltered[,1] %in% c("chrX"))]
   } else {
-    vectorOfZScores[which(bedFileFiltered[,1] %in% c("chrX","chrY"))] <- c(vectorOfZScores, (coverage.normalised[which(bedFileFiltered[,1] %in% c("chrX","chrY")),sam_no] - sqrt(1/2)) / localSds)
+    vectorOfZScores[which(bedFileFiltered[,1] %in% c("chrX","chrY"))] <- (coverage.normalised[which(bedFileFiltered[,1] %in% c("chrX","chrY")),sam_no] - sqrt(1/2)) / localSds[which(bedFileFiltered[,1] %in% c("chrX","chrY"))]
   }
+  
   
   
   initial_state = main_initial_state
