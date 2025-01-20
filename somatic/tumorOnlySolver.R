@@ -396,8 +396,8 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         }
         
         
-        toyMatrixOfLikeliks = globalMatrixOfLikeliks[which_to_allow,]
-        toybedFileFiltered = globalBed[which_to_allow,]
+        toyMatrixOfLikeliks = globalMatrixOfLikeliks[which_to_allow,,drop=F]
+        toybedFileFiltered = globalBed[which_to_allow,,drop=F]
         
         copy_numbers_for_penalties = 3 - (local_actual_major_alleles + local_actual_minor_alleles)
         copy_numbers_for_penalties[which(copy_numbers_for_penalties > 0)] = 0
