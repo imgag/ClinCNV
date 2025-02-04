@@ -22,7 +22,7 @@ actual_minor_alleles = c()
 for (pur in purity) {
   for (major in major_allele_cn) {
     for (minor in minor_allele_cn) {
-      if (minor < major | (minor == major & (major >= 1 | (major == 0 & pur < 0.8)))) {
+      if (minor < major | (minor == major & (major > 1 | (major == 0 & pur < 0.8)))) {
         if (minor == 0 & major > 4) next
         actual_major_allele = (1 - pur) + pur * major 
         actual_minor_allele = (1 - pur) + pur * minor 
