@@ -12,7 +12,7 @@ purities <- c(0,0)
 
 purity <- seq(from=0.01 * opt$minimumPurity, to=1, 0.01 * opt$purityStep)
 
-major_allele_cn = 0:30
+major_allele_cn = 0:15
 minor_allele_cn = 0:2
 
 cn_states_tumor_only = c()
