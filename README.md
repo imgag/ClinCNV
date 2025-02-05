@@ -1,6 +1,6 @@
 # ClinCNV
 
-A tool for large-scale CNV and CNA detection.
+A tool for large-scale CNV and CNA detection. Please [CITE the preprints](https://github.com/imgag/ClinCNV?tab=readme-ov-file#about-this-software) if you use this tool in your paper, it will help me.
 
 Authors: G. Demidov, S. Ossowski.
 
