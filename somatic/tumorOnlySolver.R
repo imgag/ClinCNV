@@ -358,9 +358,9 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           
           
           for (snv in 1:nrow(baf_from_chr)) {
-            index_to_plus <- which(globalBed[,1] == chrom & globalBed[,2]  <= baf_from_chr[snv,2] & globalBed[,3]  >= baf_from_chr[snv,3])
+            index_to_plus <- which(globalBed[,1] == chrom & globalBed[,2]  <= baf_from_chr[snv,2] & globalBed[,3]  >= baf_from_chr[snv,2])
             if (length(index_to_plus) > 0) {
-              globalMatrixOfLikeliks[index_to_plus,] = globalMatrixOfLikeliks[index_to_plus,] + actual_likeliks_to_add_chr[snv,]
+              globalMatrixOfLikeliks[index_to_plus[1],] = globalMatrixOfLikeliks[index_to_plus[1],] + actual_likeliks_to_add_chr[snv,]
             }
           }
         }
