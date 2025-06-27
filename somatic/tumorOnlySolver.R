@@ -417,7 +417,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         
         if (nrow(found_CNVs) > 0 & iterations == 1) {
           for (cnv in 1:nrow(found_CNVs)) {
-            if (found_CNVs[,1] < -2 * threshold) {
+            if (found_CNVs[cnv,1] < -2 * threshold) {
               likeliks_to_decide = apply(toyMatrixOfLikeliks[found_CNVs[cnv, 2]:found_CNVs[cnv, 3],], 2, sum)
               
               matrix_of_likeliks_for_purity = rbind(matrix_of_likeliks_for_purity, likeliks_to_decide)
