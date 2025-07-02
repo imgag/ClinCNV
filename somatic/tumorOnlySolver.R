@@ -413,7 +413,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
         
         toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
         toyCoverageGermline = coverage.normalised[which_to_allow_ontarget,sam_no]
-        toyCoverageGermlineCohort = coverage.normalised[which_to_allow_ontarget,]
+        toyCoverageGermlineCohort = coverage.normalised[which_to_allow_ontarget,,drop=F]
         
         if (nrow(found_CNVs) > 0 & iterations == 1) {
           for (cnv in 1:nrow(found_CNVs)) {
