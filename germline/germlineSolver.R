@@ -279,7 +279,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
           
           toySizesOfPointsFromLocalSds = sizesOfPointsFromLocalSds[which_to_allow]
           toyCoverageGermline = coverage.normalised[which_to_allow_ontarget,sam_no]
-          toyCoverageGermlineCohort = coverage.normalised[which_to_allow_ontarget,]
+          toyCoverageGermlineCohort = coverage.normalised[which_to_allow_ontarget,,drop=F]
           
           ### CHECKING FOR MOSAICISM!
           if (length(which_to_allow_ontarget) > max(10, opt$lengthG * 2)) {
