@@ -181,6 +181,9 @@ option_list = list(
   make_option("--polymorphicGenotyping", type="character", default="NO", 
               help="should genotyping of polymorphic regions be performed, YES = genotyping is performed, NO = no genotyping. The BED file with polymorphic regions should be supplied via --polymorphicCalling command!"),  
   
+  make_option("--panelGC", action="store_true", default=F, 
+              help="Remove less GC extreme regions, useful for panels, almost does not effect for genomes"),
+  
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
 

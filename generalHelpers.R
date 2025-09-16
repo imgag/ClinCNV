@@ -129,12 +129,22 @@ gc_and_sample_size_normalise <- function(info, coverages, averageCoverage=T, all
   gcs <- info[,4]
   uniques_gcs <- unique(gcs)
   uniquesGcsToExclude = c()
-  empricial_criterion_for_exclusion = 7
-  if (nrow(coverages) > 50000) {
-    empricial_criterion_for_exclusion = 12
-  }
-  if (nrow(coverages) > 100000) {
-    empricial_criterion_for_exclusion = 40
+  if (opt$panelGC) {
+    empricial_criterion_for_exclusion = 7
+    if (nrow(coverages) > 50000) {
+      empricial_criterion_for_exclusion = 12
+    }
+    if (nrow(coverages) > 100000) {
+      empricial_criterion_for_exclusion = 40
+    }
+  } else {
+    empricial_criterion_for_exclusion = 25
+    if (nrow(coverages) > 10000) {
+      empricial_criterion_for_exclusion = 50
+    }
+    if (nrow(coverages) > 100000) {
+      empricial_criterion_for_exclusion = 100
+    }
   }
   
   for (i in 1:length(uniques_gcs)) {
