@@ -183,6 +183,9 @@ option_list = list(
   
   make_option("--panelGC", action="store_true", default=F, 
               help="Remove less GC extreme regions, useful for panels, almost does not effect for genomes"),
+
+  make_option("--denoise", type="integer", default=0, 
+              help="number of components of noise to remove, default=0 (no noise removal)"),  
   
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
 ); 
