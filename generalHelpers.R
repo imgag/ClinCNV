@@ -876,3 +876,56 @@ if (Rcpp_global) {
     return(c(bestSoFar, bestStartIndexSoFar, bestStopIndexSoFar))
   }
 }
+
+
+
+
+remove_batch_effects <- function(mat, k = 2, pseudo_count = 0.1, preserve_exact_zeroes = TRUE, row_baselines = 0) {
+  # 1. Input Validation
+  if (!requireNamespace("rsvd", quietly = TRUE)) {
+    stop("The 'rsvd' package is required. Please install it.")
+  }
+  if (!is.matrix(mat) || !is.numeric(mat)) {
+    stop("Input 'mat' must be a numeric matrix.")
+  }
+  
+  # 2. Track Original Zeroes
+  # We create a logical matrix of exact zeroes to mask them back later.
+  zero_mask <- (mat == 0)
+  
+  # 3. Log-Transformation
+  # Add the pseudo-count to safely handle zeroes, then log2.
+  log_mat <- log2(mat + pseudo_count)
+  
+  # 4. Row Centering
+  # Calculate the baseline for each region across all samples.
+  centered_mat <- log_mat - row_baselines
+  
+  # 5. Robust Randomized PCA (The Denoising Engine)
+  # We extract the top 'k' components as the low-rank systemic noise (L).
+  # The sparse biological variations (CNVs, aneuploidies) remain in S.
+  message(sprintf("Running rrpca to remove top %d components...", k))
+  rpca_res <- rsvd::rrpca(centered_mat, k = k, trace = FALSE)
+  
+  # 6. Reconstruction
+  # We completely discard the batch effects (L) and reconstruct using 
+  # only the sparse biological signals (S), adding the baseline back.
+  denoised_log <- rpca_res$S + row_baselines
+  
+  # 7. Reverse the Log-Transformation
+  # Exponentiate and subtract the pseudo-count to return to linear space.
+  denoised_mat <- (2^denoised_log) - pseudo_count
+  
+  # 8. Zero Handling & Clamping
+  # RPCA variance shifting can occasionally push a low value slightly negative.
+  # Since negative coverage is physically impossible, we clamp them to 0.
+  denoised_mat[denoised_mat < 0] <- 0
+  
+  # Apply the zero-mask based on user preference
+  if (preserve_exact_zeroes) {
+    denoised_mat[zero_mask] <- 0
+  }
+  
+  message("Denoising complete.")
+  return(denoised_mat)
+}
