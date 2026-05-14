@@ -1008,16 +1008,19 @@ denoise_input_matrix <- function(bed, coverage, gender, num_of_components) {
 	
 	normalize_y = F
 
-	if (nrow(mat_Y) > 0 & normalize_y) {
+	if (nrow(mat_Y) > 0) {
 	  message("Processing Non-PAR chrY (Males Only)...")
 	  
 	  res_Y <- mat_Y # Preserve female data exactly as is
 	  
 	  mat_Y_males <- mat_Y[, male_cols, drop = FALSE]
-	  res_Y_males <- remove_batch_effects(mat_Y_males, k = num_of_components, pseudo_count = 0.01, row_baselines = row_mean)
+	  if (normalize_y) {
+		res_Y_males <- remove_batch_effects(mat_Y_males, k = num_of_components, pseudo_count = 0.01, row_baselines = row_mean)
+		res_Y[, male_cols] <- res_Y_males
+	  }
 	  #res_Y_males <- remove_top_k_noise(mat_Y_males, k = num_of_components, pseudo_count = 0.001, row_baselines = row_mean)
 
-	  res_Y[, male_cols] <- res_Y_males
+	  
 	  final_denoised_matrix[mask_non_par_Y, ] <- res_Y
 	}
 
