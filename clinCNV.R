@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 set.seed(100)
 options(warn=-1)
-clincnvVersion = paste0("ClinCNV version: v1.19.1")
+clincnvVersion = paste0("ClinCNV version: v1.20.0")
 
 ## CHECK R VERSION
 if (!( (as.numeric(version$major) >= 3 & as.numeric(version$minor) > 2.0) |  as.numeric(version$major) >= 4) ) {
@@ -184,7 +184,7 @@ option_list = list(
   make_option("--panelGC", action="store_true", default=F, 
               help="Remove less GC extreme regions, useful for panels, almost does not effect for genomes"),
 
-  make_option("--denoise", type="integer", default=0, 
+  make_option("--denoise", type="double", default=0, 
               help="number of components of noise to remove, default=0 (no noise removal)"),  
   
   make_option(c("-d","--debug"), action="store_true", default=FALSE, help="Print debugging information while running.")
@@ -546,7 +546,7 @@ lst <- gc_and_sample_size_normalise(bedFile, normal)
 if (nrow(lst[[3]]) > 0) {
   toBind = cbind(lst[[3]], rep("GCnormFailed", nrow(lst[[3]])))
   colnames(toBind)[ncol(toBind)] = "Description"
-bedPositionsThatWillBeFiltered = rbind(bedPositionsThatWillBeFiltered, toBind)
+  bedPositionsThatWillBeFiltered = rbind(bedPositionsThatWillBeFiltered, toBind)
 }
 normal <- lst[[1]]
 if (framework == "somatic") {
@@ -789,9 +789,10 @@ if (framework == "germline") {
     coverage.normalised = sweep(coverage, 1, mediansAndSds[[1]][,1] + 10**-40, FUN="/")
     rm(coverage)
 
-  if (opt$denoise > 0) {
-    print("You requested denoising of your data.")
-  }
+	if (opt$denoise > 0) {
+		print("You requested denoising of your data.")
+		coverage.normalised = sqrt(denoise_input_matrix(bedFile, coverage.normalised ** 2, genderOfSamples, opt$denoise))
+	}
     
     gc()
     

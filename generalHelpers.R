@@ -880,7 +880,7 @@ if (Rcpp_global) {
 
 
 
-remove_batch_effects <- function(mat, k = 2, pseudo_count = 0.1, preserve_exact_zeroes = TRUE, row_baselines = 0) {
+remove_batch_effects <- function(mat, k = 2, pseudo_count = 0.01, preserve_exact_zeroes = TRUE, row_baselines = 0) {
   # 1. Input Validation
   if (!requireNamespace("rsvd", quietly = TRUE)) {
     stop("The 'rsvd' package is required. Please install it.")
@@ -899,18 +899,18 @@ remove_batch_effects <- function(mat, k = 2, pseudo_count = 0.1, preserve_exact_
   
   # 4. Row Centering
   # Calculate the baseline for each region across all samples.
-  centered_mat <- log_mat - row_baselines
+  centered_mat <- log_mat - log2(row_baselines)
   
   # 5. Robust Randomized PCA (The Denoising Engine)
-  # We extract the top 'k' components as the low-rank systemic noise (L).
   # The sparse biological variations (CNVs, aneuploidies) remain in S.
-  message(sprintf("Running rrpca to remove top %d components...", k))
-  rpca_res <- rsvd::rrpca(centered_mat, k = k, trace = FALSE)
+  print("Lambda will be set as 1 / k")
+  default_lambda <- 1 / sqrt(max(nrow(centered_mat), ncol(centered_mat)))
+  rpca_res <- rsvd::rrpca(centered_mat, lambda = default_lambda * k, trace = FALSE)
   
   # 6. Reconstruction
   # We completely discard the batch effects (L) and reconstruct using 
   # only the sparse biological signals (S), adding the baseline back.
-  denoised_log <- rpca_res$S + row_baselines
+  denoised_log <- rpca_res$S + log2(row_baselines)
   
   # 7. Reverse the Log-Transformation
   # Exponentiate and subtract the pseudo-count to return to linear space.
@@ -927,5 +927,143 @@ remove_batch_effects <- function(mat, k = 2, pseudo_count = 0.1, preserve_exact_
   }
   
   message("Denoising complete.")
+  return(denoised_mat)
+}
+
+denoise_input_matrix <- function(bed, coverage, gender, num_of_components) {
+	# Check if rsvd is installed; if not, install it from CRAN
+	if (!requireNamespace("rsvd", quietly = TRUE)) {
+	  message("Package 'rsvd' not found. Installing now...")
+	  install.packages("rsvd")
+	}
+
+	# Load the library
+	library(rsvd)
+	# ---------------------------------------------------------
+	# 1. Setup and Identification
+	# ---------------------------------------------------------
+	# Identify column indices for males and females
+	male_cols <- which(gender == "M")
+	female_cols <- which(gender == "F")
+
+	# Extract the chromosome column (already containing chrXP/chrYP)
+	chr_col <- bed$chr 
+
+	# ---------------------------------------------------------
+	# 2. Define Genomic Partitions (Masks)
+	# ---------------------------------------------------------
+	# Because PARs are re-labelled, we just look for exact X and Y matches
+	mask_non_par_X <- chr_col == "chrX"
+	mask_non_par_Y <- chr_col == "chrY"
+
+	# Everything else (chr1-22, chrXP, chrYP) is treated as an autosome
+	mask_autosomes_and_par <- !mask_non_par_X & !mask_non_par_Y
+
+	# Initialize the final output matrix with the exact same dimensions
+	final_denoised_matrix <- matrix(NA, 
+									nrow = nrow(coverage), 
+									ncol = ncol(coverage))
+	colnames(final_denoised_matrix) <- colnames(coverage)
+
+	# ---------------------------------------------------------
+	# 2. Process Group A: The "Super-Matrix" (Autosomes, PAR, & chrX)
+	# ---------------------------------------------------------
+	# Create a mask that grabs the entire genome EXCEPT non-PAR chrY
+	mask_main_genome <- mask_autosomes_and_par | mask_non_par_X
+
+	mat_main <- coverage[mask_main_genome, , drop = FALSE]
+	
+	row_mean = median(coverage[mask_autosomes_and_par,])
+	print("ROW MEAN")
+	print(row_mean)
+
+	if (nrow(mat_main) > 0) {
+	  message("Processing Full Genome (Autosomes + PAR + Ploidy-Corrected X)...")
+	  
+	  # Step A: Identify which rows *inside our subset* are chrX
+	  local_mask_X <- chr_col[mask_main_genome] == "chrX"
+	  
+	  # Step B: Ploidy-Correct the males ONLY on those specific chrX rows
+	  mat_main[local_mask_X, male_cols] <- mat_main[local_mask_X, male_cols] * 2
+	  
+	  # Step C: Run the heavy denoising algorithm ONCE on the massive combined matrix
+	   res_main <- remove_batch_effects(mat_main, k = num_of_components, pseudo_count = 0.01, row_baselines = row_mean)
+	  #res_main <- remove_top_k_noise(mat_main, k = num_of_components, pseudo_count = 0.001, row_baselines = row_mean)
+
+
+	  # Step D: Reverse the ploidy-correction to restore biological male baseline
+	  res_main[local_mask_X, male_cols] <- res_main[local_mask_X, male_cols] / 2
+	  
+	  # Step E: Slot the cleanly processed super-matrix back into the final output
+	  final_denoised_matrix[mask_main_genome, ] <- res_main
+	}
+
+	# ---------------------------------------------------------
+	# 3. Process Group B: Non-PAR chrY (Males Only)
+	# ---------------------------------------------------------
+	mat_Y <- coverage.normalised[mask_non_par_Y, , drop = FALSE]
+	row_mean = median(mat_Y[,male_cols,drop=F])
+	print("ROW MEAN Y")
+	print(row_mean)
+	
+	normalize_y = F
+
+	if (nrow(mat_Y) > 0 & normalize_y) {
+	  message("Processing Non-PAR chrY (Males Only)...")
+	  
+	  res_Y <- mat_Y # Preserve female data exactly as is
+	  
+	  mat_Y_males <- mat_Y[, male_cols, drop = FALSE]
+	  res_Y_males <- remove_batch_effects(mat_Y_males, k = num_of_components, pseudo_count = 0.01, row_baselines = row_mean)
+	  #res_Y_males <- remove_top_k_noise(mat_Y_males, k = num_of_components, pseudo_count = 0.001, row_baselines = row_mean)
+
+	  res_Y[, male_cols] <- res_Y_males
+	  final_denoised_matrix[mask_non_par_Y, ] <- res_Y
+	}
+
+	message("Full genomic matrix reconstruction complete.")
+	return(final_denoised_matrix)
+}
+
+
+
+
+remove_top_k_noise <- function(mat, k = 2, pseudo_count = 0.01, row_baselines) {
+  
+  # 1. Log transform and center using Medians
+  log_mat <- log2(mat + pseudo_count)
+  centered_mat <- log_mat - log2(row_baselines)
+  
+  # 2. Outlier Masking (Protect the Aneuploidies/CNVs)
+  # Calculate Median Absolute Deviation (MAD) for each row
+  row_mads <- apply(centered_mat, 1, mad)
+  
+  # Create a temporary matrix where extreme biological outliers are flattened to 0
+  # (0 is the baseline in our centered matrix). 
+  # A threshold of 3 or 4 MADs easily catches deletions and duplications.
+  masked_mat <- centered_mat
+  outlier_threshold <- 3 * row_mads
+  
+  for (i in 1:nrow(masked_mat)) {
+    outliers <- abs(masked_mat[i, ]) > outlier_threshold[i]
+    masked_mat[i, outliers] <- 0 
+  }
+  
+  # 3. Standard Randomized SVD (Now we can use 'k')
+  # We calculate the batch effects purely on the masked, 'clean' background
+  message(sprintf("Calculating top %d batch effects...", k))
+  svd_res <- rsvd::rsvd(masked_mat, k = k)
+  
+  # 4. Project and Subtract
+  # Reconstruct the noise using the components we found, and subtract it 
+  # from the ORIGINAL, unmasked centered data to preserve the aneuploidies.
+  noise_matrix <- svd_res$u %*% diag(svd_res$d, nrow=k, ncol=k) %*% t(svd_res$v)
+  denoised_centered <- centered_mat - noise_matrix
+  
+  # 5. Reverse transformations
+  denoised_log <- denoised_centered + log2(row_baselines)
+  denoised_mat <- (2^denoised_log) - pseudo_count
+  denoised_mat[denoised_mat < 0] <- 0
+  
   return(denoised_mat)
 }
