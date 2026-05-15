@@ -881,6 +881,7 @@ if (Rcpp_global) {
 
 
 remove_batch_effects <- function(mat, k = 2, pseudo_count = 0.01, preserve_exact_zeroes = TRUE, row_baselines = 0) {
+  row_baselines = row_baselines + pseudo_count
   # 1. Input Validation
   if (!requireNamespace("rsvd", quietly = TRUE)) {
     stop("The 'rsvd' package is required. Please install it.")
@@ -899,19 +900,29 @@ remove_batch_effects <- function(mat, k = 2, pseudo_count = 0.01, preserve_exact
   
   # 4. Row Centering
   # Calculate the baseline for each region across all samples.
-  centered_mat <- log_mat - log2(row_baselines)
+  #centered_mat <- log_mat - log2(row_baselines)
+  if (length(row_baselines) == 1) {
+	centered_mat = log_mat - log2(row_baselines)
+  } else {
+	  centered_mat <- sweep(log_mat, 2, log2(row_baselines), FUN = "-")
+  }
   
   # 5. Robust Randomized PCA (The Denoising Engine)
   # The sparse biological variations (CNVs, aneuploidies) remain in S.
-  print("Lambda will be set as 1 / k")
+  print("Lambda will be set as default_lambda * k. Use lower (closer to 0, non negative) k if you want less denoising.")
   default_lambda <- 1 / sqrt(max(nrow(centered_mat), ncol(centered_mat)))
   rpca_res <- rsvd::rrpca(centered_mat, lambda = default_lambda * k, trace = FALSE)
-  
+
   # 6. Reconstruction
   # We completely discard the batch effects (L) and reconstruct using 
   # only the sparse biological signals (S), adding the baseline back.
-  denoised_log <- rpca_res$S + log2(row_baselines)
-  
+  #denoised_log <- rpca_res$S + log2(row_baselines)
+    if (length(row_baselines) == 1) {
+	  denoised_log <- rpca_res$S + log2(row_baselines)
+	} else {
+	  denoised_log = sweep(rpca_res$S, 2, log2(row_baselines), FUN = "+")
+	}
+
   # 7. Reverse the Log-Transformation
   # Exponentiate and subtract the pseudo-count to return to linear space.
   denoised_mat <- (2^denoised_log) - pseudo_count
@@ -963,6 +974,7 @@ denoise_input_matrix <- function(bed, coverage, gender, num_of_components) {
 	final_denoised_matrix <- matrix(NA, 
 									nrow = nrow(coverage), 
 									ncol = ncol(coverage))
+	final_denoised_matrix = coverage
 	colnames(final_denoised_matrix) <- colnames(coverage)
 
 	# ---------------------------------------------------------
@@ -974,10 +986,8 @@ denoise_input_matrix <- function(bed, coverage, gender, num_of_components) {
 	mat_main <- coverage[mask_main_genome, , drop = FALSE]
 	
 	row_mean = median(coverage[mask_autosomes_and_par,])
-	print("ROW MEAN")
-	print(row_mean)
 
-	if (nrow(mat_main) > 0) {
+	if (nrow(mat_main) > 100) {
 	  message("Processing Full Genome (Autosomes + PAR + Ploidy-Corrected X)...")
 	  
 	  # Step A: Identify which rows *inside our subset* are chrX
@@ -1001,28 +1011,26 @@ denoise_input_matrix <- function(bed, coverage, gender, num_of_components) {
 	# ---------------------------------------------------------
 	# 3. Process Group B: Non-PAR chrY (Males Only)
 	# ---------------------------------------------------------
-	mat_Y <- coverage.normalised[mask_non_par_Y, , drop = FALSE]
+	mat_Y <- coverage[mask_non_par_Y, , drop = FALSE]
 	row_mean = median(mat_Y[,male_cols,drop=F])
-	print("ROW MEAN Y")
-	print(row_mean)
-	
-	normalize_y = F
 
-	if (nrow(mat_Y) > 0) {
+	if (nrow(mat_Y) > 20) {
 	  message("Processing Non-PAR chrY (Males Only)...")
 	  
 	  res_Y <- mat_Y # Preserve female data exactly as is
 	  
-	  mat_Y_males <- mat_Y[, male_cols, drop = FALSE]
-	  if (normalize_y) {
-		res_Y_males <- remove_batch_effects(mat_Y_males, k = num_of_components, pseudo_count = 0.01, row_baselines = row_mean)
-		res_Y[, male_cols] <- res_Y_males
-	  }
+	 mat_Y_males <- mat_Y[, male_cols, drop = FALSE]
+	 	 print(row_mean)
+	 row_mean = apply(mat_Y_males, 2, median)
+	 print(row_mean)
+	res_Y_males <- remove_batch_effects(mat_Y_males, k = num_of_components, pseudo_count = 0.01, row_baselines = row_mean)
+	res_Y[, male_cols] <- res_Y_males
 	  #res_Y_males <- remove_top_k_noise(mat_Y_males, k = num_of_components, pseudo_count = 0.001, row_baselines = row_mean)
 
 	  
 	  final_denoised_matrix[mask_non_par_Y, ] <- res_Y
 	}
+
 
 	message("Full genomic matrix reconstruction complete.")
 	return(final_denoised_matrix)

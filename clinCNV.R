@@ -788,10 +788,11 @@ if (framework == "germline") {
     mediansAndSds = calculateLocationAndScale(bedFile, coverage, genderOfSamples, autosomes)
     coverage.normalised = sweep(coverage, 1, mediansAndSds[[1]][,1] + 10**-40, FUN="/")
     rm(coverage)
+	
 
 	if (opt$denoise > 0) {
 		print("You requested denoising of your data.")
-		coverage.normalised = sqrt(denoise_input_matrix(bedFile, coverage.normalised ** 2, genderOfSamples, opt$denoise))
+		coverage.normalised = sqrt(denoise_input_matrix(bedFile, coverage.normalised ^ 2, genderOfSamples, opt$denoise))
 	}
     
     gc()
