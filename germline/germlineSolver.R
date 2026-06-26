@@ -534,12 +534,16 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   finalPValue = 1.0
   fileToOut <- paste0(folder_name, sample_name, paste0("/", sample_name, "_cnvs.tsv"))
   fileConn<-file(fileToOut)
+  was_denoising_used = ""
+  if (opt$denoise > 0) {
+    was_denoising_used =  paste0(", denoising value used", as.character(opt$denoise))
+  }
   writeLines(c(
     paste0("##ANALYSISTYPE=CLINCNV_GERMLINE_SINGLE"), 
     paste0("##", clincnvVersion), 
     paste("##Analysis finished on:", Sys.time()),
     paste("##gender of sample:", genderOfSamples[sam_no], collapse = " "),
-    paste("##number of iterations:", iterations, collapse = " "), 
+    paste("##number of iterations:", iterations, was_denoising_used, collapse = " "), 
     paste("##quality used at final iteration:", threshold, collapse = " "), 
     paste("##was it outlier after clustering:", outliersByClustering[sam_no], collapse = " "),
     paste("##fraction of outliers:", round(median(vectorWithNumberOfOutliers), digits=3), collapse = " ")), fileConn)
