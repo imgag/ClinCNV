@@ -536,7 +536,7 @@ for (sam_no in 1:ncol(coverage.normalised)) {
   fileConn<-file(fileToOut)
   was_denoising_used = ""
   if (opt$denoise > 0) {
-    was_denoising_used =  paste0(", denoising value used", as.character(opt$denoise))
+    was_denoising_used =  paste0(", denoising value used: ", as.character(opt$denoise))
   }
   writeLines(c(
     paste0("##ANALYSISTYPE=CLINCNV_GERMLINE_SINGLE"), 
